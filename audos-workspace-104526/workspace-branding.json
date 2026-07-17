@@ -1,0 +1,147 @@
+{
+  "businessPlan": "## Business Overview\nFoundarOS\n\n## Customer Profile\nFirst-time aspiring entrepreneurs — someone with a business idea but no company built yet, minimal startup knowledge, trying to understand what investors expect and whether their idea is fundable.\n\n### Pain Points\n- FoundarOS users are first-time aspiring entrepreneurs with a business idea but no company built yet. They want to know whether their idea is fundable, what investors actually expect, and where they stand today versus where they need to be. Ultimately, they're trying to turn uncertainty into a clear path — with enough confidence to either pursue funding seriously or fix the gaps that are holding them back.\n\n## Key Problems\n- **FoundarOS users are first-time aspiring entreprene**: FoundarOS users are first-time aspiring entrepreneurs with a business idea but no company built yet. They want to know whether their idea is fundable, what investors actually expect, and where they stand today versus where they need to be. Ultimately, they're trying to turn uncertainty into a clear path — with enough confidence to either pursue funding seriously or fix the gaps that are holding them back.\n\n## Customer Journey\n## 1. USER GOALS\n\nFoundarOS users are first-time aspiring entrepreneurs with a business idea but no company built yet. They want to know whether their idea is fundable, what investors actually expect, and where they stand today versus where they need to be. Ultimately, they're trying to turn uncertainty into a clear path — with enough confidence to either pursue funding seriously or fix the gaps that are holding them back.\n\n---\n\n## 2. QUALIFYING QUESTIONS\n\n**\"Where are you in your startup journey right now?\"**\n1. I have an idea but haven't started building or talking to customers yet\n2. I've done some early validation but nothing formal or investor-ready\n3. I'm preparing to pitch and want to know if I'm actually ready\n\n**\"What would help you most right now?\"**\n1. An honest read on whether my idea is fundable\n2. A clear list of what's missing before I approach investors\n3. Draft documents I can actually use — plan, deck, and summary\n\n---\n\n## 3. JOURNEY NARRATIVE\n\nMost founders arrive with a mix of excitement and anxiety — they have an idea they believe in, but no reliable way to benchmark it against what investors look for. The agent's job is to meet them there, warmly and without jargon, and guide them into the free 30-question assessment as a natural first step, not a form to fill out.\n\nAs they answer, the agent helps them think through each category — Idea Clarity, Market Validation, Financial Thinking, and Fundability — offering light coaching when answers feel thin or vague. When the Funding Readiness Score lands, the agent walks them through what it means in plain language: what's strong, what's weak, and what investors would likely push back on. This is the moment trust builds.\n\nFrom there, the journey branches based on their score and goals. Lower scores lead to a focused gap-fixing path; higher scores move toward document preparation. The agent stays conversational throughout — celebrating progress, reframing setbacks as fixable gaps, and connecting each recommendation to a real investor expectation.\n\nOver time, the agent learns from every interaction: which categories founders struggle with most, which gaps correlate with low scores, and which follow-up advice actually moves people forward. That pattern recognition makes each session feel more personal — less generic startup advice, more \"here's exactly what you need next.\"\n\n---\n\n## 4. APP SUPPORT MAP\n\n**Creation tools** (Business Plan draft, Pitch Deck outline, Executive Summary) are best recommended once the user has completed the assessment and understands their gaps — especially when their score is moderate-to-high and they're asking \"what do I actually show investors?\" **Tracking tools** (Funding Readiness Score, category breakdown, gap analysis) serve users throughout, but are most valuable early and after they make improvements, so they can see movement across categories. **Automation tools** (guided assessment flow, smart gap prioritization, document generation from assessment answers) reduce friction for overwhelmed first-timers who don't know where to start. Recommend creation and full gap analysis when the user signals readiness to act; lean on tracking and guided assessment when they're still exploring or need clarity first.\n\n---\n\n## 5. COMMUNITY OPPORTUNITIES\n\nFounders benefit enormously from seeing how others at a similar stage scored, which gaps were most common, and what actually moved the needle before a successful raise. Shared patterns — \"most first-time founders score lowest on Market Validation\" or \"founders who improved Financial Thinking by 20+ points did X\" — turn isolated anxiety into collective intelligence. The entrepreneur can harness anonymized assessment trends and success stories to help each cohort learn from the last, making every new founder's path faster than starting from zero.\n\n---\n\n## 6. MONETIZATION HOOK\n\nThe free assessment and Funding Readiness Score are the proof — they show the user something specific, honest, and actionable about their idea without asking for anything first. The \"aha\" moment that makes payment feel natural happens right after the score reveal, when the user sees their category breakdown and gap analysis preview: they suddenly understand *why* investors might pass, and they want the full picture plus the documents to fix it. Pulling out a credit card isn't about buying a PDF — it's about closing the gap between \"I have an idea\" and \"I have something I can actually pitch.\"\n\nThat first payment moment is different from why they stay subscribed month after month. The initial upgrade is triggered by urgency and clarity — \"I need my plan, deck, and summary now.\" Ongoing value comes from iteration: rescoring after improvements, updated documents as the business evolves, and continued guidance as they move from fundability assessment toward actual fundraising conversations.\n\nThe free→paid boundary should sit right after the score and partial gap analysis. Free users get the full assessment, their overall score, category breakdown, and a taste of what's holding them back. Behind the paywall: the complete gap analysis with prioritized action steps, plus generated Business Plan, Pitch Deck outline, and Executive Summary tailored to their answers.\n\nDesign backward from that payment moment: before someone decides to pay, they need to (1) complete the assessment and trust the scoring, (2) see a gap that feels real and fixable, and (3) realize that generating investor-ready documents from their own answers saves weeks of work. When those three things land in sequence, upgrading feels like the obvious next step — not a sales pitch.\n\n## AI Tool Suite\n### Gap Radar\n**Purpose**: Log, prioritize, and close funding-readiness gaps across Idea Clarity, Market Validation, Financial Thinking, and Fundability after the 30-question assessment.\n**User Story**: I want one place to see every gap holding my startup back and track what I've actually fixed before I approach investors.\n\n---\n*Generated on 7/15/2026*\n",
+  "workspaceId": "abb0d8aa-e900-4f77-b506-6f5450c3838b",
+  "configId": 104526,
+  "name": "FoundarOS",
+  "tagline": "The AI operating system for every stage of your founder journey.",
+  "logoUrl": "https://storage.googleapis.com/audos-images/brand-icons/09a33912-84fd-457d-ac2c-621ba4082667.mono.png",
+  "iconUrl": "https://storage.googleapis.com/audos-images/brand-icons/09a33912-84fd-457d-ac2c-621ba4082667.mono.png",
+  "logoOnDarkUrl": "https://storage.googleapis.com/audos-images/brand-icons/09a33912-84fd-457d-ac2c-621ba4082667.mono.png",
+  "colors": {
+    "primary": "#0284c7",
+    "highlight": "#ff6b6b",
+    "contrast": "#2dd4bf",
+    "secondary": "#ff6b6b",
+    "accent": "#2dd4bf",
+    "primaryScale": {
+      "50": "#ebf5fb",
+      "100": "#d7ebf6",
+      "200": "#b8ddef",
+      "500": "#0279b7",
+      "600": "#0284c7",
+      "700": "#026fa7",
+      "900": "#015783"
+    },
+    "highlightScale": {
+      "50": "#fff3f3",
+      "100": "#ffe7e7",
+      "200": "#ffd6d6",
+      "500": "#eb6262",
+      "600": "#ff6b6b",
+      "700": "#d65a5a",
+      "900": "#a84747"
+    },
+    "surfaces": {
+      "page": "#f2f9fc",
+      "pageAlt": "#eafbf9",
+      "gradientFrom": "#f2f9fc",
+      "gradientVia": "#eafbf9",
+      "gradientTo": "#fff5f5",
+      "card": "#ffffff",
+      "cardHover": "#f5fafd",
+      "panel": "#ffffff",
+      "panelStrong": "#ffffff",
+      "muted": "#fafdfe",
+      "accentSoft": "#fff0f0",
+      "border": "#c7e4f3",
+      "borderStrong": "#a9d5ec"
+    },
+    "text": {
+      "primary": "#012538",
+      "secondary": "#01476b",
+      "brand": "#012538",
+      "accent": "#471e1e",
+      "muted": "#015c8b",
+      "onPrimary": "#000000",
+      "onHighlight": "#111827",
+      "onContrast": "#111827"
+    },
+    "semantic": {
+      "success": "#16a34a",
+      "warning": "#d97706",
+      "danger": "#dc2626"
+    },
+    "shell": {
+      "buttonText": "#000000",
+      "accentButtonText": "#111827",
+      "dockText": "#000000",
+      "icon": "#471e1e",
+      "shadow": "#b3daee",
+      "shadowStrong": "#90c9e6"
+    }
+  },
+  "palette": {
+    "primary": "#0284c7",
+    "highlight": "#ff6b6b",
+    "contrast": "#2dd4bf",
+    "secondary": "#ff6b6b",
+    "accent": "#2dd4bf",
+    "primaryScale": {
+      "50": "#ebf5fb",
+      "100": "#d7ebf6",
+      "200": "#b8ddef",
+      "500": "#0279b7",
+      "600": "#0284c7",
+      "700": "#026fa7",
+      "900": "#015783"
+    },
+    "highlightScale": {
+      "50": "#fff3f3",
+      "100": "#ffe7e7",
+      "200": "#ffd6d6",
+      "500": "#eb6262",
+      "600": "#ff6b6b",
+      "700": "#d65a5a",
+      "900": "#a84747"
+    },
+    "surfaces": {
+      "page": "#f2f9fc",
+      "pageAlt": "#eafbf9",
+      "gradientFrom": "#f2f9fc",
+      "gradientVia": "#eafbf9",
+      "gradientTo": "#fff5f5",
+      "card": "#ffffff",
+      "cardHover": "#f5fafd",
+      "panel": "#ffffff",
+      "panelStrong": "#ffffff",
+      "muted": "#fafdfe",
+      "accentSoft": "#fff0f0",
+      "border": "#c7e4f3",
+      "borderStrong": "#a9d5ec"
+    },
+    "text": {
+      "primary": "#012538",
+      "secondary": "#01476b",
+      "brand": "#012538",
+      "accent": "#471e1e",
+      "muted": "#015c8b",
+      "onPrimary": "#000000",
+      "onHighlight": "#111827",
+      "onContrast": "#111827"
+    },
+    "semantic": {
+      "success": "#16a34a",
+      "warning": "#d97706",
+      "danger": "#dc2626"
+    },
+    "shell": {
+      "buttonText": "#000000",
+      "accentButtonText": "#111827",
+      "dockText": "#000000",
+      "icon": "#471e1e",
+      "shadow": "#b3daee",
+      "shadowStrong": "#90c9e6"
+    }
+  },
+  "typography": {
+    "font": "DM Sans",
+    "category": "sans-serif",
+    "weights": [
+      400,
+      700
+    ],
+    "headingFont": "DM Sans",
+    "bodyFont": "DM Sans"
+  },
+  "heroVideoUrl": "https://storage.googleapis.com/audos-images/videos/scene_group_1784114819566_stitched.mp4"
+}
