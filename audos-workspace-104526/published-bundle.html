@@ -4220,10 +4220,10 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// ../../../tmp/space-workspace-104526-geJUOM/lib/colors.ts
+// ../../../tmp/space-workspace-104526-AQmLZx/lib/colors.ts
 var brand, semantic, neutral, typography, colors, tw, authStyles, settingsStyles;
 var init_colors = __esm({
-  "../../../tmp/space-workspace-104526-geJUOM/lib/colors.ts"() {
+  "../../../tmp/space-workspace-104526-AQmLZx/lib/colors.ts"() {
     brand = {
       // Primary brand color - used for main actions, buttons, links
       primary: {
@@ -4528,7 +4528,7 @@ var init_colors = __esm({
   }
 });
 
-// ../../../tmp/space-workspace-104526-geJUOM/apps/GapRadar/questions.ts
+// ../../../tmp/space-workspace-104526-AQmLZx/apps/GapRadar/questions.ts
 function getOptionScore(question, answer) {
   if (question.type !== "choice" || !question.options || answer === void 0 || answer === "") return null;
   const idx = Number(answer);
@@ -4593,7 +4593,7 @@ function computeTopGaps(answers, categoryScores) {
 }
 var CATEGORY_LABELS, MAX_OPTION_SCORE, QUESTIONS, TOTAL_QUESTIONS, SEVERITY_FOR_SCORE;
 var init_questions = __esm({
-  "../../../tmp/space-workspace-104526-geJUOM/apps/GapRadar/questions.ts"() {
+  "../../../tmp/space-workspace-104526-AQmLZx/apps/GapRadar/questions.ts"() {
     CATEGORY_LABELS = {
       idea_clarity: "Idea Clarity",
       market_validation: "Market Validation",
@@ -5045,7 +5045,7 @@ var init_questions = __esm({
   }
 });
 
-// ../../../tmp/space-workspace-104526-geJUOM/apps/GapRadar/documents.ts
+// ../../../tmp/space-workspace-104526-AQmLZx/apps/GapRadar/documents.ts
 function isCompletePackInput(input) {
   const choiceQuestions = QUESTIONS.filter((q) => q.type === "choice");
   const hasEveryChoice = choiceQuestions.every((q) => getOptionScore(q, input.answers[q.id]) !== null);
@@ -5934,7 +5934,7 @@ ${spec.instructions}`, spec.maxTokens);
 }
 var NAME_PLACEHOLDER, PRONOUN_STARTS, PITCH_DECK_TEMPLATE_NOTE, LOGO_PLACEHOLDER, BRAND_COLOURS_NOTE, REQUIRED_DOCUMENT_IDS, REQUIRED_MARKERS, AI_MODEL, AI_TIMEOUT_MS, AI_SYSTEM_PROMPT, AI_DOC_SPECS;
 var init_documents = __esm({
-  "../../../tmp/space-workspace-104526-geJUOM/apps/GapRadar/documents.ts"() {
+  "../../../tmp/space-workspace-104526-AQmLZx/apps/GapRadar/documents.ts"() {
     init_questions();
     NAME_PLACEHOLDER = "[Your Company Name]";
     PRONOUN_STARTS = /* @__PURE__ */ new Set(["We", "I", "Our", "My", "The", "A", "An", "It", "This", "They", "You"]);
@@ -6024,7 +6024,7 @@ var init_documents = __esm({
   }
 });
 
-// ../../../tmp/space-workspace-104526-geJUOM/apps/GapRadar/App.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/apps/GapRadar/App.tsx
 var App_exports = {};
 __export(App_exports, {
   default: () => GapRadar
@@ -8122,7 +8122,7 @@ function GapRadar() {
 }
 var CATEGORIES, SEVERITY_ORDER, SEVERITY_IMPACT, STRIPE_TEST_MODE2, STRIPE_PAYMENT_LINK_URL, UNLOCK_PRICE_CENTS, FOUNDER_TEST_PATTERN, FOUNDER_TEST_AT_LOAD, PITCH_DIMENSIONS, PITCH_MIN_WORDS, PITCH_MAX_WORDS, COMING_SOON_OPERATIONS, COMING_SOON_COACHES, NOTIFY_STORAGE_KEY;
 var init_App = __esm({
-  "../../../tmp/space-workspace-104526-geJUOM/apps/GapRadar/App.tsx"() {
+  "../../../tmp/space-workspace-104526-AQmLZx/apps/GapRadar/App.tsx"() {
     init_colors();
     init_questions();
     init_documents();
@@ -8185,14 +8185,14 @@ var init_App = __esm({
   }
 });
 
-// ../../../tmp/space-workspace-104526-geJUOM/main.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/main.tsx
 import React, { Suspense as Suspense2, useState as useState8, useEffect as useEffect8, Component as Component2 } from "react";
 import { createRoot } from "react-dom/client";
 
-// ../../../tmp/space-workspace-104526-geJUOM/SpaceRuntimeContext.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/SpaceRuntimeContext.tsx
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 
-// ../../../tmp/space-workspace-104526-geJUOM/lib/tenant-delegation-scope.ts
+// ../../../tmp/space-workspace-104526-AQmLZx/lib/tenant-delegation-scope.ts
 function getTenantDelegationScope() {
   if (typeof window === "undefined") return null;
   const injected = window.__TENANT_DELEGATION__;
@@ -8234,7 +8234,7 @@ function getDelegationChatRequestExtras() {
   };
 }
 
-// ../../../tmp/space-workspace-104526-geJUOM/SpaceRuntimeContext.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/SpaceRuntimeContext.tsx
 import { jsx } from "react/jsx-runtime";
 var SpaceRuntimeContext = createContext(null);
 var VISITOR_COOKIE = "audos_vid";
@@ -9350,11 +9350,11 @@ function useSpaceRuntime() {
   return context;
 }
 
-// ../../../tmp/space-workspace-104526-geJUOM/Desktop.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/Desktop.tsx
 import { useState as useState6, Suspense, useEffect as useEffect6, useRef as useRef3, useMemo, useCallback as useCallback3, Component } from "react";
 import { Bot as Bot3, Folder as Folder2, X as X3, Plus as Plus2, Menu, PanelLeftClose, PanelLeftOpen, ChevronLeft, Activity, Maximize2, Minimize2, Moon, Heart as Heart2, Calendar, Users as Users2, FileText as FileText2, BarChart, Settings as SettingsIcon, MessageCircle, Plane, TrendingUp, LineChart, Dumbbell, Brain, Target, Zap, Star, Clock as Clock2, CheckCircle, List, BookOpen as BookOpen2, Coffee, Music, Camera, MapPin, Wallet, ShoppingCart, Gift, Lightbulb as Lightbulb2, Sparkles as Sparkles3, Rocket as Rocket2, Home, Building, Globe, Mail, Phone, Video, Mic, Image, Play, Pause, Volume2, Wifi, Cloud, Sun, Umbrella, Thermometer, Wind, Droplets, Leaf, Flower2, Mountain, Waves, Compass, Map, Navigation, Car, Bike, Ship, Award, Trophy, Medal, Crown, Diamond, Gem, Key, Lock as Lock2, Unlock, Shield, Eye as Eye2, Search as Search2, Filter, SortAsc, Download, Upload, Share2, Link, ExternalLink as ExternalLink2, Copy, Clipboard, Trash2, Edit as Edit2, Pencil, PenTool, Scissors, Bookmark, Flag, Bell, AlertCircle as AlertCircle2, Info, HelpCircle, XCircle as XCircle2, CheckCircle2 as CheckCircle22, Circle, Square, Triangle, Hexagon, Octagon, Hash, AtSign, DollarSign, Percent, Calculator as Calculator2, Code, Terminal, Database, Server, Cpu, Monitor, Smartphone, Tablet, Laptop, Watch, Headphones, Speaker, Radio, Tv, Printer, Scan, QrCode, Barcode, CreditCard as CreditCard2, Receipt, Banknote, PiggyBank, TrendingDown, AreaChart, PieChart } from "lucide-react";
 
-// ../../../tmp/space-workspace-104526-geJUOM/components/AgentChatView.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/components/AgentChatView.tsx
 import {
   Bot,
   Send,
@@ -9375,7 +9375,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-// ../../../tmp/space-workspace-104526-geJUOM/lib/friendly-terms.ts
+// ../../../tmp/space-workspace-104526-AQmLZx/lib/friendly-terms.ts
 var TOOL_NAME_PREFIX_RE = /^(?:functions\.|tools\.)/;
 var toolNameAliases = {
   "edit_file": "edit",
@@ -9441,7 +9441,7 @@ function getToolColor(toolName) {
   return toolColors[normalizeToolName(toolName)] || "text-gray-500";
 }
 
-// ../../../tmp/space-workspace-104526-geJUOM/components/AgentChatView.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/components/AgentChatView.tsx
 init_colors();
 import { Fragment, jsx as jsx2, jsxs } from "react/jsx-runtime";
 function WorkingIndicator({
@@ -9963,7 +9963,7 @@ function AgentChatView({ runtime }) {
   );
 }
 
-// ../../../tmp/space-workspace-104526-geJUOM/components/useAgentChatRuntime.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/components/useAgentChatRuntime.tsx
 import { useState as useState2, useEffect as useEffect2, useRef as useRef2, useCallback as useCallback2 } from "react";
 import { flushSync } from "react-dom";
 var globalSendingLock = false;
@@ -11074,6 +11074,7 @@ function useAgentChatRuntime(props) {
     await sendMessageWithContent(messageToSend, attachmentsToSend);
   };
   const handleKeyDown = (e) => {
+    if (e.nativeEvent.isComposing) return;
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !loading) {
       e.preventDefault();
       sendMessage();
@@ -11123,14 +11124,14 @@ function useAgentChatRuntime(props) {
   };
 }
 
-// ../../../tmp/space-workspace-104526-geJUOM/components/AgentChat.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/components/AgentChat.tsx
 import { jsx as jsx3 } from "react/jsx-runtime";
 function AgentChat(props) {
   const runtime = useAgentChatRuntime(props);
   return /* @__PURE__ */ jsx3(AgentChatView, { runtime });
 }
 
-// ../../../tmp/space-workspace-104526-geJUOM/components/FileBrowser.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/components/FileBrowser.tsx
 import { useState as useState3, useEffect as useEffect3 } from "react";
 import { File as File2, Folder, Eye, Edit } from "lucide-react";
 import { jsx as jsx4, jsxs as jsxs2 } from "react/jsx-runtime";
@@ -11268,7 +11269,7 @@ function FileBrowser({ fileAccessLogs = [] }) {
   ] });
 }
 
-// ../../../tmp/space-workspace-104526-geJUOM/components/EmailGate.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/components/EmailGate.tsx
 import { useState as useState4, useEffect as useEffect4 } from "react";
 import {
   ArrowRight,
@@ -13037,7 +13038,7 @@ function EmailGate({
   ] });
 }
 
-// ../../../tmp/space-workspace-104526-geJUOM/components/Settings.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/components/Settings.tsx
 import { useState as useState5, useEffect as useEffect5 } from "react";
 import { Save as Save2, CreditCard, LogOut, Clock, CheckCircle2, AlertCircle, Loader2 as Loader22, ExternalLink, CalendarX } from "lucide-react";
 init_colors();
@@ -13493,7 +13494,7 @@ function Settings({ spaceId }) {
   ] }) });
 }
 
-// ../../../tmp/space-workspace-104526-geJUOM/lib/tenant-delegation-canvas.ts
+// ../../../tmp/space-workspace-104526-AQmLZx/lib/tenant-delegation-canvas.ts
 function isTenantDelegationCanvas() {
   if (typeof window === "undefined") return false;
   const layout = new URLSearchParams(window.location.search).get("layout");
@@ -13501,7 +13502,7 @@ function isTenantDelegationCanvas() {
   return !!window.__TENANT_DELEGATION__ || !!window.__TENANT_DELEGATION_CANVAS__ || layout === "canvas-only";
 }
 
-// ../../../tmp/space-workspace-104526-geJUOM/Desktop.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/Desktop.tsx
 import { Fragment as Fragment4, jsx as jsx7, jsxs as jsxs5 } from "react/jsx-runtime";
 var PRIMARY_THREAD_ID = "main";
 var THREAD_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
@@ -14499,7 +14500,7 @@ function SpaceDesktop({
   ] });
 }
 
-// ../../../tmp/space-workspace-104526-geJUOM/main.tsx
+// ../../../tmp/space-workspace-104526-AQmLZx/main.tsx
 import { Fragment as Fragment6, jsx as jsx9, jsxs as jsxs7 } from "react/jsx-runtime";
 window.React = React;
 var CONFIG = {
