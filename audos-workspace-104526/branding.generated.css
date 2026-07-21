@@ -1,54 +1,87 @@
-:root {
-  --space-brand-primary: #0284c7;
-  --space-brand-highlight: #ff6b6b;
-  --space-brand-contrast: #2dd4bf;
-  --space-brand-primary-50: #ebf5fb;
-  --space-brand-primary-100: #d7ebf6;
-  --space-brand-primary-200: #b8ddef;
-  --space-brand-primary-500: #0279b7;
-  --space-brand-primary-600: #0284c7;
-  --space-brand-primary-700: #026fa7;
-  --space-brand-primary-900: #015783;
-  --space-brand-highlight-50: #fff3f3;
-  --space-brand-highlight-100: #ffe7e7;
-  --space-brand-highlight-200: #ffd6d6;
-  --space-brand-highlight-500: #eb6262;
-  --space-brand-highlight-600: #ff6b6b;
-  --space-brand-highlight-700: #d65a5a;
-  --space-brand-highlight-900: #a84747;
-  --space-surface-page: #f2f9fc;
-  --space-surface-page-alt: #eafbf9;
-  --space-surface-gradient-from: #f2f9fc;
-  --space-surface-gradient-via: #eafbf9;
-  --space-surface-gradient-to: #fff5f5;
-  --space-surface-card: #ffffff;
-  --space-surface-card-hover: #f5fafd;
-  --space-surface-panel: #ffffff;
-  --space-surface-panel-strong: #ffffff;
-  --space-surface-muted: #fafdfe;
-  --space-surface-accent-soft: #fff0f0;
-  --space-border-default: #c7e4f3;
-  --space-border-strong: #a9d5ec;
-  --space-text-primary: #012538;
-  --space-text-secondary: #01476b;
-  --space-text-brand: #012538;
-  --space-text-accent: #471e1e;
-  --space-text-muted: #015c8b;
-  --space-text-on-primary: #000000;
-  --space-text-on-highlight: #111827;
-  --space-text-on-contrast: #111827;
-  --space-semantic-success: #16a34a;
-  --space-semantic-warning: #d97706;
-  --space-semantic-danger: #dc2626;
-  --space-shell-button-text: #000000;
-  --space-shell-accent-button-text: #111827;
-  --space-shell-dock-text: #000000;
-  --space-shell-icon: #471e1e;
-  --space-shell-shadow: #b3daee;
-  --space-shell-shadow-strong: #90c9e6;
-}
+{
+  "name": "FoundarOS",
+  "tagline": "The AI operating system for every stage of your founder journey.",
+  "logoUrl": "https://storage.googleapis.com/audos-images/brand-icons/09a33912-84fd-457d-ac2c-621ba4082667.mono.png",
+  "iconUrl": "https://storage.googleapis.com/audos-images/brand-icons/09a33912-84fd-457d-ac2c-621ba4082667.mono.png",
+  "logoOnDarkUrl": "https://storage.googleapis.com/audos-images/brand-icons/09a33912-84fd-457d-ac2c-621ba4082667.mono.png",
 
-body {
-  color: var(--space-text-primary);
-  background: var(--space-surface-page);
+  "_comment_hero": "Hero video intentionally removed per redesign brief â€” hero now runs on the dark gradient + readiness gauge treatment below, matching the pitch deck.",
+  "heroVideoUrl": "",
+
+  "colors": {
+    "primary": "#7C3AED",
+    "highlight": "#14B8A6",
+    "contrast": "#F5A623",
+    "secondary": "#A78BFA",
+    "accent": "#10B981",
+
+    "primaryScale": {
+      "50": "#F3EFFE",
+      "100": "#E4D9FC",
+      "200": "#C9B3F9",
+      "500": "#8B5CF6",
+      "600": "#7C3AED",
+      "700": "#6224D6",
+      "900": "#4C1D95"
+    },
+    "highlightScale": {
+      "50": "#ECFDF9",
+      "100": "#CCFBF1",
+      "200": "#99F6E4",
+      "500": "#2DD4BF",
+      "600": "#14B8A6",
+      "700": "#0F766E",
+      "900": "#134E4A"
+    },
+
+    "surfaces": {
+      "page": "#0A0B14",
+      "pageAlt": "#0D0F1D",
+      "gradientFrom": "#0A0B14",
+      "gradientVia": "#0D0F1D",
+      "gradientTo": "#4C1D95",
+      "card": "rgba(255,255,255,0.03)",
+      "cardHover": "rgba(255,255,255,0.06)",
+      "panel": "#10121F",
+      "panelStrong": "#141726",
+      "muted": "#0D0F1D",
+      "accentSoft": "rgba(124,58,237,0.12)",
+      "border": "rgba(167,139,250,0.18)",
+      "borderStrong": "rgba(167,139,250,0.35)"
+    },
+
+    "text": {
+      "primary": "#F5F5FA",
+      "secondary": "#9599B8",
+      "brand": "#F5F5FA",
+      "accent": "#A78BFA",
+      "muted": "#6B7094",
+      "onPrimary": "#FFFFFF",
+      "onHighlight": "#0A0B14",
+      "onContrast": "#0A0B14"
+    },
+
+    "semantic": {
+      "success": "#10B981",
+      "warning": "#F5A623",
+      "danger": "#F0653F"
+    },
+
+    "shell": {
+      "buttonText": "#FFFFFF",
+      "accentButtonText": "#0A0B14",
+      "dockText": "#F5F5FA",
+      "icon": "#A78BFA",
+      "shadow": "rgba(124,58,237,0.35)",
+      "shadowStrong": "rgba(124,58,237,0.6)"
+    }
+  },
+
+  "typography": {
+    "font": "Space Grotesk",
+    "category": "sans-serif",
+    "weights": [400, 500, 600, 700],
+    "headingFont": "Space Grotesk",
+    "bodyFont": "Inter"
+  }
 }
