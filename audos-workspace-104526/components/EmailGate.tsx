@@ -1013,9 +1013,19 @@ export default function EmailGate({
   const onHighlight = selectedAccentOverridesPalette
     ? readableTextColor(highlightColor)
     : palette?.text?.onHighlight || onPrimary;
-  // Vibrant hero gradient built from the workspace palette (never hardcoded
-  // brand hex) so every generated space gets its own energetic look.
-  const heroGradient = `linear-gradient(135deg, ${primaryColor} 0%, ${highlightColor} 55%, ${contrastColor} 115%)`;
+  // Dark, glow-based hero background built from the workspace palette (never
+  // hardcoded brand hex): a soft radial bloom of the primary color over the
+  // page's own dark surface, matching the pitch-deck's moody, instrument-panel
+  // aesthetic rather than a loud multi-hue gradient.
+  const heroGradient = `radial-gradient(1100px 620px at 82% -8%, ${colorWithAlpha(
+    primaryColor,
+    0.38
+  )}, transparent 62%), radial-gradient(760px 520px at 6% 20%, ${colorWithAlpha(
+    contrastColor,
+    0.14
+  )}, transparent 65%), linear-gradient(180deg, ${pageBackground} 0%, ${
+    palette?.surfaces?.pageAlt || pageBackground
+  } 100%)`;
   const brandGradient = `linear-gradient(135deg, ${primaryColor} 0%, ${highlightColor} 100%)`;
   // Hero copy + CTAs sit on the gradient/video, so they stay white over a
   // dark scrim. The scrim deepens for light primaries so text stays legible
@@ -1025,12 +1035,11 @@ export default function EmailGate({
     ? (0.2126 * primaryRgb.r + 0.7152 * primaryRgb.g + 0.0722 * primaryRgb.b) / 255 > 0.62
     : false;
   const heroScrim = `linear-gradient(105deg, rgba(0,0,0,${primaryIsLight ? 0.6 : 0.42}) 0%, rgba(0,0,0,${primaryIsLight ? 0.42 : 0.18}) 48%, rgba(0,0,0,0) 88%)`;
-  const heroVideoUrl =
-    branding?.heroVideoUrl ||
-    runtimeBranding.heroVideoUrl ||
-    (window as any).__WORKSPACE_HERO_VIDEO_URL__ ||
-    '';
-  const heroHasVideo = typeof heroVideoUrl === 'string' && heroVideoUrl.trim().length > 0;
+  // Hero video intentionally disabled per redesign brief — the hero now runs
+  // on the dark gradient + readiness-gauge treatment instead of a video, to
+  // match the pitch deck. Kept as `false` (rather than deleted) so any stray
+  // `heroHasVideo` references below still resolve safely.
+  const heroHasVideo = false;
   const loginPanelId = 'email-gate-login-panel';
 
   const openLogin = () => {
@@ -1051,35 +1060,37 @@ export default function EmailGate({
       desc: 'Have you proven people actually want this?',
     },
     {
-      title: 'Financial Thinking',
-      desc: 'Do the numbers add up?',
+      title: 'Business Model Strength',
+      desc: 'Do your pricing and unit economics hold up?',
     },
     {
-      title: 'Fundability',
-      desc: 'Are you ready for investor conversations?',
+      title: 'Investor & Growth Readiness',
+      desc: 'Are you ready for investor and growth conversations?',
     },
   ];
   const howItWorks = [
     { step: '1', title: 'Take the assessment', desc: 'Answer 30 focused questions about your idea, market, and numbers. No prep, no documents required.' },
-    { step: '2', title: 'See your score and gaps', desc: 'Get your Funding Readiness Score and an honest read on exactly where investors would push back.' },
-    { step: '3', title: 'Unlock your next steps', desc: 'Upgrade once ($49) to generate five downloadable documents — including a real editable PowerPoint Pitch Deck — plus the AI Pitch Coach.' },
+    { step: '2', title: 'See your score and gaps', desc: "Get your Startup Readiness Score and an honest breakdown of exactly where to focus — whether that's your business model, market evidence, or financial assumptions." },
+    { step: '3', title: 'Build from your results', desc: 'Upgrade once ($49) to generate your full starter pack: business plan, pitch deck, financial model, grant application assistant, executive summary, and AI pitch coaching — all tailored to your assessment answers.' },
   ];
   const whoWeServe = [
     { title: 'Aspiring entrepreneurs', desc: 'You have an idea and want to turn it into a viable business. Start with an honest read on where it stands before you go all in.' },
-    { title: 'Early-stage startups', desc: 'You are building and validating your model. Find the gaps investors would flag and close them while you still have time.' },
-    { title: 'Small businesses seeking funding', desc: 'You need capital to grow. Prepare a fundable case — the plan, deck, and financial model lenders and investors expect.' },
-    { title: 'Founders preparing for grants, accelerators & investors', desc: 'The pitch is coming. Get pitch-ready with grant application support and AI-powered pitch practice before the big conversations.' },
+    { title: 'Early-stage startups', desc: "You've validated the idea and now need the documents to move forward — business plan, pitch deck, financial model. Stop Googling templates and start generating." },
+    { title: 'Small businesses seeking funding', desc: `You've been operating but now want to raise. ${brandName} scores your readiness, identifies exactly what investors will challenge, and helps you fix it before the conversation.` },
+    { title: 'Funded & scaling', desc: "You've raised your first round. Now build the systems that let you actually run the company — SOPs, HR handbook, vendor agreements, KPI dashboards, and board templates.", comingSoon: true },
   ];
   const faqs = [
-    { q: 'How long does the assessment take?', a: 'About 5–10 minutes. It is 30 focused questions about your idea, market, and numbers — no documents or prep required.' },
-    { q: 'Is it free?', a: 'Yes. The assessment, your Funding Readiness Score, your category breakdown, and your top gaps with recommended actions are all free. A $49 one-time upgrade unlocks five downloadable documents — a Business Plan, editable PowerPoint Pitch Deck, Financial Model, Grant Application Assistant, and Action Plan — plus the AI Pitch Coach.' },
-    { q: 'What do I get at the end?', a: 'Your overall Funding Readiness Score, a breakdown across Idea Clarity, Market Validation, Financial Thinking, and Fundability, and a clear view of the gaps investors would push back on — with the option to unlock the full document pack and AI pitch coaching, built from your own answers.' },
-    { q: 'Who is this for?', a: 'Founders at every stage: aspiring entrepreneurs turning ideas into viable businesses, early-stage startups building and validating their model, small businesses preparing a fundable case, and founders getting pitch-ready for grants, accelerators, and investors.' },
-    { q: 'What is coming next?', a: 'Business Support & Operations for founders post-incorporation — SOPs, HR handbook, employee contracts, vendor agreements, policies, KPI dashboards, and more — plus a bench of specialist AI coaches, from CFO AI to Grant Coach. Funding readiness is live today; these are next on the roadmap.' },
+    { q: 'How long does the assessment take?', a: 'About 10–15 minutes. There are 30 focused questions — no essays, no spreadsheets. You can save your progress and come back if needed.' },
+    { q: 'What happens after I complete the assessment?', a: 'You get your Startup Readiness Score immediately — broken down across four dimensions with your top gaps highlighted. From there you can upgrade once ($49) to generate your full document pack.' },
+    { q: 'What documents do I get with the $49 upgrade?', a: 'You get six deliverables tailored to your assessment answers: a Business Plan, a Pitch Deck (editable PowerPoint in your brand colours), a Financial Model, a Grant Application Assistant, an Executive Summary, and access to the AI Pitch Coach for practice sessions.' },
+    { q: 'Is my information private and secure?', a: 'Yes. Your assessment answers and generated documents are private to your account. We do not share or sell your data. You can delete your account and all associated data at any time from your account settings.' },
+    { q: 'What countries is FoundarOS available in?', a: 'FoundarOS is available globally. The platform is especially designed for founders in Africa and emerging markets — grant matching, currency handling, and funding recommendations are localised where possible.' },
+    { q: "Can I edit the documents after they're generated?", a: "Yes. All documents are delivered as editable files — the Pitch Deck as a PowerPoint file, the Business Plan and other documents in formats you can open and edit in Word, Google Docs, or similar. They're starting points, not locked outputs." },
+    { q: "What's coming next on the platform?", a: 'Business Operations tools (SOPs, HR handbook, procurement policies, vendor agreements, KPI dashboards) and AI Coaches (CFO AI, Grant Coach, CEO Coach, HR Manager, and more) are in development. Sign up to get early access when they launch.' },
   ];
   const readinessFree = [
     '30-question readiness assessment',
-    'Funding Readiness Score with category breakdown',
+    'Startup Readiness Score with category breakdown',
     'Top gaps and recommended actions',
   ];
   const readinessPaid = [
@@ -1514,7 +1525,7 @@ export default function EmailGate({
                 className="truncate text-xs transition-colors"
                 style={{ color: scrolled ? textMuted : 'rgba(255,255,255,0.75)' }}
               >
-                {tagline}
+                AI operating system for founders
               </p>
             </div>
           </a>
@@ -1545,7 +1556,7 @@ export default function EmailGate({
             type="button"
             onClick={openLogin}
             className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition hover:opacity-90"
-            style={{ backgroundColor: highlightColor, color: onHighlight }}
+            style={{ backgroundColor: primaryColor, color: onPrimary }}
           >
             Start free assessment
             <ArrowRight size={15} strokeWidth={2.6} />
@@ -1555,20 +1566,9 @@ export default function EmailGate({
       <section
         id="hero"
         className="relative flex min-h-screen min-h-[100svh] items-center overflow-hidden px-6 py-24 sm:py-28"
-        style={{ background: heroHasVideo ? '#0f172a' : heroGradient }}
+        style={{ background: heroGradient }}
       >
-        {heroHasVideo && (
-          <video
-            src={heroVideoUrl}
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        )}
-        <div className="absolute inset-0 bg-slate-950/65" />
-        {!heroHasVideo && <div className="absolute inset-0" style={{ background: heroScrim, opacity: 0.65 }} />}
+        <div className="absolute inset-0" style={{ background: heroScrim, opacity: 0.4 }} />
 
         <div
           className="relative z-10 mx-auto flex w-full max-w-5xl flex-col gap-8"
@@ -1592,7 +1592,7 @@ export default function EmailGate({
               className="max-w-2xl text-lg leading-8"
               style={{ color: 'rgba(255,255,255,0.78)' }}
             >
-              {brandName} is the AI operating system for every stage of your founder journey. Start with the free Funding Readiness assessment — then generate your business plan, pitch deck, and financial model, and practice your pitch with AI coaching.
+              {brandName} is the AI operating system for every stage of your founder journey. Start with a free readiness assessment — then build your business plan, pitch deck, financial model, grant applications, and more. As you grow, {brandName} grows with you: operations tools, AI coaches, and a funding marketplace, all in one place.
             </p>
             <div className="flex flex-col items-start gap-4 sm:flex-row">
               <button
@@ -1628,10 +1628,10 @@ export default function EmailGate({
               How it works
             </p>
             <h2 className="mt-4 text-3xl sm:text-4xl font-semibold mb-3" style={{ color: textPrimary }}>
-              From idea to investor-ready in three steps
+              From idea to operating business, in three steps
             </h2>
             <p className="max-w-2xl text-base leading-7" style={{ color: textMuted }}>
-              No prep required — take the assessment and {brandName} shows you exactly what to do next.
+              No prep needed. Answer 30 questions and {brandName} tells you exactly where you stand — then helps you close every gap.
             </p>
           </div>
 
@@ -1683,10 +1683,10 @@ export default function EmailGate({
               The free assessment
             </span>
             <h2 className="text-3xl sm:text-4xl font-semibold mb-3" style={{ color: textPrimary }}>
-              Your Funding Readiness Score, across four categories
+              Your Startup Readiness Score, across four dimensions
             </h2>
             <p className="max-w-2xl text-base leading-7" style={{ color: textMuted }}>
-              The assessment scores your idea in the four areas investors actually evaluate, so you know what is strong and what needs work before you pitch.
+              {brandName} scores your startup across four dimensions — so you know exactly where you stand, what to fix, and what to build next.
             </p>
           </div>
 
@@ -1728,7 +1728,7 @@ export default function EmailGate({
               Build, fund, and grow — with AI at every stage
             </h2>
             <p className="max-w-2xl text-base leading-7" style={{ color: textMuted }}>
-              Investment &amp; Funding Readiness is live today. Business operations tools and specialist AI coaches are next — {brandName} grows with you from first idea to running the company.
+              Startup Readiness &amp; Funding Tools are live today. Business Operations and AI Coaches are coming next. {brandName} is built to grow with you — from validating your first idea to running a funded company.
             </p>
           </div>
 
@@ -1742,10 +1742,10 @@ export default function EmailGate({
                 Live now
               </span>
               <h3 className="mt-4 text-xl font-semibold" style={{ color: textPrimary }}>
-                Investment &amp; Funding Readiness
+                Startup Readiness &amp; Funding Tools
               </h3>
               <p className="mt-1 text-sm leading-6" style={{ color: textMuted }}>
-                Know exactly where you stand — then generate what investors ask for.
+                Know exactly where your startup stands — then generate the documents that move it forward.
               </p>
               <p className="mt-5 text-xs font-semibold uppercase tracking-wider" style={{ color: textSubtle }}>
                 Free
@@ -1853,7 +1853,7 @@ export default function EmailGate({
               Built for founders at every stage
             </h2>
             <p className="max-w-2xl text-base leading-7" style={{ color: textMuted }}>
-              Wherever you are on the journey, {brandName} meets you there.
+              From your first idea to your first team hire — {brandName} has tools for every stage of the journey.
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -1878,6 +1878,15 @@ export default function EmailGate({
                   <p className="text-sm leading-7" style={{ color: textMuted }}>
                     {item.desc}
                   </p>
+                  {(item as { comingSoon?: boolean }).comingSoon && (
+                    <span
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider"
+                      style={{ borderColor, color: textMuted, backgroundColor: sectionBackground }}
+                    >
+                      <Lock size={11} strokeWidth={2.6} />
+                      Coming soon
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -1925,10 +1934,10 @@ export default function EmailGate({
               <BrandMark size={48} blockColor="#ffffff" />
             </div>
             <h2 className="text-3xl sm:text-4xl font-semibold mb-4">
-              Wherever you are in the journey, start here
+              Every founder starts somewhere. Start smart.
             </h2>
             <p className="mx-auto mb-8 max-w-2xl leading-7 opacity-85">
-              The free Funding Readiness assessment is live today. Get your score in minutes — then let {brandName} help you build, fund, and grow from there. No credit card required.
+              The free Startup Readiness assessment takes 10–15 minutes. Get your score, see your gaps, and know exactly what to build next. No credit card required.
             </p>
             <button
               type="button"
@@ -1943,7 +1952,7 @@ export default function EmailGate({
         </div>
       </section>
 
-      <footer className="px-6 py-12" style={{ backgroundColor: palette?.text?.primary || '#012538', color: 'rgba(255,255,255,0.85)' }}>
+      <footer className="px-6 py-12" style={{ backgroundColor: palette?.surfaces?.pageAlt || pageBackground || '#05060B', color: 'rgba(255,255,255,0.85)' }}>
         <div className="max-w-6xl mx-auto flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-sm">
             <div className="flex items-center gap-2">
@@ -1961,6 +1970,9 @@ export default function EmailGate({
             <a href="#platform" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Platform</a>
             <a href="#who-we-serve" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Who we serve</a>
             <a href="#faq" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>FAQ</a>
+            <a href="#platform" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Pricing</a>
+            <a href="#privacy" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Privacy Policy</a>
+            <a href="mailto:hello@foundaros.com" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Contact</a>
           </nav>
         </div>
         <div
