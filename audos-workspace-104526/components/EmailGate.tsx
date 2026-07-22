@@ -194,6 +194,14 @@ export default function EmailGate({
   const rawSocialProviders = (window as any).__SOCIAL_PROVIDERS__;
   const socialProviders: string[] = Array.isArray(rawSocialProviders) ? rawSocialProviders : [];
 
+  // Load the workspace's configured display/body fonts at runtime. The static
+  // HTML shell (published-bundle.html) only preloads DM Sans, so without this
+  // the `fontFamily: headingFontStack` styles below would silently fall back
+  // to the system font. Injected once, keyed by font name, safe to no-op if
+  // already present (e.g. across client-side route changes). Placed after
+  // `typography` is defined below via a second pass — see the effect near
+  // the typography/font-stack declarations.
+
   useEffect(() => {
     storeAttribution();
     checkExistingSession();
@@ -963,6 +971,29 @@ export default function EmailGate({
   const headingFontStack = typography.headingFont
     ? `"${typography.headingFont}", system-ui, -apple-system, sans-serif`
     : bodyFontStack;
+
+  // Load the workspace's configured fonts at runtime. The static HTML shell
+  // (published-bundle.html) only preloads DM Sans, so without this the
+  // fontFamily styles above would silently fall back to the system font.
+  useEffect(() => {
+    const families = Array.from(
+      new Set([typography?.headingFont, typography?.bodyFont].filter(Boolean))
+    ) as string[];
+    if (families.length === 0) return;
+    const id = 'eg-dynamic-font-link';
+    const href = `https://fonts.googleapis.com/css2?${families
+      .map((f) => `family=${String(f).replace(/\s+/g, '+')}:wght@400;500;600;700`)
+      .join('&')}&display=swap`;
+    let link = document.getElementById(id) as HTMLLinkElement | null;
+    if (link && link.getAttribute('href') === href) return;
+    if (!link) {
+      link = document.createElement('link');
+      link.id = id;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    link.href = href;
+  }, [typography?.headingFont, typography?.bodyFont]);
   // Kickoff stores the manually selected color in palette.primary. Shell accent
   // is derived from palette.highlight and is only a fallback for older spaces.
   const selectedAccentColor = normalizeHexColor(
@@ -1569,9 +1600,19 @@ export default function EmailGate({
         style={{ background: heroGradient }}
       >
         <div className="absolute inset-0" style={{ background: heroScrim, opacity: 0.4 }} />
+        <div
+          className="pointer-events-none absolute -right-40 -top-40 h-[560px] w-[560px] opacity-70 sm:h-[720px] sm:w-[720px]"
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 900 900" fill="none" className="h-full w-full">
+            <circle cx="450" cy="360" r="420" stroke={primaryColor} strokeOpacity="0.22" />
+            <circle cx="450" cy="360" r="300" stroke={palette?.secondary || primaryColor} strokeOpacity="0.28" />
+            <circle cx="450" cy="360" r="180" stroke={primaryColor} strokeOpacity="0.5" />
+          </svg>
+        </div>
 
         <div
-          className="relative z-10 mx-auto flex w-full max-w-5xl flex-col gap-8"
+          className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-[1.15fr_0.85fr]"
           style={{
             opacity: entered ? 1 : 0,
             transform: entered ? 'none' : 'translateY(20px)',
@@ -1584,7 +1625,7 @@ export default function EmailGate({
             </p>
             <h1
               className="text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl"
-              style={{ color: '#ffffff' }}
+              style={{ color: '#ffffff', fontFamily: headingFontStack }}
             >
               Your AI co-founder, from first idea to funded business.
             </h1>
@@ -1600,7 +1641,7 @@ export default function EmailGate({
                 onClick={openLogin}
                 aria-controls={loginPanelId}
                 className="flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition hover:scale-[1.01]"
-                style={{ backgroundColor: '#ffffff', color: textPrimary, boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }}
+                style={{ backgroundColor: '#ffffff', color: '#0A0B14', boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }}
                 data-testid="button-open-login"
               >
                 Start the free assessment
@@ -1613,6 +1654,68 @@ export default function EmailGate({
                 See how it works
               </a>
             </div>
+          </div>
+
+          {/* Readiness gauge panel — the signature visual from the pitch deck,
+              reused here so the hero previews what the free assessment produces. */}
+          <div
+            className="relative mx-auto w-full max-w-sm rounded-[22px] p-6 backdrop-blur-sm"
+            style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: `1px solid rgba(255,255,255,0.14)` }}
+          >
+            <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
+              Startup Readiness Score
+            </p>
+            <div className="mx-auto mb-1 flex justify-center">
+              <svg width="152" height="152" viewBox="0 0 168 168">
+                <circle cx="84" cy="84" r="72" stroke="rgba(255,255,255,0.14)" strokeWidth="10" fill="none" />
+                <circle
+                  cx="84"
+                  cy="84"
+                  r="72"
+                  stroke={primaryColor}
+                  strokeWidth="10"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray="452.4"
+                  strokeDashoffset={452.4 - (72 / 100) * 452.4}
+                  transform="rotate(-90 84 84)"
+                />
+              </svg>
+            </div>
+            <p className="-mt-[104px] mb-0 text-center text-[44px] font-bold text-white">72</p>
+            <p className="mb-1 mt-9 text-center text-xs text-white/45">/ 100</p>
+            <p className="mb-5 text-center text-sm font-semibold" style={{ color: '#34D399' }}>
+              ● Investor Ready
+            </p>
+            <ul className="space-y-2.5 text-sm text-white/70">
+              <li className="flex items-center gap-2">
+                <span
+                  className="flex h-4 w-4 flex-none items-center justify-center rounded-full text-[10px]"
+                  style={{ backgroundColor: 'rgba(52,211,153,0.16)', border: '1px solid rgba(52,211,153,0.5)', color: '#34D399' }}
+                >
+                  ✓
+                </span>
+                Business plan generated
+              </li>
+              <li className="flex items-center gap-2">
+                <span
+                  className="flex h-4 w-4 flex-none items-center justify-center rounded-full text-[10px]"
+                  style={{ backgroundColor: 'rgba(52,211,153,0.16)', border: '1px solid rgba(52,211,153,0.5)', color: '#34D399' }}
+                >
+                  ✓
+                </span>
+                Pitch deck generated
+              </li>
+              <li className="flex items-center gap-2">
+                <span
+                  className="flex h-4 w-4 flex-none items-center justify-center rounded-full text-[10px]"
+                  style={{ backgroundColor: 'rgba(52,211,153,0.16)', border: '1px solid rgba(52,211,153,0.5)', color: '#34D399' }}
+                >
+                  ✓
+                </span>
+                Financial model generated
+              </li>
+            </ul>
           </div>
         </div>
       </section>
@@ -1943,7 +2046,7 @@ export default function EmailGate({
               type="button"
               onClick={openLogin}
               className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition hover:scale-[1.01]"
-              style={{ backgroundColor: '#ffffff', color: textPrimary, boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }}
+              style={{ backgroundColor: '#ffffff', color: '#0A0B14', boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }}
             >
               Start the free assessment
               <ArrowRight size={18} strokeWidth={2.6} />
