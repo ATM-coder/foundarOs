@@ -1,87 +1,54 @@
-{
-  "name": "FoundarOS",
-  "tagline": "The AI operating system for every stage of your founder journey.",
-  "logoUrl": "https://storage.googleapis.com/audos-images/brand-icons/09a33912-84fd-457d-ac2c-621ba4082667.mono.png",
-  "iconUrl": "https://storage.googleapis.com/audos-images/brand-icons/09a33912-84fd-457d-ac2c-621ba4082667.mono.png",
-  "logoOnDarkUrl": "https://storage.googleapis.com/audos-images/brand-icons/09a33912-84fd-457d-ac2c-621ba4082667.mono.png",
+:root {
+  --space-brand-primary: #7C3AED;
+  --space-brand-highlight: #14B8A6;
+  --space-brand-contrast: #F5A623;
+  --space-brand-primary-50: #F3EFFE;
+  --space-brand-primary-100: #E4D9FC;
+  --space-brand-primary-200: #C9B3F9;
+  --space-brand-primary-500: #8B5CF6;
+  --space-brand-primary-600: #7C3AED;
+  --space-brand-primary-700: #6224D6;
+  --space-brand-primary-900: #4C1D95;
+  --space-brand-highlight-50: #ECFDF9;
+  --space-brand-highlight-100: #CCFBF1;
+  --space-brand-highlight-200: #99F6E4;
+  --space-brand-highlight-500: #2DD4BF;
+  --space-brand-highlight-600: #14B8A6;
+  --space-brand-highlight-700: #0F766E;
+  --space-brand-highlight-900: #134E4A;
+  --space-surface-page: #0A0B14;
+  --space-surface-page-alt: #0D0F1D;
+  --space-surface-gradient-from: #0A0B14;
+  --space-surface-gradient-via: #0D0F1D;
+  --space-surface-gradient-to: #4C1D95;
+  --space-surface-card: rgba(255,255,255,0.03);
+  --space-surface-card-hover: rgba(255,255,255,0.06);
+  --space-surface-panel: #10121F;
+  --space-surface-panel-strong: #141726;
+  --space-surface-muted: #0D0F1D;
+  --space-surface-accent-soft: rgba(124,58,237,0.12);
+  --space-border-default: rgba(167,139,250,0.18);
+  --space-border-strong: rgba(167,139,250,0.35);
+  --space-text-primary: #F5F5FA;
+  --space-text-secondary: #9599B8;
+  --space-text-brand: #F5F5FA;
+  --space-text-accent: #A78BFA;
+  --space-text-muted: #6B7094;
+  --space-text-on-primary: #FFFFFF;
+  --space-text-on-highlight: #0A0B14;
+  --space-text-on-contrast: #0A0B14;
+  --space-semantic-success: #10B981;
+  --space-semantic-warning: #F5A623;
+  --space-semantic-danger: #F0653F;
+  --space-shell-button-text: #FFFFFF;
+  --space-shell-accent-button-text: #0A0B14;
+  --space-shell-dock-text: #F5F5FA;
+  --space-shell-icon: #A78BFA;
+  --space-shell-shadow: rgba(124,58,237,0.35);
+  --space-shell-shadow-strong: rgba(124,58,237,0.6);
+}
 
-  "_comment_hero": "Hero video intentionally removed per redesign brief â€” hero now runs on the dark gradient + readiness gauge treatment below, matching the pitch deck.",
-  "heroVideoUrl": "",
-
-  "colors": {
-    "primary": "#7C3AED",
-    "highlight": "#14B8A6",
-    "contrast": "#F5A623",
-    "secondary": "#A78BFA",
-    "accent": "#10B981",
-
-    "primaryScale": {
-      "50": "#F3EFFE",
-      "100": "#E4D9FC",
-      "200": "#C9B3F9",
-      "500": "#8B5CF6",
-      "600": "#7C3AED",
-      "700": "#6224D6",
-      "900": "#4C1D95"
-    },
-    "highlightScale": {
-      "50": "#ECFDF9",
-      "100": "#CCFBF1",
-      "200": "#99F6E4",
-      "500": "#2DD4BF",
-      "600": "#14B8A6",
-      "700": "#0F766E",
-      "900": "#134E4A"
-    },
-
-    "surfaces": {
-      "page": "#0A0B14",
-      "pageAlt": "#0D0F1D",
-      "gradientFrom": "#0A0B14",
-      "gradientVia": "#0D0F1D",
-      "gradientTo": "#4C1D95",
-      "card": "rgba(255,255,255,0.03)",
-      "cardHover": "rgba(255,255,255,0.06)",
-      "panel": "#10121F",
-      "panelStrong": "#141726",
-      "muted": "#0D0F1D",
-      "accentSoft": "rgba(124,58,237,0.12)",
-      "border": "rgba(167,139,250,0.18)",
-      "borderStrong": "rgba(167,139,250,0.35)"
-    },
-
-    "text": {
-      "primary": "#F5F5FA",
-      "secondary": "#9599B8",
-      "brand": "#F5F5FA",
-      "accent": "#A78BFA",
-      "muted": "#6B7094",
-      "onPrimary": "#FFFFFF",
-      "onHighlight": "#0A0B14",
-      "onContrast": "#0A0B14"
-    },
-
-    "semantic": {
-      "success": "#10B981",
-      "warning": "#F5A623",
-      "danger": "#F0653F"
-    },
-
-    "shell": {
-      "buttonText": "#FFFFFF",
-      "accentButtonText": "#0A0B14",
-      "dockText": "#F5F5FA",
-      "icon": "#A78BFA",
-      "shadow": "rgba(124,58,237,0.35)",
-      "shadowStrong": "rgba(124,58,237,0.6)"
-    }
-  },
-
-  "typography": {
-    "font": "Space Grotesk",
-    "category": "sans-serif",
-    "weights": [400, 500, 600, 700],
-    "headingFont": "Space Grotesk",
-    "bodyFont": "Inter"
-  }
+body {
+  color: var(--space-text-primary);
+  background: var(--space-surface-page);
 }
