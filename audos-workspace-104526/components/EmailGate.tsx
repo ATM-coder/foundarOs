@@ -1013,6 +1013,16 @@ export default function EmailGate({
   const primaryColor = palettePrimary || selectedAccentColor || '#1e293b';
   const highlightColor = normalizeHexColor(palette?.highlight || palette?.secondary) || primaryColor;
   const contrastColor = palette?.contrast || '#ffffff';
+  const accentGreen = palette?.accent || '#10B981';
+  // Rotating icon-chip treatment used across the dimension cards, step badges,
+  // platform cards, and persona cards — mirrors the pitch deck's varied
+  // purple/teal/amber/green coding instead of one flat accent everywhere.
+  const accentCycle = [
+    { bg: colorWithAlpha(primaryColor, 0.14), fg: palette?.secondary || primaryColor },
+    { bg: colorWithAlpha(highlightColor, 0.14), fg: highlightColor },
+    { bg: colorWithAlpha(contrastColor, 0.14), fg: contrastColor },
+    { bg: colorWithAlpha(accentGreen, 0.14), fg: accentGreen },
+  ];
   const brandName = branding?.name || 'Welcome';
   const tagline = branding?.tagline || 'Get started today.';
   const logoUrl = branding?.logoUrl;
@@ -1562,6 +1572,13 @@ export default function EmailGate({
           </a>
           <div className="hidden items-center gap-6 md:flex">
             <a
+              href="#how-it-works"
+              className="text-sm font-medium transition-opacity hover:opacity-70"
+              style={{ color: scrolled ? textMuted : 'rgba(255,255,255,0.82)' }}
+            >
+              How it works
+            </a>
+            <a
               href="#platform"
               className="text-sm font-medium transition-opacity hover:opacity-70"
               style={{ color: scrolled ? textMuted : 'rgba(255,255,255,0.82)' }}
@@ -1772,7 +1789,7 @@ export default function EmailGate({
                   />
                   <div
                     className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-semibold"
-                    style={{ backgroundColor: highlightColor, color: onHighlight }}
+                    style={{ backgroundColor: accentCycle[0].bg, color: accentCycle[0].fg }}
                   >
                     {item.step}
                   </div>
@@ -1813,6 +1830,7 @@ export default function EmailGate({
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {scoreCategories.map((item, i) => {
               const CardIcon = scoreCategoryIcons[i] ?? Sparkles;
+              const accent = accentCycle[i % accentCycle.length];
               return (
                 <div
                   key={item.title}
@@ -1821,7 +1839,7 @@ export default function EmailGate({
                 >
                   <div
                     className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl"
-                    style={{ backgroundColor: highlightColor, color: onHighlight }}
+                    style={{ backgroundColor: accent.bg, color: accent.fg }}
                   >
                     <CardIcon size={22} strokeWidth={2.4} />
                   </div>
@@ -1856,7 +1874,7 @@ export default function EmailGate({
             <div className="rounded-3xl border-2 p-6 sm:p-8" style={{ backgroundColor: panelColor, borderColor: primaryColor }}>
               <span
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
-                style={{ backgroundColor: highlightColor, color: onHighlight }}
+                style={{ backgroundColor: accentCycle[3].bg, color: accentCycle[3].fg }}
               >
                 <Sparkles size={13} strokeWidth={2.6} />
                 Live now
@@ -1909,7 +1927,7 @@ export default function EmailGate({
                 Coming soon
               </span>
               <div className="mt-4 flex items-center gap-2">
-                <Briefcase size={20} strokeWidth={2.2} style={{ color: primaryColor }} />
+                <Briefcase size={20} strokeWidth={2.2} style={{ color: accentCycle[1].fg }} />
                 <h3 className="text-xl font-semibold" style={{ color: textPrimary }}>
                   Business Support &amp; Operations
                 </h3>
@@ -1939,7 +1957,7 @@ export default function EmailGate({
                 Coming soon
               </span>
               <div className="mt-4 flex items-center gap-2">
-                <Bot size={20} strokeWidth={2.2} style={{ color: primaryColor }} />
+                <Bot size={20} strokeWidth={2.2} style={{ color: accentCycle[2].fg }} />
                 <h3 className="text-xl font-semibold" style={{ color: textPrimary }}>
                   AI Coaches
                 </h3>
@@ -1979,16 +1997,17 @@ export default function EmailGate({
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {whoWeServe.map((item, i) => {
               const WhoIcon = whoWeServeIcons[i] ?? Heart;
+              const accent = accentCycle[i % accentCycle.length];
               return (
                 <div
                   key={item.title}
                   className="relative overflow-hidden rounded-3xl border p-6 shadow-sm"
                   style={{ backgroundColor: panelColor, borderColor }}
                 >
-                  <WhoIcon size={64} strokeWidth={1.5} className="pointer-events-none absolute -right-2 -top-2 opacity-10" style={{ color: primaryColor }} />
+                  <WhoIcon size={64} strokeWidth={1.5} className="pointer-events-none absolute -right-2 -top-2 opacity-10" style={{ color: accent.fg }} />
                   <div
                     className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl"
-                    style={{ backgroundColor: highlightColor, color: onHighlight }}
+                    style={{ backgroundColor: accent.bg, color: accent.fg }}
                   >
                     <WhoIcon size={22} strokeWidth={2.4} />
                   </div>
@@ -2044,10 +2063,14 @@ export default function EmailGate({
         </div>
       </section>
 
-      <section className="px-6 py-20" style={{ backgroundColor: primaryColor }}>
+      <section className="px-6 py-20" style={{ backgroundColor: pageBackground }}>
         <div
-          className="relative mx-auto max-w-4xl overflow-hidden rounded-[2rem] border border-white/10 px-8 py-16 text-center"
-          style={{ backgroundColor: 'rgba(15,23,42,0.2)', color: onPrimary }}
+          className="relative mx-auto max-w-4xl overflow-hidden rounded-[2rem] px-8 py-16 text-center"
+          style={{
+            background: `radial-gradient(600px 300px at 20% 0%, ${colorWithAlpha(primaryColor, 0.5)}, transparent 60%), linear-gradient(135deg, ${palette?.primaryScale?.['900'] || '#4C1D95'}, #150B2E)`,
+            border: `1px solid ${borderColor}`,
+            color: '#ffffff',
+          }}
         >
           <div className="relative z-10">
             <div className="flex justify-center mb-6">
