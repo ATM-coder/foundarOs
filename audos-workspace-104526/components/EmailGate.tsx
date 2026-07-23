@@ -18,6 +18,7 @@ import {
   Lock,
   Bot,
   Briefcase,
+  DollarSign,
 } from 'lucide-react';
 import { useSpaceRuntime } from '../SpaceRuntimeContext';
 import type { DesktopThemeTokens } from '../types';
@@ -1094,31 +1095,39 @@ export default function EmailGate({
   const scoreCategories = [
     {
       title: 'Idea Clarity',
-      desc: 'Is your idea sharp and well-defined?',
+      desc: 'How clearly defined your problem, solution, and value proposition are.',
+      index: '01 / IDEA',
+      barWidth: '82%',
     },
     {
       title: 'Market Validation',
-      desc: 'Have you proven people actually want this?',
+      desc: "Evidence that real customers want what you're building — and will pay for it.",
+      index: '02 / MARKET',
+      barWidth: '58%',
     },
     {
       title: 'Business Model Strength',
-      desc: 'Do your pricing and unit economics hold up?',
+      desc: 'How realistic your pricing, unit economics, and revenue assumptions are.',
+      index: '03 / MODEL',
+      barWidth: '47%',
     },
     {
       title: 'Investor & Growth Readiness',
-      desc: 'Are you ready for investor and growth conversations?',
+      desc: 'Whether your documents, traction, and team hold up to investor scrutiny.',
+      index: '04 / GROWTH',
+      barWidth: '65%',
     },
   ];
   const howItWorks = [
-    { step: '1', title: 'Take the assessment', desc: 'Answer 30 focused questions about your idea, market, and numbers. No prep, no documents required.' },
-    { step: '2', title: 'See your score and gaps', desc: "Get your Startup Readiness Score and an honest breakdown of exactly where to focus — whether that's your business model, market evidence, or financial assumptions." },
-    { step: '3', title: 'Build from your results', desc: 'Upgrade once ($49) to generate your full starter pack: business plan, pitch deck, financial model, grant application assistant, executive summary, and AI pitch coaching — all tailored to your assessment answers.' },
+    { step: '01', title: 'Take the assessment', desc: 'Answer 30 focused questions about your idea, market, and numbers. No prep, no documents required.' },
+    { step: '02', title: 'See your score and gaps', desc: "Get your Startup Readiness Score and an honest breakdown of exactly where to focus — whether that's your business model, market evidence, or financial assumptions." },
+    { step: '03', title: 'Build from your results', desc: 'Upgrade once ($49) to generate your full starter pack: business plan, pitch deck, financial model, grant application assistant, executive summary, and AI pitch coaching — all tailored to your assessment answers.' },
   ];
   const whoWeServe = [
-    { title: 'Aspiring entrepreneurs', desc: 'You have an idea and want to turn it into a viable business. Start with an honest read on where it stands before you go all in.' },
-    { title: 'Early-stage startups', desc: "You've validated the idea and now need the documents to move forward — business plan, pitch deck, financial model. Stop Googling templates and start generating." },
-    { title: 'Small businesses seeking funding', desc: `You've been operating but now want to raise. ${brandName} scores your readiness, identifies exactly what investors will challenge, and helps you fix it before the conversation.` },
-    { title: 'Funded & scaling', desc: "You've raised your first round. Now build the systems that let you actually run the company — SOPs, HR handbook, vendor agreements, KPI dashboards, and board templates.", comingSoon: true },
+    { tag: 'Pre-incorporation', title: 'Aspiring entrepreneurs', desc: 'You have an idea and want to turn it into a viable business. Start with an honest read on where it stands before you go all in.' },
+    { tag: '0–18 months', title: 'Early-stage startups', desc: "You've validated the idea and now need the documents to move forward — business plan, pitch deck, financial model. Stop Googling templates and start generating." },
+    { tag: 'Raising now', title: 'Small businesses seeking funding', desc: `You've been operating but now want to raise. ${brandName} scores your readiness, identifies exactly what investors will challenge, and helps you fix it before the conversation.` },
+    { tag: 'Post-investment', title: 'Funded & scaling', desc: "You've raised your first round. Now build the systems that let you actually run the company — SOPs, HR handbook, vendor agreements, KPI dashboards, and board templates.", comingSoon: true },
   ];
   const faqs = [
     { q: 'How long does the assessment take?', a: 'About 10–15 minutes. There are 30 focused questions — no essays, no spreadsheets. You can save your progress and come back if needed.' },
@@ -1718,7 +1727,7 @@ export default function EmailGate({
             </div>
             <p className="-mt-[104px] mb-0 text-center text-[44px] font-bold text-white">72</p>
             <p className="mb-1 mt-9 text-center text-xs text-white/45">/ 100</p>
-            <p className="mb-5 text-center text-sm font-semibold" style={{ color: '#34D399' }}>
+            <p className="mb-5 text-center text-sm font-semibold" style={{ color: accentGreen }}>
               ● Investor Ready
             </p>
             <ul className="space-y-2.5 text-sm text-white/70">
@@ -1773,35 +1782,35 @@ export default function EmailGate({
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            {howItWorks.map((item, i) => {
-              const StepIcon = howItWorksIcons[i] ?? Sparkles;
-              return (
+            {howItWorks.map((item, i) => (
+              <div
+                key={item.step}
+                className="relative overflow-visible rounded-3xl border p-8"
+                style={{ backgroundColor: panelColor, borderColor }}
+              >
                 <div
-                  key={item.step}
-                  className="relative overflow-hidden rounded-3xl border p-8"
-                  style={{ backgroundColor: panelColor, borderColor }}
+                  className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-semibold"
+                  style={{ backgroundColor: accentCycle[0].bg, color: accentCycle[0].fg }}
                 >
-                  <StepIcon
-                    size={72}
-                    strokeWidth={1.5}
-                    className="pointer-events-none absolute -right-3 -top-3 opacity-10"
-                    style={{ color: primaryColor }}
-                  />
-                  <div
-                    className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-semibold"
-                    style={{ backgroundColor: accentCycle[0].bg, color: accentCycle[0].fg }}
-                  >
-                    {item.step}
-                  </div>
-                  <h3 className="font-semibold mb-2" style={{ color: textPrimary }}>
-                    {item.title}
-                  </h3>
-                  <p className="text-sm leading-7" style={{ color: textMuted }}>
-                    {item.desc}
-                  </p>
+                  {item.step}
                 </div>
-              );
-            })}
+                <h3 className="font-semibold mb-2" style={{ color: textPrimary }}>
+                  {item.title}
+                </h3>
+                <p className="text-sm leading-7" style={{ color: textMuted }}>
+                  {item.desc}
+                </p>
+                {i < howItWorks.length - 1 && (
+                  <span
+                    className="pointer-events-none absolute top-1/2 hidden -translate-y-1/2 text-xl lg:block"
+                    style={{ right: -28, color: textMuted }}
+                    aria-hidden="true"
+                  >
+                    →
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -1829,26 +1838,28 @@ export default function EmailGate({
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {scoreCategories.map((item, i) => {
-              const CardIcon = scoreCategoryIcons[i] ?? Sparkles;
               const accent = accentCycle[i % accentCycle.length];
               return (
                 <div
                   key={item.title}
-                  className="rounded-3xl border p-6 shadow-sm"
+                  className="rounded-3xl border p-6 shadow-sm transition-transform hover:-translate-y-1"
                   style={{ backgroundColor: panelColor, borderColor }}
                 >
-                  <div
-                    className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl"
-                    style={{ backgroundColor: accent.bg, color: accent.fg }}
+                  <p
+                    className="mb-3 font-mono text-[11px] tracking-wider"
+                    style={{ color: textMuted }}
                   >
-                    <CardIcon size={22} strokeWidth={2.4} />
-                  </div>
+                    {item.index}
+                  </p>
                   <h3 className="text-xl font-semibold mb-2" style={{ color: textPrimary }}>
                     {item.title}
                   </h3>
                   <p className="text-sm leading-7" style={{ color: textMuted }}>
                     {item.desc}
                   </p>
+                  <div className="mt-4 h-1 w-full overflow-hidden rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+                    <span className="block h-full rounded-full" style={{ width: item.barWidth, backgroundColor: accent.fg }} />
+                  </div>
                 </div>
               );
             })}
@@ -1870,8 +1881,8 @@ export default function EmailGate({
             </p>
           </div>
 
-          <div className="grid items-start gap-6 lg:grid-cols-3">
-            <div className="rounded-3xl border-2 p-6 sm:p-8" style={{ backgroundColor: panelColor, borderColor: primaryColor }}>
+          <div className="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-3xl border-2 p-6" style={{ backgroundColor: panelColor, borderColor: primaryColor }}>
               <span
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
                 style={{ backgroundColor: accentCycle[3].bg, color: accentCycle[3].fg }}
@@ -1879,46 +1890,15 @@ export default function EmailGate({
                 <Sparkles size={13} strokeWidth={2.6} />
                 Live now
               </span>
-              <h3 className="mt-4 text-xl font-semibold" style={{ color: textPrimary }}>
+              <h3 className="mt-4 text-lg font-semibold" style={{ color: textPrimary }}>
                 Startup Readiness &amp; Funding Tools
               </h3>
               <p className="mt-1 text-sm leading-6" style={{ color: textMuted }}>
                 Know exactly where your startup stands — then generate the documents that move it forward.
               </p>
-              <p className="mt-5 text-xs font-semibold uppercase tracking-wider" style={{ color: textSubtle }}>
-                Free
-              </p>
-              <ul className="mt-2 space-y-2">
-                {readinessFree.map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-sm leading-6" style={{ color: textMuted }}>
-                    <Check size={16} strokeWidth={2.8} className="mt-1 shrink-0" style={{ color: primaryColor }} />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-5 text-xs font-semibold uppercase tracking-wider" style={{ color: textSubtle }}>
-                $49 one-time upgrade unlocks
-              </p>
-              <ul className="mt-2 space-y-2">
-                {readinessPaid.map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-sm leading-6" style={{ color: textMuted }}>
-                    <Sparkles size={16} strokeWidth={2.4} className="mt-1 shrink-0" style={{ color: highlightColor }} />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                onClick={openLogin}
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition hover:opacity-90"
-                style={{ backgroundColor: primaryColor, color: onPrimary }}
-              >
-                Start free assessment
-                <ArrowRight size={16} strokeWidth={2.6} />
-              </button>
             </div>
 
-            <div className="rounded-3xl border p-6 sm:p-8" style={{ backgroundColor: panelColor, borderColor }}>
+            <div className="rounded-3xl border p-6" style={{ backgroundColor: panelColor, borderColor }}>
               <span
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
                 style={{ backgroundColor: bgMedium, color: textMuted }}
@@ -1928,15 +1908,12 @@ export default function EmailGate({
               </span>
               <div className="mt-4 flex items-center gap-2">
                 <Briefcase size={20} strokeWidth={2.2} style={{ color: accentCycle[1].fg }} />
-                <h3 className="text-xl font-semibold" style={{ color: textPrimary }}>
-                  Business Support &amp; Operations
+                <h3 className="text-lg font-semibold" style={{ color: textPrimary }}>
+                  Business Operations
                 </h3>
               </div>
-              <p className="mt-1 text-sm leading-6" style={{ color: textMuted }}>
-                Once you incorporate, generate the documents that run the company:
-              </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                {comingSoonOps.map((item) => (
+                {['SOPs & policies', 'HR handbook', 'Vendor agreements', 'KPI dashboards'].map((item) => (
                   <span
                     key={item}
                     className="rounded-full border px-3 py-1 text-xs font-medium"
@@ -1948,7 +1925,7 @@ export default function EmailGate({
               </div>
             </div>
 
-            <div className="rounded-3xl border p-6 sm:p-8" style={{ backgroundColor: panelColor, borderColor }}>
+            <div className="rounded-3xl border p-6" style={{ backgroundColor: panelColor, borderColor }}>
               <span
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
                 style={{ backgroundColor: bgMedium, color: textMuted }}
@@ -1958,7 +1935,7 @@ export default function EmailGate({
               </span>
               <div className="mt-4 flex items-center gap-2">
                 <Bot size={20} strokeWidth={2.2} style={{ color: accentCycle[2].fg }} />
-                <h3 className="text-xl font-semibold" style={{ color: textPrimary }}>
+                <h3 className="text-lg font-semibold" style={{ color: textPrimary }}>
                   AI Coaches
                 </h3>
               </div>
@@ -1966,7 +1943,34 @@ export default function EmailGate({
                 Specialist AI agents on call for every role you can’t hire yet:
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                {comingSoonCoaches.map((item) => (
+                {['CFO AI', 'Grant Coach', 'Pitch Coach', 'HR Manager'].map((item) => (
+                  <span
+                    key={item}
+                    className="rounded-full border px-3 py-1 text-xs font-medium"
+                    style={{ borderColor, color: textMuted, backgroundColor: sectionBackground }}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border p-6" style={{ backgroundColor: panelColor, borderColor }}>
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+                style={{ backgroundColor: bgMedium, color: textMuted }}
+              >
+                <Lock size={12} strokeWidth={2.6} />
+                Coming soon
+              </span>
+              <div className="mt-4 flex items-center gap-2">
+                <DollarSign size={20} strokeWidth={2.2} style={{ color: accentCycle[3].fg }} />
+                <h3 className="text-lg font-semibold" style={{ color: textPrimary }}>
+                  Funding Marketplace
+                </h3>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {['Grants & accelerators', 'Angels & VCs', 'Matched by country & stage'].map((item) => (
                   <span
                     key={item}
                     className="rounded-full border px-3 py-1 text-xs font-medium"
@@ -2011,6 +2015,12 @@ export default function EmailGate({
                   >
                     <WhoIcon size={22} strokeWidth={2.4} />
                   </div>
+                  <p
+                    className="mb-1 font-mono text-[10.5px] font-medium uppercase tracking-wider"
+                    style={{ color: textMuted }}
+                  >
+                    {item.tag}
+                  </p>
                   <h3 className="text-lg font-semibold mb-2" style={{ color: textPrimary }}>
                     {item.title}
                   </h3>
@@ -2033,11 +2043,68 @@ export default function EmailGate({
         </div>
       </section>
 
+      <section className="px-6 py-20" style={{ backgroundColor: pageBackground }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-12 max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em]" style={{ color: textMuted }}>
+              What founders say
+            </p>
+            <h2 className="mt-4 text-3xl sm:text-4xl font-semibold" style={{ color: textPrimary }}>
+              Real founders. Real results.
+            </h2>
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div
+              className="relative rounded-3xl border p-8"
+              style={{ backgroundColor: panelColor, borderColor }}
+            >
+              <span
+                className="absolute right-6 top-6 rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-wider"
+                style={{ borderColor, color: textMuted }}
+              >
+                Preview
+              </span>
+              <blockquote
+                className="max-w-[90%] text-lg font-medium leading-relaxed"
+                style={{ color: textPrimary, fontFamily: headingFontStack }}
+              >
+                "I got my Startup Readiness Score in 12 minutes and finally understood exactly why I kept getting rejected by grant reviewers. The gap report was more useful than the pitch coach I paid $500 for."
+              </blockquote>
+              <cite className="mt-5 block text-sm not-italic" style={{ color: textMuted }}>
+                — First Name, Business Type, City, Country
+              </cite>
+            </div>
+            <div
+              className="flex flex-col justify-center rounded-3xl border p-8"
+              style={{
+                backgroundColor: accentCycle[0].bg,
+                borderColor: colorWithAlpha(primaryColor, 0.35),
+              }}
+            >
+              <p className="text-5xl font-bold" style={{ color: textPrimary, fontFamily: headingFontStack }}>
+                427
+              </p>
+              <p className="mt-2 text-sm" style={{ color: textMuted }}>
+                founders have taken the assessment this month
+              </p>
+              <p className="mt-4 font-mono text-xs" style={{ color: textSubtle }}>
+                Updated weekly — placeholder until beta data lands
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="faq" className="px-6 py-20" style={{ backgroundColor: sectionBackground }}>
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-semibold mb-10" style={{ color: textPrimary }}>
-            Frequently asked questions
-          </h2>
+        <div className="max-w-6xl mx-auto grid gap-10 lg:grid-cols-[0.8fr_1.2fr]">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em]" style={{ color: textMuted }}>
+              FAQ
+            </p>
+            <h2 className="mt-4 text-3xl sm:text-4xl font-semibold" style={{ color: textPrimary }}>
+              Questions founders actually ask
+            </h2>
+          </div>
           <div className="space-y-3">
             {faqs.map((item) => (
               <details
@@ -2095,8 +2162,8 @@ export default function EmailGate({
         </div>
       </section>
 
-      <footer className="px-6 py-12" style={{ backgroundColor: palette?.surfaces?.pageAlt || pageBackground || '#05060B', color: 'rgba(255,255,255,0.85)' }}>
-        <div className="max-w-6xl mx-auto flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+      <footer className="px-6 py-16" style={{ backgroundColor: palette?.surfaces?.pageAlt || pageBackground || '#05060B', color: 'rgba(255,255,255,0.85)' }}>
+        <div className="max-w-6xl mx-auto flex flex-col gap-12 md:flex-row md:justify-between">
           <div className="max-w-sm">
             <div className="flex items-center gap-2">
               <BrandMark size={28} />
@@ -2104,25 +2171,40 @@ export default function EmailGate({
                 {brandName}
               </span>
             </div>
-            <p className="mt-3 text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>
-              {tagline}
+            <p className="mt-3 text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              AI operating system for founders
             </p>
           </div>
-          <nav className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
-            <a href="#how-it-works" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>How it works</a>
-            <a href="#platform" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Platform</a>
-            <a href="#who-we-serve" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Who we serve</a>
-            <a href="#faq" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>FAQ</a>
-            <a href="#platform" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Pricing</a>
-            <a href="#privacy" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Privacy Policy</a>
-            <a href="mailto:hello@foundaros.com" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Contact</a>
-          </nav>
+          <div className="flex flex-wrap gap-x-16 gap-y-8">
+            <div>
+              <p className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.1em]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                Product
+              </p>
+              <nav className="flex flex-col gap-2.5 text-sm">
+                <a href="#how-it-works" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>How it works</a>
+                <a href="#platform" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Platform</a>
+                <a href="#who-we-serve" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Who we serve</a>
+                <a href="#faq" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>FAQ</a>
+                <a href="#platform" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Pricing</a>
+              </nav>
+            </div>
+            <div>
+              <p className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.1em]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                Company
+              </p>
+              <nav className="flex flex-col gap-2.5 text-sm">
+                <a href="#privacy" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Privacy Policy</a>
+                <a href="mailto:hello@foundaros.com" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Contact</a>
+              </nav>
+            </div>
+          </div>
         </div>
         <div
-          className="max-w-6xl mx-auto mt-8 border-t pt-6 text-xs"
-          style={{ borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.45)' }}
+          className="max-w-6xl mx-auto mt-12 flex flex-col gap-2 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between"
+          style={{ borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' }}
         >
-          © {new Date().getFullYear()} {brandName}. All rights reserved.
+          <span>© {new Date().getFullYear()} {brandName}. All rights reserved.</span>
+          <span>Built for founders in Africa &amp; beyond.</span>
         </div>
       </footer>
     </div>
