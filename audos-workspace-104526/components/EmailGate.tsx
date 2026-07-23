@@ -1620,14 +1620,26 @@ export default function EmailGate({
           }}
         >
           <div className="max-w-3xl space-y-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white/70">
-              {brandName}
+            <p className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.3em] text-white/60">
+              <span aria-hidden="true" style={{ width: 16, height: 1, backgroundColor: primaryColor, display: 'inline-block' }} />
+              AI startup operating system
             </p>
             <h1
               className="text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl"
               style={{ color: '#ffffff', fontFamily: headingFontStack }}
             >
-              Your AI co-founder, from first idea to funded business.
+              Your{' '}
+              <span
+                style={{
+                  backgroundImage: `linear-gradient(100deg, ${palette?.secondary || '#A78BFA'}, ${primaryColor} 60%)`,
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                AI co-founder
+              </span>
+              , from first idea to funded business.
             </h1>
             <p
               className="max-w-2xl text-lg leading-8"
@@ -1641,7 +1653,11 @@ export default function EmailGate({
                 onClick={openLogin}
                 aria-controls={loginPanelId}
                 className="flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition hover:scale-[1.01]"
-                style={{ backgroundColor: '#ffffff', color: '#0A0B14', boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }}
+                style={{
+                  backgroundColor: primaryColor,
+                  color: onPrimary || '#ffffff',
+                  boxShadow: `0 16px 32px ${colorWithAlpha(primaryColor, 0.4)}`,
+                }}
                 data-testid="button-open-login"
               >
                 Start the free assessment
@@ -1649,7 +1665,8 @@ export default function EmailGate({
               </button>
               <a
                 href="#how-it-works"
-                className="rounded-full px-6 py-3 text-sm font-semibold text-white/75 transition hover:text-white"
+                className="rounded-full px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                style={{ border: '1px solid rgba(255,255,255,0.35)' }}
               >
                 See how it works
               </a>
