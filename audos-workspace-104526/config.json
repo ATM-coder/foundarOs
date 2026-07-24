@@ -305,6 +305,12 @@
   },
   "pptxgenjs": {
    "version": "4.0.1"
+  },
+  "docx": {
+   "version": "9.1.1"
+  },
+  "xlsx": {
+   "version": "0.18.5"
   }
  },
  "agent": {
