@@ -774,7 +774,297 @@ function PaymentNoticeBanner({ notice, onDismiss }: { notice: PaymentNotice; onD
 /* ============================================================================
  * YOUR DOCUMENTS — post-payment deliverables. Shown in place of the paywall
  * once a verified purchase exists: view each document inline or download it.
+ *
+ * Business Plan, Grant Application, and Action Plan are plain narrative
+ * markdown -> converted to real .docx via the `docx` library. Financial
+ * Model is markdown with embedded tables -> converted to a real .xlsx via
+ * `xlsx` (SheetJS), one sheet per table plus an Overview sheet for the
+ * surrounding guidance text. Pitch Deck stays a hand-built .pptx (unchanged
+ * below).
  * ========================================================================== */
+
+/** Strip markdown emphasis markers down to plain text (used inside table cells). */
+function stripMarkdownEmphasis(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/(?<!\w)_(.+?)_(?!\w)/g, '$1')
+    .replace(/`(.+?)`/g, '$1')
+    .trim();
+}
+
+/** Split a run of inline markdown (**bold**, _italic_, `code`) into docx TextRuns. */
+function inlineMarkdownToRuns(docxLib: any, text: string) {
+  const { TextRun } = docxLib;
+  const runs: any[] = [];
+  const regex = /(\*\*(.+?)\*\*|(?<!\w)_(.+?)_(?!\w)|`(.+?)`)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) runs.push(new TextRun(text.slice(lastIndex, match.index)));
+    if (match[2] !== undefined) runs.push(new TextRun({ text: match[2], bold: true }));
+    else if (match[3] !== undefined) runs.push(new TextRun({ text: match[3], italics: true }));
+    else if (match[4] !== undefined) runs.push(new TextRun({ text: match[4], font: 'Consolas' }));
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) runs.push(new TextRun(text.slice(lastIndex)));
+  return runs.length ? runs : [new TextRun(text)];
+}
+
+const MD_TABLE_SEPARATOR = /^\s*\|?[\s:|-]+\|?\s*$/;
+
+function isTableStart(lines: string[], i: number): boolean {
+  return lines[i].trim().startsWith('|') && !!lines[i + 1] && MD_TABLE_SEPARATOR.test(lines[i + 1]);
+}
+
+function readTableBlock(lines: string[], start: number): { rows: string[][]; next: number } {
+  let j = start;
+  const raw: string[] = [];
+  while (j < lines.length && lines[j].trim().startsWith('|')) {
+    raw.push(lines[j]);
+    j++;
+  }
+  const rows = raw
+    .filter((_, idx) => idx !== 1) // drop the |---|---| separator row
+    .map((l) => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim()));
+  return { rows, next: j };
+}
+
+/** Convert a full markdown document into an array of `docx` section children. */
+function markdownToDocxChildren(docxLib: any, markdown: string) {
+  const { Paragraph, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, TextRun } = docxLib;
+  const lines = markdown.split('\n');
+  const children: any[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const trimmed = lines[i].trim();
+
+    if (!trimmed) {
+      i++;
+      continue;
+    }
+
+    if (isTableStart(lines, i)) {
+      const { rows, next } = readTableBlock(lines, i);
+      i = next;
+      if (rows.length === 0) continue;
+      const colCount = rows[0].length;
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: rows.map(
+            (cells, rowIdx) =>
+              new TableRow({
+                children: Array.from({ length: colCount }, (_, c) => cells[c] ?? '').map(
+                  (cellText) =>
+                    new TableCell({
+                      width: { size: 100 / colCount, type: WidthType.PERCENTAGE },
+                      shading: rowIdx === 0 ? { fill: '7C3AED' } : undefined,
+                      margins: { top: 80, bottom: 80, left: 100, right: 100 },
+                      children: [
+                        new Paragraph({
+                          children:
+                            rowIdx === 0
+                              ? [new TextRun({ text: stripMarkdownEmphasis(cellText), bold: true, color: 'FFFFFF' })]
+                              : inlineMarkdownToRuns(docxLib, cellText),
+                        }),
+                      ],
+                    }),
+                ),
+              }),
+          ),
+        }),
+      );
+      children.push(new Paragraph({ text: '', spacing: { after: 150 } }));
+      continue;
+    }
+
+    if (trimmed.startsWith('# ')) {
+      children.push(
+        new Paragraph({ text: trimmed.slice(2), heading: HeadingLevel.TITLE, spacing: { after: 200 } }),
+      );
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith('## ')) {
+      children.push(
+        new Paragraph({ text: trimmed.slice(3), heading: HeadingLevel.HEADING_1, spacing: { before: 320, after: 160 } }),
+      );
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith('### ')) {
+      children.push(
+        new Paragraph({ text: trimmed.slice(4), heading: HeadingLevel.HEADING_2, spacing: { before: 220, after: 110 } }),
+      );
+      i++;
+      continue;
+    }
+
+    if (/^-{3,}$/.test(trimmed)) {
+      children.push(
+        new Paragraph({
+          text: '',
+          border: { bottom: { color: 'CCCCCC', space: 1, style: BorderStyle.SINGLE, size: 6 } },
+          spacing: { after: 200 },
+        }),
+      );
+      i++;
+      continue;
+    }
+
+    if (trimmed.startsWith('>')) {
+      children.push(
+        new Paragraph({
+          children: inlineMarkdownToRuns(docxLib, trimmed.replace(/^>\s?/, '')),
+          indent: { left: 400 },
+          border: { left: { color: '7C3AED', space: 8, style: BorderStyle.SINGLE, size: 18 } },
+          spacing: { after: 150 },
+        }),
+      );
+      i++;
+      continue;
+    }
+
+    if (/^[-*]\s+/.test(trimmed)) {
+      children.push(
+        new Paragraph({
+          children: inlineMarkdownToRuns(docxLib, trimmed.replace(/^[-*]\s+/, '')),
+          bullet: { level: 0 },
+          spacing: { after: 90 },
+        }),
+      );
+      i++;
+      continue;
+    }
+
+    const numbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (numbered) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun(`${numbered[1]}. `), ...inlineMarkdownToRuns(docxLib, numbered[2])],
+          indent: { left: 300 },
+          spacing: { after: 90 },
+        }),
+      );
+      i++;
+      continue;
+    }
+
+    children.push(
+      new Paragraph({ children: inlineMarkdownToRuns(docxLib, trimmed), spacing: { after: 150 } }),
+    );
+    i++;
+  }
+
+  return children;
+}
+
+async function buildDocxBlob(markdown: string, title: string): Promise<Blob> {
+  const docxLib: any = await import('docx');
+  const { Document, Packer } = docxLib;
+  const doc = new Document({
+    creator: 'FoundarOS',
+    title,
+    styles: { default: { document: { run: { font: 'Calibri', size: 22 } } } },
+    sections: [{ properties: {}, children: markdownToDocxChildren(docxLib, markdown) }],
+  });
+  return Packer.toBlob(doc);
+}
+
+/** Convert a table cell to a real number when it plainly is one (keeps $/%, strips for math, keeps placeholders like "_[fill in]_" as text). */
+function xlsxCellValue(rawText: string): string | number {
+  const text = stripMarkdownEmphasis(rawText);
+  if (/\[.*\]/.test(text)) return text; // unresolved placeholder — leave editable as text
+  const stripped = text.replace(/^\$/, '').replace(/%$/, '').replace(/,/g, '').trim();
+  if (stripped !== '' && /^-?\d+(\.\d+)?$/.test(stripped)) return Number(stripped);
+  return text;
+}
+
+async function buildXlsxBlob(markdown: string, workbookTitle: string): Promise<Blob> {
+  const XLSX: any = await import('xlsx');
+  const lines = markdown.split('\n');
+  const wb = XLSX.utils.book_new();
+  const overviewRows: (string | number)[][] = [[workbookTitle], ['']];
+  let lastHeading = 'Notes';
+  const usedSheetNames = new Set<string>();
+
+  const registerSheetName = (base: string): string => {
+    const safeBase = base.replace(/[\\/?*[\]:]/g, '').trim().slice(0, 28) || 'Sheet';
+    let candidate = safeBase;
+    let n = 2;
+    while (usedSheetNames.has(candidate.toLowerCase())) {
+      candidate = `${safeBase.slice(0, 24)} (${n})`;
+      n++;
+    }
+    usedSheetNames.add(candidate.toLowerCase());
+    return candidate;
+  };
+
+  let i = 0;
+  while (i < lines.length) {
+    const trimmed = lines[i].trim();
+
+    if (!trimmed) {
+      i++;
+      continue;
+    }
+
+    if (/^#{1,3}\s+/.test(trimmed)) {
+      lastHeading = stripMarkdownEmphasis(trimmed.replace(/^#{1,3}\s+/, ''));
+      overviewRows.push([lastHeading]);
+      i++;
+      continue;
+    }
+
+    const boldSubheading = trimmed.match(/^\*\*(.+?):\*\*$/);
+    if (boldSubheading) {
+      lastHeading = stripMarkdownEmphasis(boldSubheading[1]);
+      overviewRows.push([lastHeading]);
+      i++;
+      continue;
+    }
+
+    if (isTableStart(lines, i)) {
+      const { rows, next } = readTableBlock(lines, i);
+      i = next;
+      if (rows.length === 0) continue;
+      const aoa = rows.map((row, rowIdx) =>
+        row.map((cell) => (rowIdx === 0 ? stripMarkdownEmphasis(cell) : xlsxCellValue(cell))),
+      );
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = (rows[0] ?? []).map(() => ({ wch: 26 }));
+      const sheetName = registerSheetName(lastHeading);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      overviewRows.push([`↳ Full table on the "${sheetName}" sheet`], ['']);
+      continue;
+    }
+
+    if (/^-{3,}$/.test(trimmed)) {
+      i++;
+      continue;
+    }
+
+    const cleaned = stripMarkdownEmphasis(
+      trimmed.replace(/^>\s?/, '').replace(/^[-*]\s+/, '• ').replace(/^(\d+)\.\s+/, '$1. '),
+    );
+    overviewRows.push([cleaned]);
+    i++;
+  }
+
+  const overviewWs = XLSX.utils.aoa_to_sheet(overviewRows);
+  overviewWs['!cols'] = [{ wch: 120 }];
+  XLSX.utils.book_append_sheet(wb, overviewWs, 'Overview');
+  const overviewIdx = wb.SheetNames.indexOf('Overview');
+  if (overviewIdx > 0) {
+    wb.SheetNames.splice(overviewIdx, 1);
+    wb.SheetNames.unshift('Overview');
+  }
+
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  return new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
 function downloadDocument(doc: PackDocument) {
   if (doc.id === 'pitch-deck') {
     void (async () => {
@@ -1017,15 +1307,39 @@ function downloadDocument(doc: PackDocument) {
     return;
   }
 
-  const blob = new Blob([doc.content], { type: 'text/markdown;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = doc.filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  void (async () => {
+    try {
+      const isXlsx = doc.filename.endsWith('.xlsx');
+      const blob = isXlsx
+        ? await buildXlsxBlob(doc.content, doc.title)
+        : await buildDocxBlob(doc.content, doc.title);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error(`Could not build ${doc.filename}`, error);
+      const fallbackName = doc.filename.replace(/\.(docx|xlsx)$/, '.md');
+      const blob = new Blob([doc.content], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fallbackName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      window.alert(`The ${formatLabelForFilename(doc.filename)} file could not be built in this browser, so a markdown version was downloaded instead.`);
+    }
+  })();
+}
+
+function formatLabelForFilename(filename: string): string {
+  return filename.endsWith('.xlsx') ? 'Excel' : 'Word';
 }
 
 function DocumentsSection({
