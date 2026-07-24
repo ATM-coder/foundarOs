@@ -949,7 +949,7 @@ export function generatePackDocuments(input: PackInput): PackDocument[] {
       id: 'business-plan',
       title: 'Business Plan Draft',
       description: 'A structured 11-section business plan built from your assessment answers.',
-      filename: 'foundaros-business-plan.md',
+      filename: 'foundaros-business-plan.docx',
       content: generateBusinessPlan(input),
     },
     {
@@ -963,21 +963,21 @@ export function generatePackDocuments(input: PackInput): PackDocument[] {
       id: 'financial-model',
       title: 'Financial Model',
       description: '3-year revenue projections, cost assumptions, break-even analysis, and the investor metrics you need to know cold.',
-      filename: 'foundaros-financial-model.md',
+      filename: 'foundaros-financial-model.xlsx',
       content: generateFinancialModel(input),
     },
     {
       id: 'grant-application',
       title: 'Grant Application Assistant',
       description: 'A grant-ready business summary, eligibility checklist scored from your answers, a draft problem statement, and grant sources for your stage.',
-      filename: 'foundaros-grant-application.md',
+      filename: 'foundaros-grant-application.docx',
       content: generateGrantApplication(input),
     },
     {
       id: 'action-plan',
       title: 'Action Plan & Executive Summary',
       description: 'Your readiness scores, top gaps, and a step-by-step 30/60/90-day plan.',
-      filename: 'foundaros-action-plan.md',
+      filename: 'foundaros-action-plan.docx',
       content: generateActionPlan(input),
     },
   ];
@@ -1029,7 +1029,9 @@ export function validatePackDocuments(documents: PackDocument[], input: PackInpu
       const hasExpectedFileType =
         doc.id === 'pitch-deck'
           ? doc.filename.endsWith('.pptx')
-          : doc.filename.endsWith('.md');
+          : doc.id === 'financial-model'
+            ? doc.filename.endsWith('.xlsx')
+            : doc.filename.endsWith('.docx');
       return (
         !!doc.title.trim() &&
         !!doc.description.trim() &&
