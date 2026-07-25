@@ -1065,6 +1065,16 @@ async function buildXlsxBlob(markdown: string, workbookTitle: string): Promise<B
   return new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 
+/** The stored `doc.filename` can be stale for packs generated before this
+ * format change (older packs were saved with a .md name). Always derive the
+ * real extension from the stable `doc.id` instead of trusting that string. */
+function resolvedFilename(doc: PackDocument): string {
+  const base = doc.filename.replace(/\.[a-zA-Z0-9]+$/, '');
+  if (doc.id === 'pitch-deck') return `${base}.pptx`;
+  if (doc.id === 'financial-model') return `${base}.xlsx`;
+  return `${base}.docx`;
+}
+
 function downloadDocument(doc: PackDocument) {
   if (doc.id === 'pitch-deck') {
     void (async () => {
@@ -1289,7 +1299,7 @@ function downloadDocument(doc: PackDocument) {
           if (speakerNotes) slide.addNotes(speakerNotes);
         });
 
-        await pptx.writeFile({ fileName: doc.filename });
+        await pptx.writeFile({ fileName: resolvedFilename(doc) });
       } catch (error) {
         console.error('Could not build editable PowerPoint deck', error);
         const fallback = new Blob([doc.content], { type: 'text/markdown;charset=utf-8' });
@@ -1309,21 +1319,21 @@ function downloadDocument(doc: PackDocument) {
 
   void (async () => {
     try {
-      const isXlsx = doc.filename.endsWith('.xlsx');
+      const isXlsx = doc.id === 'financial-model';
       const blob = isXlsx
         ? await buildXlsxBlob(doc.content, doc.title)
         : await buildDocxBlob(doc.content, doc.title);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = doc.filename;
+      a.download = resolvedFilename(doc);
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error(`Could not build ${doc.filename}`, error);
-      const fallbackName = doc.filename.replace(/\.(docx|xlsx)$/, '.md');
+      const fallbackName = doc.filename.replace(/\.[a-zA-Z0-9]+$/, '.md');
       const blob = new Blob([doc.content], { type: 'text/markdown;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1333,13 +1343,13 @@ function downloadDocument(doc: PackDocument) {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      window.alert(`The ${formatLabelForFilename(doc.filename)} file could not be built in this browser, so a markdown version was downloaded instead.`);
+      window.alert(`The ${formatLabelForFilename(doc)} file could not be built in this browser, so a markdown version was downloaded instead.`);
     }
   })();
 }
 
-function formatLabelForFilename(filename: string): string {
-  return filename.endsWith('.xlsx') ? 'Excel' : 'Word';
+function formatLabelForFilename(doc: PackDocument): string {
+  return doc.id === 'financial-model' ? 'Excel' : 'Word';
 }
 
 function DocumentsSection({
