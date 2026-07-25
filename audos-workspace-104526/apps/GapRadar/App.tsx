@@ -445,7 +445,7 @@ function AssessmentScreen({
  * unlock button never opens a live-mode session, so the 4242 card can't be
  * rejected and no real card can be charged. To run the full end-to-end test
  * checkout with card 4242 4242 4242 4242:
- * 1. In your Stripe dashboard, toggle to TEST mode and create a $49 Payment
+ * 1. In your Stripe dashboard, toggle to TEST mode and create a $99 Payment
  *    Link: https://dashboard.stripe.com/test/payment-links
  * 2. Under "After payment", choose "Don't show confirmation page" and set
  *    the redirect URL to your app's URL with this query appended:
@@ -482,7 +482,7 @@ const STRIPE_TEST_MODE = true;
 // ("https://buy.stripe.com/...") can be used for real sales, or leave this
 // empty to use the built-in platform checkout.
 const STRIPE_PAYMENT_LINK_URL = '';
-const UNLOCK_PRICE_CENTS = 4900; // $49 one-time — TODO(founder): confirm pricing
+const UNLOCK_PRICE_CENTS = 9900; // $99 one-time — TODO(founder): confirm pricing
 
 function getStripePaymentLinkUrl(): string | null {
   const rawUrl = STRIPE_PAYMENT_LINK_URL.trim();
@@ -2918,11 +2918,11 @@ export default function GapRadar() {
           });
           return;
         }
-        // A paid session for another product must never unlock this $49 pack.
+        // A paid session for another product must never unlock this $99 pack.
         if (status.amountTotal !== UNLOCK_PRICE_CENTS || String(status.currency || '').toLowerCase() !== 'usd') {
           setPaymentNotice({
             state: 'error',
-            message: 'This payment does not match the $49 Funding Readiness Pack. Your documents were not unlocked.',
+            message: 'This payment does not match the $99 Funding Readiness Pack. Your documents were not unlocked.',
           });
           cleanUrl();
           return;
