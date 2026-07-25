@@ -7951,7 +7951,7 @@ function GapRadar() {
         if (status.amountTotal !== UNLOCK_PRICE_CENTS || String(status.currency || "").toLowerCase() !== "usd") {
           setPaymentNotice({
             state: "error",
-            message: "This payment does not match the $49 Funding Readiness Pack. Your documents were not unlocked."
+            message: "This payment does not match the $99 Funding Readiness Pack. Your documents were not unlocked."
           });
           cleanUrl();
           return;
@@ -8146,7 +8146,7 @@ var init_App = __esm({
     };
     STRIPE_TEST_MODE2 = true;
     STRIPE_PAYMENT_LINK_URL = "";
-    UNLOCK_PRICE_CENTS = 4900;
+    UNLOCK_PRICE_CENTS = 9900;
     FOUNDER_TEST_PATTERN = /[?&#]founder_test=1/;
     FOUNDER_TEST_AT_LOAD = founderFlagInUrls();
     PITCH_DIMENSIONS = [
@@ -12114,7 +12114,7 @@ function EmailGate({
   const howItWorks = [
     { step: "1", title: "Take the assessment", desc: "Answer 30 focused questions about your idea, market, and numbers. No prep, no documents required." },
     { step: "2", title: "See your score and gaps", desc: "Get your Funding Readiness Score and an honest read on exactly where investors would push back." },
-    { step: "3", title: "Unlock your next steps", desc: "Upgrade once ($49) to generate five downloadable documents \u2014 including a real editable PowerPoint Pitch Deck \u2014 plus the AI Pitch Coach." }
+    { step: "3", title: "Unlock your next steps", desc: "Upgrade once ($99) to generate five downloadable documents \u2014 including a real editable PowerPoint Pitch Deck \u2014 plus the AI Pitch Coach." }
   ];
   const whoWeServe = [
     { title: "Aspiring entrepreneurs", desc: "You have an idea and want to turn it into a viable business. Start with an honest read on where it stands before you go all in." },
@@ -12124,7 +12124,7 @@ function EmailGate({
   ];
   const faqs = [
     { q: "How long does the assessment take?", a: "About 5\u201310 minutes. It is 30 focused questions about your idea, market, and numbers \u2014 no documents or prep required." },
-    { q: "Is it free?", a: "Yes. The assessment, your Funding Readiness Score, your category breakdown, and your top gaps with recommended actions are all free. A $49 one-time upgrade unlocks five downloadable documents \u2014 a Business Plan, editable PowerPoint Pitch Deck, Financial Model, Grant Application Assistant, and Action Plan \u2014 plus the AI Pitch Coach." },
+    { q: "Is it free?", a: "Yes. The assessment, your Funding Readiness Score, your category breakdown, and your top gaps with recommended actions are all free. A $99 one-time upgrade unlocks five downloadable documents \u2014 a Business Plan, editable PowerPoint Pitch Deck, Financial Model, Grant Application Assistant, and Action Plan \u2014 plus the AI Pitch Coach." },
     { q: "What do I get at the end?", a: "Your overall Funding Readiness Score, a breakdown across Idea Clarity, Market Validation, Financial Thinking, and Fundability, and a clear view of the gaps investors would push back on \u2014 with the option to unlock the full document pack and AI pitch coaching, built from your own answers." },
     { q: "Who is this for?", a: "Founders at every stage: aspiring entrepreneurs turning ideas into viable businesses, early-stage startups building and validating their model, small businesses preparing a fundable case, and founders getting pitch-ready for grants, accelerators, and investors." },
     { q: "What is coming next?", a: "Business Support & Operations for founders post-incorporation \u2014 SOPs, HR handbook, employee contracts, vendor agreements, policies, KPI dashboards, and more \u2014 plus a bench of specialist AI coaches, from CFO AI to Grant Coach. Funding readiness is live today; these are next on the roadmap." }
@@ -12793,7 +12793,7 @@ function EmailGate({
                   /* @__PURE__ */ jsx5(Check, { size: 16, strokeWidth: 2.8, className: "mt-1 shrink-0", style: { color: primaryColor } }),
                   /* @__PURE__ */ jsx5("span", { children: item })
                 ] }, item)) }),
-                /* @__PURE__ */ jsx5("p", { className: "mt-5 text-xs font-semibold uppercase tracking-wider", style: { color: textSubtle }, children: "$49 one-time upgrade unlocks" }),
+                /* @__PURE__ */ jsx5("p", { className: "mt-5 text-xs font-semibold uppercase tracking-wider", style: { color: textSubtle }, children: "$99 one-time upgrade unlocks" }),
                 /* @__PURE__ */ jsx5("ul", { className: "mt-2 space-y-2", children: readinessPaid.map((item) => /* @__PURE__ */ jsxs3("li", { className: "flex items-start gap-2 text-sm leading-6", style: { color: textMuted }, children: [
                   /* @__PURE__ */ jsx5(Sparkles2, { size: 16, strokeWidth: 2.4, className: "mt-1 shrink-0", style: { color: highlightColor } }),
                   /* @__PURE__ */ jsx5("span", { children: item })
@@ -14817,7 +14817,7 @@ var CONFIG = {
     "starterPrompts": [
       "How does the Funding Readiness assessment work?",
       "Which stage of the founder journey am I in?",
-      "What's included in the $49 Funding Readiness Pack?",
+      "What's included in the $99 Funding Readiness Pack?",
       "Help me close my biggest funding gap"
     ]
   },
