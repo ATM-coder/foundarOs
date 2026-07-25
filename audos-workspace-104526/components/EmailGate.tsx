@@ -1121,7 +1121,7 @@ export default function EmailGate({
   const howItWorks = [
     { step: '01', title: 'Take the assessment', desc: 'Answer 30 focused questions about your idea, market, and numbers. No prep, no documents required.' },
     { step: '02', title: 'See your score and gaps', desc: "Get your Startup Readiness Score and an honest breakdown of exactly where to focus — whether that's your business model, market evidence, or financial assumptions." },
-    { step: '03', title: 'Build from your results', desc: 'Upgrade once ($49) to generate your full starter pack: business plan, pitch deck, financial model, grant application assistant, executive summary, and AI pitch coaching — all tailored to your assessment answers.' },
+    { step: '03', title: 'Build from your results', desc: 'Upgrade once ($99) to generate your full starter pack: business plan, pitch deck, financial model, grant application assistant, executive summary, and AI pitch coaching — all tailored to your assessment answers.' },
   ];
   const whoWeServe = [
     { tag: 'Pre-incorporation', title: 'Aspiring entrepreneurs', desc: 'You have an idea and want to turn it into a viable business. Start with an honest read on where it stands before you go all in.' },
@@ -1131,8 +1131,8 @@ export default function EmailGate({
   ];
   const faqs = [
     { q: 'How long does the assessment take?', a: 'About 10–15 minutes. There are 30 focused questions — no essays, no spreadsheets. You can save your progress and come back if needed.' },
-    { q: 'What happens after I complete the assessment?', a: 'You get your Startup Readiness Score immediately — broken down across four dimensions with your top gaps highlighted. From there you can upgrade once ($49) to generate your full document pack.' },
-    { q: 'What documents do I get with the $49 upgrade?', a: 'You get six deliverables tailored to your assessment answers: a Business Plan, a Pitch Deck (editable PowerPoint in your brand colours), a Financial Model, a Grant Application Assistant, an Executive Summary, and access to the AI Pitch Coach for practice sessions.' },
+    { q: 'What happens after I complete the assessment?', a: 'You get your Startup Readiness Score immediately — broken down across four dimensions with your top gaps highlighted. From there you can upgrade once ($99) to generate your full document pack.' },
+    { q: 'What documents do I get with the $99 upgrade?', a: 'You get six deliverables tailored to your assessment answers: a Business Plan, a Pitch Deck (editable PowerPoint in your brand colours), a Financial Model, a Grant Application Assistant, an Executive Summary, and access to the AI Pitch Coach for practice sessions.' },
     { q: 'Is my information private and secure?', a: 'Yes. Your assessment answers and generated documents are private to your account. We do not share or sell your data. You can delete your account and all associated data at any time from your account settings.' },
     { q: 'What countries is FoundarOS available in?', a: 'FoundarOS is available globally. The platform is especially designed for founders in Africa and emerging markets — grant matching, currency handling, and funding recommendations are localised where possible.' },
     { q: "Can I edit the documents after they're generated?", a: "Yes. All documents are delivered as editable files — the Pitch Deck as a PowerPoint file, the Business Plan and other documents in formats you can open and edit in Word, Google Docs, or similar. They're starting points, not locked outputs." },
