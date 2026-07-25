@@ -1,5 +1,5 @@
 /* ============================================================================
- * Founder Pack — document generation for the paid $49 upgrade.
+ * Founder Pack — document generation for the paid $99 upgrade.
  *
  * Two generation paths for the five deliverables, both built entirely from
  * the founder's stored assessment data (answers + category scores + top gaps):
