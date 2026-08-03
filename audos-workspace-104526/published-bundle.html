@@ -1,16 +1,17 @@
 <!-- __compiler_v:5 -->
+<!-- AUDOS_PUBLISH_TOKEN:8fd88a42-1539-4b41-bef1-a9f656c01b68 -->
 <!DOCTYPE html>
 <html lang="en" class="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#ff6b6b" />
+    <meta name="theme-color" content="#7C3AED" />
     <meta name="color-scheme" content="light" />
     <link rel="icon" href="https://storage.googleapis.com/audos-images/brand-icons/09a33912-84fd-457d-ac2c-621ba4082667.mono.png" />
     <title>FoundarOS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <!-- Task #1151: traceability stamps so a rendered bundle can be
          matched to the exact @audos/space-compiler + @audos/workspace-shell
          versions that produced it. -->
@@ -45,14 +46,16 @@
     </script>
     
     <style>
-      /* Loading shell - shows immediately while React hydrates */
+      /* Loading shell - shows immediately while React hydrates.
+         Colors are derived from the space's branding at publish time so
+         dark-themed spaces don't flash a light-gray loader. */
       #space-loader {
         position: fixed;
         inset: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+        background: linear-gradient(135deg, #0A0B14 0%, #090a12 100%);
         z-index: 9999;
         transition: opacity 0.3s ease-out;
       }
@@ -66,8 +69,8 @@
       .loader-spinner {
         width: 40px;
         height: 40px;
-        border: 3px solid #e5e5e5;
-        border-top-color: #ff6b6b;
+        border: 3px solid rgba(255,255,255,0.15);
+        border-top-color: #7C3AED;
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
       }
@@ -629,6 +632,9 @@ video {
 .relative {
   position: relative;
 }
+.sticky {
+  position: sticky;
+}
 .inset-0 {
   inset: 0px;
 }
@@ -636,17 +642,11 @@ video {
   left: 0px;
   right: 0px;
 }
-.-right-2 {
-  right: -0.5rem;
+.-right-40 {
+  right: -10rem;
 }
-.-right-3 {
-  right: -0.75rem;
-}
-.-top-2 {
-  top: -0.5rem;
-}
-.-top-3 {
-  top: -0.75rem;
+.-top-40 {
+  top: -10rem;
 }
 .right-3 {
   right: 0.75rem;
@@ -705,6 +705,12 @@ video {
 .-mt-1 {
   margin-top: -0.25rem;
 }
+.-mt-\[104px\] {
+  margin-top: -104px;
+}
+.mb-0 {
+  margin-bottom: 0px;
+}
 .mb-1 {
   margin-bottom: 0.25rem;
 }
@@ -725,6 +731,9 @@ video {
 }
 .mb-3 {
   margin-bottom: 0.75rem;
+}
+.mb-3\.5 {
+  margin-bottom: 0.875rem;
 }
 .mb-4 {
   margin-bottom: 1rem;
@@ -768,6 +777,9 @@ video {
 .mt-1\.5 {
   margin-top: 0.375rem;
 }
+.mt-12 {
+  margin-top: 3rem;
+}
 .mt-2 {
   margin-top: 0.5rem;
 }
@@ -785,6 +797,9 @@ video {
 }
 .mt-8 {
   margin-top: 2rem;
+}
+.mt-9 {
+  margin-top: 2.25rem;
 }
 .mt-\[1px\] {
   margin-top: 1px;
@@ -888,6 +903,9 @@ video {
 .h-\[18px\] {
   height: 18px;
 }
+.h-\[560px\] {
+  height: 560px;
+}
 .h-full {
   height: 100%;
 }
@@ -981,6 +999,9 @@ video {
 .w-\[18px\] {
   width: 18px;
 }
+.w-\[560px\] {
+  width: 560px;
+}
 .w-full {
   width: 100%;
 }
@@ -1001,9 +1022,6 @@ video {
 }
 .max-w-4xl {
   max-width: 56rem;
-}
-.max-w-5xl {
-  max-width: 64rem;
 }
 .max-w-6xl {
   max-width: 72rem;
@@ -1031,6 +1049,9 @@ video {
 }
 .flex-1 {
   flex: 1 1 0%;
+}
+.flex-none {
+  flex: none;
 }
 .flex-shrink-0 {
   flex-shrink: 0;
@@ -1138,6 +1159,12 @@ video {
 .gap-1\.5 {
   gap: 0.375rem;
 }
+.gap-10 {
+  gap: 2.5rem;
+}
+.gap-12 {
+  gap: 3rem;
+}
 .gap-2 {
   gap: 0.5rem;
 }
@@ -1153,16 +1180,13 @@ video {
 .gap-6 {
   gap: 1.5rem;
 }
-.gap-8 {
-  gap: 2rem;
+.gap-x-16 {
+  -moz-column-gap: 4rem;
+       column-gap: 4rem;
 }
 .gap-x-4 {
   -moz-column-gap: 1rem;
        column-gap: 1rem;
-}
-.gap-x-8 {
-  -moz-column-gap: 2rem;
-       column-gap: 2rem;
 }
 .gap-y-1 {
   row-gap: 0.25rem;
@@ -1170,8 +1194,8 @@ video {
 .gap-y-1\.5 {
   row-gap: 0.375rem;
 }
-.gap-y-2 {
-  row-gap: 0.5rem;
+.gap-y-8 {
+  row-gap: 2rem;
 }
 .space-x-4 > :not([hidden]) ~ :not([hidden]) {
   --tw-space-x-reverse: 0;
@@ -1256,6 +1280,9 @@ video {
 .rounded-3xl {
   border-radius: 1.5rem;
 }
+.rounded-\[22px\] {
+  border-radius: 22px;
+}
 .rounded-\[24px\] {
   border-radius: 24px;
 }
@@ -1285,10 +1312,6 @@ video {
 }
 .border-2 {
   border-width: 2px;
-}
-.border-y {
-  border-top-width: 1px;
-  border-bottom-width: 1px;
 }
 .border-b {
   border-bottom-width: 1px;
@@ -1363,9 +1386,6 @@ video {
 }
 .border-transparent {
   border-color: transparent;
-}
-.border-white\/10 {
-  border-color: rgb(255 255 255 / 0.1);
 }
 .border-white\/70 {
   border-color: rgb(255 255 255 / 0.7);
@@ -1512,9 +1532,6 @@ video {
   --tw-bg-opacity: 1;
   background-color: rgb(254 242 242 / var(--tw-bg-opacity, 1));
 }
-.bg-slate-950\/65 {
-  background-color: rgb(2 6 23 / 0.65);
-}
 .bg-transparent {
   background-color: transparent;
 }
@@ -1537,9 +1554,9 @@ video {
 .bg-gradient-to-r {
   background-image: linear-gradient(to right, var(--tw-gradient-stops));
 }
-.from-\[\#f2f9fc\] {
-  --tw-gradient-from: #f2f9fc var(--tw-gradient-from-position);
-  --tw-gradient-to: rgb(242 249 252 / 0) var(--tw-gradient-to-position);
+.from-\[\#0A0B14\] {
+  --tw-gradient-from: #0A0B14 var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(10 11 20 / 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 .from-\[var\(--space-semantic-success-50\)\] {
@@ -1577,9 +1594,9 @@ video {
   --tw-gradient-to: rgb(240 253 244 / 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
-.via-\[\#eafbf9\] {
-  --tw-gradient-to: rgb(234 251 249 / 0)  var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), #eafbf9 var(--tw-gradient-via-position), var(--tw-gradient-to);
+.via-\[\#0D0F1D\] {
+  --tw-gradient-to: rgb(13 15 29 / 0)  var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), #0D0F1D var(--tw-gradient-via-position), var(--tw-gradient-to);
 }
 .via-\[var\(--space-surface-card\)\] {
   --tw-gradient-to: rgb(255 255 255 / 0)  var(--tw-gradient-to-position);
@@ -1589,8 +1606,8 @@ video {
   --tw-gradient-to: rgb(255 255 255 / 0)  var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--space-surface-gradient-via) var(--tw-gradient-via-position), var(--tw-gradient-to);
 }
-.to-\[\#fff5f5\] {
-  --tw-gradient-to: #fff5f5 var(--tw-gradient-to-position);
+.to-\[\#4C1D95\] {
+  --tw-gradient-to: #4C1D95 var(--tw-gradient-to-position);
 }
 .to-\[var\(--space-surface-accent-soft\)\] {
   --tw-gradient-to: var(--space-surface-accent-soft) var(--tw-gradient-to-position);
@@ -1622,10 +1639,6 @@ video {
 .object-contain {
   -o-object-fit: contain;
      object-fit: contain;
-}
-.object-cover {
-  -o-object-fit: cover;
-     object-fit: cover;
 }
 .p-0 {
   padding: 0px;
@@ -1835,6 +1848,9 @@ video {
 .text-\[11px\] {
   font-size: 11px;
 }
+.text-\[44px\] {
+  font-size: 44px;
+}
 .text-base {
   font-size: 1rem;
   line-height: 1.5rem;
@@ -1902,6 +1918,12 @@ video {
 }
 .leading-tight {
   line-height: 1.25;
+}
+.tracking-\[0\.16em\] {
+  letter-spacing: 0.16em;
+}
+.tracking-\[0\.1em\] {
+  letter-spacing: 0.1em;
 }
 .tracking-\[0\.22em\] {
   letter-spacing: 0.22em;
@@ -2114,11 +2136,20 @@ video {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
 }
+.text-white\/40 {
+  color: rgb(255 255 255 / 0.4);
+}
+.text-white\/45 {
+  color: rgb(255 255 255 / 0.45);
+}
+.text-white\/55 {
+  color: rgb(255 255 255 / 0.55);
+}
+.text-white\/60 {
+  color: rgb(255 255 255 / 0.6);
+}
 .text-white\/70 {
   color: rgb(255 255 255 / 0.7);
-}
-.text-white\/75 {
-  color: rgb(255 255 255 / 0.75);
 }
 .underline {
   text-decoration-line: underline;
@@ -2131,9 +2162,6 @@ video {
 }
 .opacity-0 {
   opacity: 0;
-}
-.opacity-10 {
-  opacity: 0.1;
 }
 .opacity-50 {
   opacity: 0.5;
@@ -2265,6 +2293,11 @@ video {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
+.transition-transform {
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
 .duration-200 {
   transition-duration: 200ms;
 }
@@ -2334,6 +2367,10 @@ body {
   --tw-translate-y: -0.125rem;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
+.hover\:-translate-y-1:hover {
+  --tw-translate-y: -0.25rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
 .hover\:-translate-y-px:hover {
   --tw-translate-y: -1px;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
@@ -2401,6 +2438,9 @@ body {
 }
 .hover\:bg-red-500\/10:hover {
   background-color: rgb(239 68 68 / 0.1);
+}
+.hover\:bg-white\/10:hover {
+  background-color: rgb(255 255 255 / 0.1);
 }
 .hover\:bg-white\/60:hover {
   background-color: rgb(255 255 255 / 0.6);
@@ -2730,6 +2770,14 @@ body {
     margin-right: auto;
   }
 
+  .sm\:h-\[720px\] {
+    height: 720px;
+  }
+
+  .sm\:w-\[720px\] {
+    width: 720px;
+  }
+
   .sm\:w-auto {
     width: auto;
   }
@@ -2858,6 +2906,14 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .md\:flex-row {
+    flex-direction: row;
+  }
+
+  .md\:justify-between {
+    justify-content: space-between;
+  }
+
   .md\:gap-3 {
     gap: 0.75rem;
   }
@@ -2910,6 +2966,14 @@ body {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
+  .lg\:grid-cols-\[0\.8fr_1\.2fr\] {
+    grid-template-columns: 0.8fr 1.2fr;
+  }
+
+  .lg\:grid-cols-\[1\.15fr_0\.85fr\] {
+    grid-template-columns: 1.15fr 0.85fr;
+  }
+
   .lg\:text-6xl {
     font-size: 3.75rem;
     line-height: 1;
@@ -2918,44 +2982,54 @@ body {
 
       /* Hero legibility floor (deterministic): guarantees a dark veil over the
          hero background media and white hero copy no matter what the EmailGate
-         customization LLM emits. Anchored on BOTH the hero id and the landing
-         root's first section, because in practice the LLM sometimes drops
-         id="hero" while keeping the .eg-root wrapper (verified on live staging
-         variants), and sometimes keeps id="hero" without .eg-root. Uses
-         !important so it beats inline brand-color text, and only lifts copy /
-         interactive elements — never the absolutely-positioned <video>/<img> —
-         so it can't fight the layout.
+         customization LLM emits, unless the authored hero opts out with
+         data-light-hero. Anchored on BOTH the hero id and the landing root's
+         first section, because in practice the LLM sometimes drops id="hero"
+         while keeping the .eg-root wrapper (verified on live staging variants),
+         and sometimes keeps id="hero" without .eg-root. Uses !important so it
+         beats inline brand-color text, and only lifts copy / interactive
+         elements — never the absolutely-positioned <video>/<img> — so it can't
+         fight the layout.
          ponytail: two structural anchors cover every gate variant observed; a
          gate that renames BOTH the id and the wrapper would still slip through.
          Upgrade path: enforce id="hero" in the gate source at splice /
          customization time so a single anchor is always present. */
-      #hero,
-      .eg-root > section:first-of-type { position: relative; }
-      #hero::after,
-      .eg-root > section:first-of-type::after {
+      #hero:not([data-light-hero]),
+      .eg-root > section:first-of-type:not([data-light-hero]) { position: relative; }
+      #hero:not([data-light-hero])::after,
+      .eg-root > section:first-of-type:not([data-light-hero])::after {
         content: "";
         position: absolute;
         inset: 0;
-        background: rgba(2, 6, 23, 0.1);
+        background: rgba(2, 6, 23, 0.55);
         z-index: 1;
         pointer-events: none;
       }
-      #hero h1, #hero h2, #hero p, #hero a, #hero button,
-      .eg-root > section:first-of-type h1, .eg-root > section:first-of-type h2,
-      .eg-root > section:first-of-type p, .eg-root > section:first-of-type a,
-      .eg-root > section:first-of-type button { position: relative; z-index: 2; }
-      #hero h1, #hero h2, #hero p,
-      .eg-root > section:first-of-type h1, .eg-root > section:first-of-type h2,
-      .eg-root > section:first-of-type p { color: #fff !important; }
+      #hero:not([data-light-hero]) h1, #hero:not([data-light-hero]) h2,
+      #hero:not([data-light-hero]) p, #hero:not([data-light-hero]) a,
+      #hero:not([data-light-hero]) button,
+      .eg-root > section:first-of-type:not([data-light-hero]) h1,
+      .eg-root > section:first-of-type:not([data-light-hero]) h2,
+      .eg-root > section:first-of-type:not([data-light-hero]) p,
+      .eg-root > section:first-of-type:not([data-light-hero]) a,
+      .eg-root > section:first-of-type:not([data-light-hero]) button {
+        position: relative;
+        z-index: 2;
+      }
+      #hero:not([data-light-hero]) h1, #hero:not([data-light-hero]) h2,
+      #hero:not([data-light-hero]) p,
+      .eg-root > section:first-of-type:not([data-light-hero]) h1,
+      .eg-root > section:first-of-type:not([data-light-hero]) h2,
+      .eg-root > section:first-of-type:not([data-light-hero]) p { color: #fff !important; }
     </style>
   </head>
   <body class="light">
     <!-- Loading shell - hidden when React mounts. Secondary user-facing
          loading copy is visible while the app gets ready. -->
     <div id="space-loader">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;font-family:Inter,system-ui,-apple-system,sans-serif;color:#475569;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;font-family:'Space Grotesk',system-ui,-apple-system,sans-serif;color:#e2e8f0;">
         <div class="loader-spinner"></div>
-        <div id="space-loader-secondary" style="display:block;font-size:13px;color:#64748b;max-width:280px;text-align:center;">Getting FoundarOS ready — this may take a moment.</div>
+        <div id="space-loader-secondary" style="display:block;font-size:13px;color:#94a3b8;max-width:280px;text-align:center;">Just a second — getting FoundarOS ready.</div>
       </div>
     </div>
     
@@ -3543,7 +3617,9 @@ body {
     "remark-gfm": "https://esm.sh/remark-gfm@4.0.0",
     "@rive-app/react-canvas": "https://esm.sh/@rive-app/react-canvas@4.29.1?deps=react@18.3.1,react-dom@18.3.1&external=react,react-dom",
     "@rive-app/canvas": "https://esm.sh/@rive-app/canvas@2.38.1",
-    "pptxgenjs": "https://esm.sh/pptxgenjs@4.0.1"
+    "pptxgenjs": "https://esm.sh/pptxgenjs@4.0.1",
+    "docx": "https://esm.sh/docx@9.1.1",
+    "xlsx": "https://esm.sh/xlsx@0.18.5"
   }
 }
     </script>
@@ -3902,9 +3978,11 @@ body {
       if (this._selectCols.length) {
         params.set('_select', this._selectCols.join(','));
       }
+      // append (not set): same-column chains like .gte(col, lo).lte(col, hi)
+      // must survive as repeated query params for the data API parser.
       this._filters.forEach(function(f) {
         var eqIdx = f.indexOf('=');
-        params.set(f.substring(0, eqIdx), f.substring(eqIdx + 1));
+        params.append(f.substring(0, eqIdx), f.substring(eqIdx + 1));
       });
       if (this._db.sessionId && !this._shared) {
         params.set('session_id', 'eq.' + this._db.sessionId);
@@ -4129,7 +4207,7 @@ body {
 
   window.__workspaceDb = new WorkspaceDB({
     workspaceId: "abb0d8aa-e900-4f77-b506-6f5450c3838b",
-    token: "ak_live_e0c9521b7d79270318b87bb99902f59654793edfab0ecc9bc285348e7052028a",
+    token: "ak_live_4b4e4603b927e2f1da9041f5a95f107c1831457ac80986e788818ad32f300800",
     spaceId: "workspace-104526"
   });
 
@@ -4220,10 +4298,10 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// ../../../tmp/space-workspace-104526-AQmLZx/lib/colors.ts
+// ../../../tmp/space-workspace-104526-O7nwUN/lib/colors.ts
 var brand, semantic, neutral, typography, colors, tw, authStyles, settingsStyles;
 var init_colors = __esm({
-  "../../../tmp/space-workspace-104526-AQmLZx/lib/colors.ts"() {
+  "../../../tmp/space-workspace-104526-O7nwUN/lib/colors.ts"() {
     brand = {
       // Primary brand color - used for main actions, buttons, links
       primary: {
@@ -4528,7 +4606,7 @@ var init_colors = __esm({
   }
 });
 
-// ../../../tmp/space-workspace-104526-AQmLZx/apps/GapRadar/questions.ts
+// ../../../tmp/space-workspace-104526-O7nwUN/apps/GapRadar/questions.ts
 function getOptionScore(question, answer) {
   if (question.type !== "choice" || !question.options || answer === void 0 || answer === "") return null;
   const idx = Number(answer);
@@ -4593,7 +4671,7 @@ function computeTopGaps(answers, categoryScores) {
 }
 var CATEGORY_LABELS, MAX_OPTION_SCORE, QUESTIONS, TOTAL_QUESTIONS, SEVERITY_FOR_SCORE;
 var init_questions = __esm({
-  "../../../tmp/space-workspace-104526-AQmLZx/apps/GapRadar/questions.ts"() {
+  "../../../tmp/space-workspace-104526-O7nwUN/apps/GapRadar/questions.ts"() {
     CATEGORY_LABELS = {
       idea_clarity: "Idea Clarity",
       market_validation: "Market Validation",
@@ -5045,7 +5123,7 @@ var init_questions = __esm({
   }
 });
 
-// ../../../tmp/space-workspace-104526-AQmLZx/apps/GapRadar/documents.ts
+// ../../../tmp/space-workspace-104526-O7nwUN/apps/GapRadar/documents.ts
 function isCompletePackInput(input) {
   const choiceQuestions = QUESTIONS.filter((q) => q.type === "choice");
   const hasEveryChoice = choiceQuestions.every((q) => getOptionScore(q, input.answers[q.id]) !== null);
@@ -5776,7 +5854,7 @@ function generatePackDocuments(input) {
       id: "business-plan",
       title: "Business Plan Draft",
       description: "A structured 11-section business plan built from your assessment answers.",
-      filename: "foundaros-business-plan.md",
+      filename: "foundaros-business-plan.docx",
       content: generateBusinessPlan(input)
     },
     {
@@ -5790,21 +5868,21 @@ function generatePackDocuments(input) {
       id: "financial-model",
       title: "Financial Model",
       description: "3-year revenue projections, cost assumptions, break-even analysis, and the investor metrics you need to know cold.",
-      filename: "foundaros-financial-model.md",
+      filename: "foundaros-financial-model.xlsx",
       content: generateFinancialModel(input)
     },
     {
       id: "grant-application",
       title: "Grant Application Assistant",
       description: "A grant-ready business summary, eligibility checklist scored from your answers, a draft problem statement, and grant sources for your stage.",
-      filename: "foundaros-grant-application.md",
+      filename: "foundaros-grant-application.docx",
       content: generateGrantApplication(input)
     },
     {
       id: "action-plan",
       title: "Action Plan & Executive Summary",
       description: "Your readiness scores, top gaps, and a step-by-step 30/60/90-day plan.",
-      filename: "foundaros-action-plan.md",
+      filename: "foundaros-action-plan.docx",
       content: generateActionPlan(input)
     }
   ];
@@ -5831,7 +5909,7 @@ function validatePackDocuments(documents, input) {
   if (!isCompletePackInput(input) || documents.length !== REQUIRED_DOCUMENT_IDS.length) return false;
   const ids = new Set(documents.map((doc) => doc.id));
   return REQUIRED_DOCUMENT_IDS.every((id) => ids.has(id)) && documents.every((doc) => {
-    const hasExpectedFileType = doc.id === "pitch-deck" ? doc.filename.endsWith(".pptx") : doc.filename.endsWith(".md");
+    const hasExpectedFileType = doc.id === "pitch-deck" ? doc.filename.endsWith(".pptx") : doc.id === "financial-model" ? doc.filename.endsWith(".xlsx") : doc.filename.endsWith(".docx");
     return !!doc.title.trim() && !!doc.description.trim() && hasExpectedFileType && documentIsGrounded(doc, input) && (REQUIRED_MARKERS[doc.id] ?? []).every((marker) => doc.content.includes(marker));
   });
 }
@@ -5934,7 +6012,7 @@ ${spec.instructions}`, spec.maxTokens);
 }
 var NAME_PLACEHOLDER, PRONOUN_STARTS, PITCH_DECK_TEMPLATE_NOTE, LOGO_PLACEHOLDER, BRAND_COLOURS_NOTE, REQUIRED_DOCUMENT_IDS, REQUIRED_MARKERS, AI_MODEL, AI_TIMEOUT_MS, AI_SYSTEM_PROMPT, AI_DOC_SPECS;
 var init_documents = __esm({
-  "../../../tmp/space-workspace-104526-AQmLZx/apps/GapRadar/documents.ts"() {
+  "../../../tmp/space-workspace-104526-O7nwUN/apps/GapRadar/documents.ts"() {
     init_questions();
     NAME_PLACEHOLDER = "[Your Company Name]";
     PRONOUN_STARTS = /* @__PURE__ */ new Set(["We", "I", "Our", "My", "The", "A", "An", "It", "This", "They", "You"]);
@@ -6024,7 +6102,7 @@ var init_documents = __esm({
   }
 });
 
-// ../../../tmp/space-workspace-104526-AQmLZx/apps/GapRadar/App.tsx
+// ../../../tmp/space-workspace-104526-O7nwUN/apps/GapRadar/App.tsx
 var App_exports = {};
 __export(App_exports, {
   default: () => GapRadar
@@ -6047,7 +6125,7 @@ import {
   ArrowUpRight,
   ArrowRight as ArrowRight2,
   ArrowLeft,
-  Lock as Lock3,
+  Lock as Lock2,
   Info as Info2,
   RotateCcw,
   ClipboardList as ClipboardList2,
@@ -6060,8 +6138,8 @@ import {
   Check as Check2,
   Send as Send2,
   Megaphone,
-  Bot as Bot4,
-  Briefcase as Briefcase2,
+  Bot as Bot3,
+  Briefcase,
   BellRing,
   Rocket as Rocket3
 } from "lucide-react";
@@ -6397,7 +6475,7 @@ function PaywallCard({
       className: `${tw.card.elevated} border border-[var(--space-border-default)] p-5 sm:p-6`,
       "data-testid": "card-paywall",
       children: /* @__PURE__ */ jsxs6("div", { className: "flex items-start gap-3", children: [
-        /* @__PURE__ */ jsx8("div", { className: "w-10 h-10 shrink-0 rounded-xl bg-[var(--space-surface-accent-soft)] flex items-center justify-center", children: /* @__PURE__ */ jsx8(Lock3, { className: `w-5 h-5 ${tw.icon.accent}` }) }),
+        /* @__PURE__ */ jsx8("div", { className: "w-10 h-10 shrink-0 rounded-xl bg-[var(--space-surface-accent-soft)] flex items-center justify-center", children: /* @__PURE__ */ jsx8(Lock2, { className: `w-5 h-5 ${tw.icon.accent}` }) }),
         /* @__PURE__ */ jsxs6("div", { className: "flex-1 min-w-0", children: [
           /* @__PURE__ */ jsx8("h4", { className: `text-base font-semibold ${tw.typography.color.primary} mb-1`, children: "Ready to close your gaps faster?" }),
           /* @__PURE__ */ jsx8("p", { className: `text-sm ${tw.typography.color.secondary} mb-4`, children: "Unlock five downloadable documents plus AI coaching, all built from your assessment answers: a generated Business Plan, a full Pitch Deck \u2014 an editable, presentation-ready deck pre-populated with your brand name and preferred colours, with room to drop in your own logo \u2014 a 3-year Financial Model, a Grant Application Assistant, a step-by-step Action Plan, plus the interactive AI Pitch Coach for pitch practice with feedback." }),
@@ -6472,6 +6550,249 @@ function PaymentNoticeBanner({ notice, onDismiss }) {
       ]
     }
   ) });
+}
+function stripMarkdownEmphasis(text) {
+  return text.replace(/\*\*(.+?)\*\*/g, "$1").replace(/(?<!\w)_(.+?)_(?!\w)/g, "$1").replace(/`(.+?)`/g, "$1").trim();
+}
+function inlineMarkdownToRuns(docxLib, text) {
+  const { TextRun } = docxLib;
+  const runs = [];
+  const regex = /(\*\*(.+?)\*\*|(?<!\w)_(.+?)_(?!\w)|`(.+?)`)/g;
+  let lastIndex = 0;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) runs.push(new TextRun(text.slice(lastIndex, match.index)));
+    if (match[2] !== void 0) runs.push(new TextRun({ text: match[2], bold: true }));
+    else if (match[3] !== void 0) runs.push(new TextRun({ text: match[3], italics: true }));
+    else if (match[4] !== void 0) runs.push(new TextRun({ text: match[4], font: "Consolas" }));
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) runs.push(new TextRun(text.slice(lastIndex)));
+  return runs.length ? runs : [new TextRun(text)];
+}
+function isTableStart(lines, i) {
+  return lines[i].trim().startsWith("|") && !!lines[i + 1] && MD_TABLE_SEPARATOR.test(lines[i + 1]);
+}
+function readTableBlock(lines, start) {
+  let j = start;
+  const raw = [];
+  while (j < lines.length && lines[j].trim().startsWith("|")) {
+    raw.push(lines[j]);
+    j++;
+  }
+  const rows = raw.filter((_, idx) => idx !== 1).map((l) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim()));
+  return { rows, next: j };
+}
+function markdownToDocxChildren(docxLib, markdown) {
+  const { Paragraph, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, TextRun } = docxLib;
+  const lines = markdown.split("\n");
+  const children = [];
+  let i = 0;
+  while (i < lines.length) {
+    const trimmed = lines[i].trim();
+    if (!trimmed) {
+      i++;
+      continue;
+    }
+    if (isTableStart(lines, i)) {
+      const { rows, next } = readTableBlock(lines, i);
+      i = next;
+      if (rows.length === 0) continue;
+      const colCount = rows[0].length;
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: rows.map(
+            (cells, rowIdx) => new TableRow({
+              children: Array.from({ length: colCount }, (_, c) => cells[c] ?? "").map(
+                (cellText) => new TableCell({
+                  width: { size: 100 / colCount, type: WidthType.PERCENTAGE },
+                  shading: rowIdx === 0 ? { fill: "7C3AED" } : void 0,
+                  margins: { top: 80, bottom: 80, left: 100, right: 100 },
+                  children: [
+                    new Paragraph({
+                      children: rowIdx === 0 ? [new TextRun({ text: stripMarkdownEmphasis(cellText), bold: true, color: "FFFFFF" })] : inlineMarkdownToRuns(docxLib, cellText)
+                    })
+                  ]
+                })
+              )
+            })
+          )
+        })
+      );
+      children.push(new Paragraph({ text: "", spacing: { after: 150 } }));
+      continue;
+    }
+    if (trimmed.startsWith("# ")) {
+      children.push(
+        new Paragraph({ text: trimmed.slice(2), heading: HeadingLevel.TITLE, spacing: { after: 200 } })
+      );
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith("## ")) {
+      children.push(
+        new Paragraph({ text: trimmed.slice(3), heading: HeadingLevel.HEADING_1, spacing: { before: 320, after: 160 } })
+      );
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith("### ")) {
+      children.push(
+        new Paragraph({ text: trimmed.slice(4), heading: HeadingLevel.HEADING_2, spacing: { before: 220, after: 110 } })
+      );
+      i++;
+      continue;
+    }
+    if (/^-{3,}$/.test(trimmed)) {
+      children.push(
+        new Paragraph({
+          text: "",
+          border: { bottom: { color: "CCCCCC", space: 1, style: BorderStyle.SINGLE, size: 6 } },
+          spacing: { after: 200 }
+        })
+      );
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith(">")) {
+      children.push(
+        new Paragraph({
+          children: inlineMarkdownToRuns(docxLib, trimmed.replace(/^>\s?/, "")),
+          indent: { left: 400 },
+          border: { left: { color: "7C3AED", space: 8, style: BorderStyle.SINGLE, size: 18 } },
+          spacing: { after: 150 }
+        })
+      );
+      i++;
+      continue;
+    }
+    if (/^[-*]\s+/.test(trimmed)) {
+      children.push(
+        new Paragraph({
+          children: inlineMarkdownToRuns(docxLib, trimmed.replace(/^[-*]\s+/, "")),
+          bullet: { level: 0 },
+          spacing: { after: 90 }
+        })
+      );
+      i++;
+      continue;
+    }
+    const numbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (numbered) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun(`${numbered[1]}. `), ...inlineMarkdownToRuns(docxLib, numbered[2])],
+          indent: { left: 300 },
+          spacing: { after: 90 }
+        })
+      );
+      i++;
+      continue;
+    }
+    children.push(
+      new Paragraph({ children: inlineMarkdownToRuns(docxLib, trimmed), spacing: { after: 150 } })
+    );
+    i++;
+  }
+  return children;
+}
+async function buildDocxBlob(markdown, title) {
+  const docxLib = await import("docx");
+  const { Document, Packer } = docxLib;
+  const doc = new Document({
+    creator: "FoundarOS",
+    title,
+    styles: { default: { document: { run: { font: "Calibri", size: 22 } } } },
+    sections: [{ properties: {}, children: markdownToDocxChildren(docxLib, markdown) }]
+  });
+  return Packer.toBlob(doc);
+}
+function xlsxCellValue(rawText) {
+  const text = stripMarkdownEmphasis(rawText);
+  if (/\[.*\]/.test(text)) return text;
+  const stripped = text.replace(/^\$/, "").replace(/%$/, "").replace(/,/g, "").trim();
+  if (stripped !== "" && /^-?\d+(\.\d+)?$/.test(stripped)) return Number(stripped);
+  return text;
+}
+async function buildXlsxBlob(markdown, workbookTitle) {
+  const XLSX = await import("xlsx");
+  const lines = markdown.split("\n");
+  const wb = XLSX.utils.book_new();
+  const overviewRows = [[workbookTitle], [""]];
+  let lastHeading = "Notes";
+  const usedSheetNames = /* @__PURE__ */ new Set();
+  const registerSheetName = (base) => {
+    const safeBase = base.replace(/[\\/?*[\]:]/g, "").trim().slice(0, 28) || "Sheet";
+    let candidate = safeBase;
+    let n = 2;
+    while (usedSheetNames.has(candidate.toLowerCase())) {
+      candidate = `${safeBase.slice(0, 24)} (${n})`;
+      n++;
+    }
+    usedSheetNames.add(candidate.toLowerCase());
+    return candidate;
+  };
+  let i = 0;
+  while (i < lines.length) {
+    const trimmed = lines[i].trim();
+    if (!trimmed) {
+      i++;
+      continue;
+    }
+    if (/^#{1,3}\s+/.test(trimmed)) {
+      lastHeading = stripMarkdownEmphasis(trimmed.replace(/^#{1,3}\s+/, ""));
+      overviewRows.push([lastHeading]);
+      i++;
+      continue;
+    }
+    const boldSubheading = trimmed.match(/^\*\*(.+?):\*\*$/);
+    if (boldSubheading) {
+      lastHeading = stripMarkdownEmphasis(boldSubheading[1]);
+      overviewRows.push([lastHeading]);
+      i++;
+      continue;
+    }
+    if (isTableStart(lines, i)) {
+      const { rows, next } = readTableBlock(lines, i);
+      i = next;
+      if (rows.length === 0) continue;
+      const aoa = rows.map(
+        (row, rowIdx) => row.map((cell) => rowIdx === 0 ? stripMarkdownEmphasis(cell) : xlsxCellValue(cell))
+      );
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = (rows[0] ?? []).map(() => ({ wch: 26 }));
+      const sheetName = registerSheetName(lastHeading);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      overviewRows.push([`\u21B3 Full table on the "${sheetName}" sheet`], [""]);
+      continue;
+    }
+    if (/^-{3,}$/.test(trimmed)) {
+      i++;
+      continue;
+    }
+    const cleaned = stripMarkdownEmphasis(
+      trimmed.replace(/^>\s?/, "").replace(/^[-*]\s+/, "\u2022 ").replace(/^(\d+)\.\s+/, "$1. ")
+    );
+    overviewRows.push([cleaned]);
+    i++;
+  }
+  const overviewWs = XLSX.utils.aoa_to_sheet(overviewRows);
+  overviewWs["!cols"] = [{ wch: 120 }];
+  XLSX.utils.book_append_sheet(wb, overviewWs, "Overview");
+  const overviewIdx = wb.SheetNames.indexOf("Overview");
+  if (overviewIdx > 0) {
+    wb.SheetNames.splice(overviewIdx, 1);
+    wb.SheetNames.unshift("Overview");
+  }
+  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  return new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+function resolvedFilename(doc) {
+  const base = doc.filename.replace(/\.[a-zA-Z0-9]+$/, "");
+  if (doc.id === "pitch-deck") return `${base}.pptx`;
+  if (doc.id === "financial-model") return `${base}.xlsx`;
+  return `${base}.docx`;
 }
 function downloadDocument(doc) {
   if (doc.id === "pitch-deck") {
@@ -6677,7 +6998,7 @@ function downloadDocument(doc) {
           });
           if (speakerNotes) slide.addNotes(speakerNotes);
         });
-        await pptx.writeFile({ fileName: doc.filename });
+        await pptx.writeFile({ fileName: resolvedFilename(doc) });
       } catch (error) {
         console.error("Could not build editable PowerPoint deck", error);
         const fallback = new Blob([doc.content], { type: "text/markdown;charset=utf-8" });
@@ -6694,15 +7015,36 @@ function downloadDocument(doc) {
     })();
     return;
   }
-  const blob = new Blob([doc.content], { type: "text/markdown;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = doc.filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1e3);
+  void (async () => {
+    try {
+      const isXlsx = doc.id === "financial-model";
+      const blob = isXlsx ? await buildXlsxBlob(doc.content, doc.title) : await buildDocxBlob(doc.content, doc.title);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = resolvedFilename(doc);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1e3);
+    } catch (error) {
+      console.error(`Could not build ${doc.filename}`, error);
+      const fallbackName = doc.filename.replace(/\.[a-zA-Z0-9]+$/, ".md");
+      const blob = new Blob([doc.content], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fallbackName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1e3);
+      window.alert(`The ${formatLabelForFilename(doc)} file could not be built in this browser, so a markdown version was downloaded instead.`);
+    }
+  })();
+}
+function formatLabelForFilename(doc) {
+  return doc.id === "financial-model" ? "Excel" : "Word";
 }
 function DocumentsSection({
   documents,
@@ -7070,7 +7412,7 @@ function ComingSoonSection() {
       {
         className: `${tw.badge.default} ${tw.badge.neutral} shrink-0 inline-flex items-center gap-1 opacity-80`,
         children: [
-          /* @__PURE__ */ jsx8(Lock3, { className: "w-2.5 h-2.5" }),
+          /* @__PURE__ */ jsx8(Lock2, { className: "w-2.5 h-2.5" }),
           "Soon"
         ]
       }
@@ -7088,7 +7430,7 @@ function ComingSoonSection() {
     /* @__PURE__ */ jsxs6("div", { className: "grid sm:grid-cols-2 gap-3", children: [
       /* @__PURE__ */ jsxs6("div", { className: `${tw.card.default} p-4`, "data-testid": "card-coming-soon-operations", children: [
         /* @__PURE__ */ jsxs6("div", { className: "flex items-center gap-2 mb-2", children: [
-          /* @__PURE__ */ jsx8("div", { className: "w-8 h-8 shrink-0 rounded-lg bg-[var(--space-surface-accent-soft)] flex items-center justify-center", children: /* @__PURE__ */ jsx8(Briefcase2, { className: `w-4 h-4 ${tw.icon.primary}` }) }),
+          /* @__PURE__ */ jsx8("div", { className: "w-8 h-8 shrink-0 rounded-lg bg-[var(--space-surface-accent-soft)] flex items-center justify-center", children: /* @__PURE__ */ jsx8(Briefcase, { className: `w-4 h-4 ${tw.icon.primary}` }) }),
           /* @__PURE__ */ jsxs6("div", { children: [
             /* @__PURE__ */ jsx8("h4", { className: `text-sm font-semibold ${tw.typography.color.primary}`, children: "Business Operations" }),
             /* @__PURE__ */ jsx8("p", { className: `text-[11px] ${tw.typography.color.tertiary}`, children: "Generate after incorporation" })
@@ -7098,7 +7440,7 @@ function ComingSoonSection() {
       ] }),
       /* @__PURE__ */ jsxs6("div", { className: `${tw.card.default} p-4`, "data-testid": "card-coming-soon-coaches", children: [
         /* @__PURE__ */ jsxs6("div", { className: "flex items-center gap-2 mb-2", children: [
-          /* @__PURE__ */ jsx8("div", { className: "w-8 h-8 shrink-0 rounded-lg bg-[var(--space-surface-accent-soft)] flex items-center justify-center", children: /* @__PURE__ */ jsx8(Bot4, { className: `w-4 h-4 ${tw.icon.primary}` }) }),
+          /* @__PURE__ */ jsx8("div", { className: "w-8 h-8 shrink-0 rounded-lg bg-[var(--space-surface-accent-soft)] flex items-center justify-center", children: /* @__PURE__ */ jsx8(Bot3, { className: `w-4 h-4 ${tw.icon.primary}` }) }),
           /* @__PURE__ */ jsxs6("div", { children: [
             /* @__PURE__ */ jsx8("h4", { className: `text-sm font-semibold ${tw.typography.color.primary}`, children: "AI Coaches" }),
             /* @__PURE__ */ jsx8("p", { className: `text-[11px] ${tw.typography.color.tertiary}`, children: "Specialist agents for every role" })
@@ -8120,9 +8462,9 @@ function GapRadar() {
     /* @__PURE__ */ jsx8(GapBoard, { gaps: gaps || [], loading: gapsLoading, error: gapsError, refresh: refreshGaps })
   ] });
 }
-var CATEGORIES, SEVERITY_ORDER, SEVERITY_IMPACT, STRIPE_TEST_MODE2, STRIPE_PAYMENT_LINK_URL, UNLOCK_PRICE_CENTS, FOUNDER_TEST_PATTERN, FOUNDER_TEST_AT_LOAD, PITCH_DIMENSIONS, PITCH_MIN_WORDS, PITCH_MAX_WORDS, COMING_SOON_OPERATIONS, COMING_SOON_COACHES, NOTIFY_STORAGE_KEY;
+var CATEGORIES, SEVERITY_ORDER, SEVERITY_IMPACT, STRIPE_TEST_MODE2, STRIPE_PAYMENT_LINK_URL, UNLOCK_PRICE_CENTS, FOUNDER_TEST_PATTERN, FOUNDER_TEST_AT_LOAD, MD_TABLE_SEPARATOR, PITCH_DIMENSIONS, PITCH_MIN_WORDS, PITCH_MAX_WORDS, COMING_SOON_OPERATIONS, COMING_SOON_COACHES, NOTIFY_STORAGE_KEY;
 var init_App = __esm({
-  "../../../tmp/space-workspace-104526-AQmLZx/apps/GapRadar/App.tsx"() {
+  "../../../tmp/space-workspace-104526-O7nwUN/apps/GapRadar/App.tsx"() {
     init_colors();
     init_questions();
     init_documents();
@@ -8149,6 +8491,7 @@ var init_App = __esm({
     UNLOCK_PRICE_CENTS = 9900;
     FOUNDER_TEST_PATTERN = /[?&#]founder_test=1/;
     FOUNDER_TEST_AT_LOAD = founderFlagInUrls();
+    MD_TABLE_SEPARATOR = /^\s*\|?[\s:|-]+\|?\s*$/;
     PITCH_DIMENSIONS = [
       { key: "clarity", label: "Clarity" },
       { key: "investor_appeal", label: "Investor Appeal" },
@@ -8185,14 +8528,37 @@ var init_App = __esm({
   }
 });
 
-// ../../../tmp/space-workspace-104526-AQmLZx/main.tsx
+// ../../../tmp/space-workspace-104526-O7nwUN/main.tsx
 import React, { Suspense as Suspense2, useState as useState8, useEffect as useEffect8, Component as Component2 } from "react";
 import { createRoot } from "react-dom/client";
 
-// ../../../tmp/space-workspace-104526-AQmLZx/SpaceRuntimeContext.tsx
+// shared/compiled-public-app-route.ts
+function resolveCompiledPublicAppId(publicRoute, hash, privateRoute) {
+  const encodedId = hash.startsWith("#") ? hash.slice(1) : hash;
+  let requestedId = "";
+  if (encodedId) {
+    try {
+      requestedId = decodeURIComponent(encodedId).toLowerCase();
+    } catch {
+      return null;
+    }
+  }
+  if (requestedId) {
+    const requestedAppId = publicRoute.appIds.find(
+      (appId) => appId.toLowerCase() === requestedId
+    );
+    if (requestedAppId) return requestedAppId;
+  }
+  if (publicRoute.spaceAppOnlyEntryId && privateRoute.appId === publicRoute.spaceAppOnlyEntryId && privateRoute.screen === "app") {
+    return publicRoute.spaceAppOnlyEntryId;
+  }
+  return null;
+}
+
+// ../../../tmp/space-workspace-104526-O7nwUN/SpaceRuntimeContext.tsx
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 
-// ../../../tmp/space-workspace-104526-AQmLZx/lib/tenant-delegation-scope.ts
+// ../../../tmp/space-workspace-104526-O7nwUN/lib/tenant-delegation-scope.ts
 function getTenantDelegationScope() {
   if (typeof window === "undefined") return null;
   const injected = window.__TENANT_DELEGATION__;
@@ -8217,6 +8583,19 @@ function hasTenantDelegationAuth() {
   const params = new URLSearchParams(window.location.search);
   return !!(params.get("ta_session") && params.get("delegation_token"));
 }
+function getTenantTaskModeContext() {
+  if (typeof window === "undefined") return null;
+  const injected = window.__TENANT_TASK_MODE__;
+  if (injected && typeof injected.nonce === "string" && injected.nonce) {
+    return injected;
+  }
+  return null;
+}
+function isTenantChatSuppressed() {
+  if (getTenantTaskModeContext()) return true;
+  const scope = getTenantDelegationScope();
+  return scope?.chatSuppressed === true;
+}
 function scopedSpaceSessionStorageKey(spaceId) {
   const scope = getTenantDelegationScope();
   const consumerWorkspaceId = scope?.consumerWorkspaceId?.trim();
@@ -8226,6 +8605,7 @@ function scopedSpaceSessionStorageKey(spaceId) {
   return `space_session_${spaceId}`;
 }
 function getDelegationChatRequestExtras() {
+  if (isTenantChatSuppressed()) return null;
   const scope = getTenantDelegationScope();
   if (!scope?.token || !scope.sessionId) return null;
   return {
@@ -8234,7 +8614,7 @@ function getDelegationChatRequestExtras() {
   };
 }
 
-// ../../../tmp/space-workspace-104526-AQmLZx/SpaceRuntimeContext.tsx
+// ../../../tmp/space-workspace-104526-O7nwUN/SpaceRuntimeContext.tsx
 import { jsx } from "react/jsx-runtime";
 var SpaceRuntimeContext = createContext(null);
 var VISITOR_COOKIE = "audos_vid";
@@ -9350,11 +9730,11 @@ function useSpaceRuntime() {
   return context;
 }
 
-// ../../../tmp/space-workspace-104526-AQmLZx/Desktop.tsx
+// ../../../tmp/space-workspace-104526-O7nwUN/Desktop.tsx
 import { useState as useState6, Suspense, useEffect as useEffect6, useRef as useRef3, useMemo, useCallback as useCallback3, Component } from "react";
-import { Bot as Bot3, Folder as Folder2, X as X3, Plus as Plus2, Menu, PanelLeftClose, PanelLeftOpen, ChevronLeft, Activity, Maximize2, Minimize2, Moon, Heart as Heart2, Calendar, Users as Users2, FileText as FileText2, BarChart, Settings as SettingsIcon, MessageCircle, Plane, TrendingUp, LineChart, Dumbbell, Brain, Target, Zap, Star, Clock as Clock2, CheckCircle, List, BookOpen as BookOpen2, Coffee, Music, Camera, MapPin, Wallet, ShoppingCart, Gift, Lightbulb as Lightbulb2, Sparkles as Sparkles3, Rocket as Rocket2, Home, Building, Globe, Mail, Phone, Video, Mic, Image, Play, Pause, Volume2, Wifi, Cloud, Sun, Umbrella, Thermometer, Wind, Droplets, Leaf, Flower2, Mountain, Waves, Compass, Map, Navigation, Car, Bike, Ship, Award, Trophy, Medal, Crown, Diamond, Gem, Key, Lock as Lock2, Unlock, Shield, Eye as Eye2, Search as Search2, Filter, SortAsc, Download, Upload, Share2, Link, ExternalLink as ExternalLink2, Copy, Clipboard, Trash2, Edit as Edit2, Pencil, PenTool, Scissors, Bookmark, Flag, Bell, AlertCircle as AlertCircle2, Info, HelpCircle, XCircle as XCircle2, CheckCircle2 as CheckCircle22, Circle, Square, Triangle, Hexagon, Octagon, Hash, AtSign, DollarSign, Percent, Calculator as Calculator2, Code, Terminal, Database, Server, Cpu, Monitor, Smartphone, Tablet, Laptop, Watch, Headphones, Speaker, Radio, Tv, Printer, Scan, QrCode, Barcode, CreditCard as CreditCard2, Receipt, Banknote, PiggyBank, TrendingDown, AreaChart, PieChart } from "lucide-react";
+import { Bot as Bot2, Folder as Folder2, X as X3, Plus as Plus2, Menu, PanelLeftClose, PanelLeftOpen, ChevronLeft, Activity, Maximize2, Minimize2, Moon, Heart, Calendar, Users as Users2, FileText as FileText2, BarChart, Settings as SettingsIcon, MessageCircle, Plane, TrendingUp, LineChart, Dumbbell, Brain, Target, Zap, Star, Clock as Clock2, CheckCircle, List, BookOpen as BookOpen2, Coffee, Music, Camera, MapPin, Wallet, ShoppingCart, Gift, Lightbulb as Lightbulb2, Sparkles as Sparkles3, Rocket as Rocket2, Home, Building, Globe, Mail, Phone, Video, Mic, Image, Play, Pause, Volume2, Wifi, Cloud, Sun, Umbrella, Thermometer, Wind, Droplets, Leaf, Flower2, Mountain, Waves, Compass, Map as Map2, Navigation, Car, Bike, Ship, Award, Trophy, Medal, Crown, Diamond, Gem, Key, Lock, Unlock, Shield, Eye as Eye2, Search as Search2, Filter, SortAsc, Download, Upload, Share2, Link, ExternalLink as ExternalLink2, Copy, Clipboard, Trash2, Edit as Edit2, Pencil, PenTool, Scissors, Bookmark, Flag, Bell, AlertCircle as AlertCircle2, Info, HelpCircle, XCircle as XCircle2, CheckCircle2 as CheckCircle22, Circle, Square, Triangle, Hexagon, Octagon, Hash, AtSign, DollarSign, Percent, Calculator as Calculator2, Code, Terminal, Database, Server, Cpu, Monitor, Smartphone, Tablet, Laptop, Watch, Headphones, Speaker, Radio, Tv, Printer, Scan, QrCode, Barcode, CreditCard as CreditCard2, Receipt, Banknote, PiggyBank, TrendingDown, AreaChart, PieChart } from "lucide-react";
 
-// ../../../tmp/space-workspace-104526-AQmLZx/components/AgentChatView.tsx
+// ../../../tmp/space-workspace-104526-O7nwUN/components/AgentChatView.tsx
 import {
   Bot,
   Send,
@@ -9375,7 +9755,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-// ../../../tmp/space-workspace-104526-AQmLZx/lib/friendly-terms.ts
+// ../../../tmp/space-workspace-104526-O7nwUN/lib/friendly-terms.ts
 var TOOL_NAME_PREFIX_RE = /^(?:functions\.|tools\.)/;
 var toolNameAliases = {
   "edit_file": "edit",
@@ -9441,7 +9821,7 @@ function getToolColor(toolName) {
   return toolColors[normalizeToolName(toolName)] || "text-gray-500";
 }
 
-// ../../../tmp/space-workspace-104526-AQmLZx/components/AgentChatView.tsx
+// ../../../tmp/space-workspace-104526-O7nwUN/components/AgentChatView.tsx
 init_colors();
 import { Fragment, jsx as jsx2, jsxs } from "react/jsx-runtime";
 function WorkingIndicator({
@@ -9963,7 +10343,7 @@ function AgentChatView({ runtime }) {
   );
 }
 
-// ../../../tmp/space-workspace-104526-AQmLZx/components/useAgentChatRuntime.tsx
+// ../../../tmp/space-workspace-104526-O7nwUN/components/useAgentChatRuntime.tsx
 import { useState as useState2, useEffect as useEffect2, useRef as useRef2, useCallback as useCallback2 } from "react";
 import { flushSync } from "react-dom";
 var globalSendingLock = false;
@@ -10063,10 +10443,11 @@ function getInlineAgentConfig() {
   };
 }
 function useAgentChatRuntime(props) {
-  const { spaceId, onFileAccess, pendingMessage, onPendingMessageConsumed, threadId } = props;
+  const { spaceId, onFileAccess, pendingMessage, onPendingMessageConsumed, threadId, threadTitle } = props;
   const isPrimaryThread = !threadId || threadId === "main";
   const { sessionId, trackEvent } = useSpaceRuntime();
   const inlineAgentConfig = getInlineAgentConfig();
+  const chatSuppressed = isTenantChatSuppressed();
   const [messages, setMessages] = useState2([]);
   const [input, setInput] = useState2("");
   const [loading, setLoading] = useState2(false);
@@ -10285,6 +10666,11 @@ function useAgentChatRuntime(props) {
     return null;
   };
   useEffect2(() => {
+    if (chatSuppressed) {
+      setIsLoadingHistory(false);
+      setHasLoadedHistory(true);
+      return;
+    }
     const loadHistory = async () => {
       const params = new URLSearchParams();
       params.set("contextType", "space");
@@ -10423,6 +10809,7 @@ function useAgentChatRuntime(props) {
     loadHistory();
   }, [spaceId, sessionId, threadId]);
   useEffect2(() => {
+    if (chatSuppressed) return;
     if (!hasLoadedHistory || !isConfigLoaded) return;
     if (!isPrimaryThread) return;
     const hasVisibleMessages = messages.some((m) => {
@@ -10597,6 +10984,7 @@ function useAgentChatRuntime(props) {
     };
   }, [hasLoadedHistory, scrollToBottom]);
   useEffect2(() => {
+    if (chatSuppressed) return;
     if (!workspaceSessionId) return;
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws?session_chat=${workspaceSessionId}`;
@@ -10768,6 +11156,7 @@ function useAgentChatRuntime(props) {
     }
   }, [input, hasLoadedHistory]);
   const uploadFiles = async (files) => {
+    if (chatSuppressed) return;
     if (files.length === 0) return;
     if (pendingAttachments.length + files.length > 5) {
       console.warn("[AgentChat] Too many files - max 5 allowed");
@@ -10854,6 +11243,10 @@ function useAgentChatRuntime(props) {
     }
   };
   const sendMessageWithContent = async (messageContent, attachmentsToSend) => {
+    if (chatSuppressed) {
+      console.log("[AgentChat] Chat is suppressed in this context \u2014 send ignored");
+      return;
+    }
     if (!messageContent.trim() && attachmentsToSend.length === 0 || loading) return;
     if (!hasLoadedHistory) {
       console.log("[AgentChat] Waiting for history to load before sending...");
@@ -10913,7 +11306,8 @@ function useAgentChatRuntime(props) {
           claudeSessionId,
           email,
           attachments: attachmentsToSend.length > 0 ? attachmentsToSend : void 0,
-          threadId: threadId || void 0
+          threadId: threadId || void 0,
+          threadTitle: threadTitle || void 0
         }),
         signal: controller.signal
       });
@@ -11124,14 +11518,14 @@ function useAgentChatRuntime(props) {
   };
 }
 
-// ../../../tmp/space-workspace-104526-AQmLZx/components/AgentChat.tsx
+// ../../../tmp/space-workspace-104526-O7nwUN/components/AgentChat.tsx
 import { jsx as jsx3 } from "react/jsx-runtime";
 function AgentChat(props) {
   const runtime = useAgentChatRuntime(props);
   return /* @__PURE__ */ jsx3(AgentChatView, { runtime });
 }
 
-// ../../../tmp/space-workspace-104526-AQmLZx/components/FileBrowser.tsx
+// ../../../tmp/space-workspace-104526-O7nwUN/components/FileBrowser.tsx
 import { useState as useState3, useEffect as useEffect3 } from "react";
 import { File as File2, Folder, Eye, Edit } from "lucide-react";
 import { jsx as jsx4, jsxs as jsxs2 } from "react/jsx-runtime";
@@ -11269,7 +11663,7 @@ function FileBrowser({ fileAccessLogs = [] }) {
   ] });
 }
 
-// ../../../tmp/space-workspace-104526-AQmLZx/components/EmailGate.tsx
+// ../../../tmp/space-workspace-104526-O7nwUN/components/EmailGate.tsx
 import { useState as useState4, useEffect as useEffect4 } from "react";
 import {
   ArrowRight,
@@ -11283,13 +11677,7 @@ import {
   ClipboardList,
   Gauge,
   FileText,
-  Heart,
-  Check,
-  Building2,
-  Landmark,
-  Lock,
-  Bot as Bot2,
-  Briefcase
+  Check
 } from "lucide-react";
 import { Fragment as Fragment2, jsx as jsx5, jsxs as jsxs3 } from "react/jsx-runtime";
 function isRecord(value) {
@@ -12052,6 +12440,23 @@ function EmailGate({
   const typography2 = themeTokens?.typography || runtimeThemeTokens?.typography || {};
   const bodyFontStack = typography2.bodyFont ? `"${typography2.bodyFont}", system-ui, -apple-system, sans-serif` : "system-ui, -apple-system, sans-serif";
   const headingFontStack = typography2.headingFont ? `"${typography2.headingFont}", system-ui, -apple-system, sans-serif` : bodyFontStack;
+  useEffect4(() => {
+    const families = Array.from(
+      new Set([typography2?.headingFont, typography2?.bodyFont].filter(Boolean))
+    );
+    if (families.length === 0) return;
+    const id = "eg-dynamic-font-link";
+    const href = `https://fonts.googleapis.com/css2?${families.map((f) => `family=${String(f).replace(/\s+/g, "+")}:wght@400;500;600;700`).join("&")}&display=swap`;
+    let link = document.getElementById(id);
+    if (link && link.getAttribute("href") === href) return;
+    if (!link) {
+      link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+    link.href = href;
+  }, [typography2?.headingFont, typography2?.bodyFont]);
   const selectedAccentColor = normalizeHexColor(
     themeTokens?.shell?.accentColor || runtimeThemeTokens?.shell?.accentColor || runtimeDesktop?.theme?.accentColor
   );
@@ -12060,6 +12465,13 @@ function EmailGate({
   const primaryColor = palettePrimary || selectedAccentColor || "#1e293b";
   const highlightColor = normalizeHexColor(palette?.highlight || palette?.secondary) || primaryColor;
   const contrastColor = palette?.contrast || "#ffffff";
+  const accentGreen = palette?.accent || "#10B981";
+  const accentCycle = [
+    { bg: colorWithAlpha(primaryColor, 0.14), fg: palette?.secondary || primaryColor },
+    { bg: colorWithAlpha(highlightColor, 0.14), fg: highlightColor },
+    { bg: colorWithAlpha(contrastColor, 0.14), fg: contrastColor },
+    { bg: colorWithAlpha(accentGreen, 0.14), fg: accentGreen }
+  ];
   const brandName = branding?.name || "Welcome";
   const tagline = branding?.tagline || "Get started today.";
   const logoUrl = branding?.logoUrl;
@@ -12078,13 +12490,18 @@ function EmailGate({
   const selectedAccentOverridesPalette = !palettePrimary && !!selectedAccentColor;
   const onPrimary = selectedAccentOverridesPalette ? readableTextColor(primaryColor) : palette?.text?.onPrimary || readableTextColor(primaryColor);
   const onHighlight = selectedAccentOverridesPalette ? readableTextColor(highlightColor) : palette?.text?.onHighlight || onPrimary;
-  const heroGradient = `linear-gradient(135deg, ${primaryColor} 0%, ${highlightColor} 55%, ${contrastColor} 115%)`;
+  const heroGradient = `radial-gradient(1100px 620px at 82% -8%, ${colorWithAlpha(
+    primaryColor,
+    0.38
+  )}, transparent 62%), radial-gradient(760px 520px at 6% 20%, ${colorWithAlpha(
+    contrastColor,
+    0.14
+  )}, transparent 65%), linear-gradient(180deg, ${pageBackground} 0%, ${palette?.surfaces?.pageAlt || pageBackground} 100%)`;
   const brandGradient = `linear-gradient(135deg, ${primaryColor} 0%, ${highlightColor} 100%)`;
   const primaryRgb = hexToRgb(primaryColor);
   const primaryIsLight = primaryRgb ? (0.2126 * primaryRgb.r + 0.7152 * primaryRgb.g + 0.0722 * primaryRgb.b) / 255 > 0.62 : false;
   const heroScrim = `linear-gradient(105deg, rgba(0,0,0,${primaryIsLight ? 0.6 : 0.42}) 0%, rgba(0,0,0,${primaryIsLight ? 0.42 : 0.18}) 48%, rgba(0,0,0,0) 88%)`;
-  const heroVideoUrl = branding?.heroVideoUrl || runtimeBranding.heroVideoUrl || window.__WORKSPACE_HERO_VIDEO_URL__ || "";
-  const heroHasVideo = typeof heroVideoUrl === "string" && heroVideoUrl.trim().length > 0;
+  const heroHasVideo = false;
   const loginPanelId = "email-gate-login-panel";
   const openLogin = () => {
     setLoginOpen(true);
@@ -12096,78 +12513,48 @@ function EmailGate({
   const scoreCategories = [
     {
       title: "Idea Clarity",
-      desc: "Is your idea sharp and well-defined?"
+      desc: "Can you explain the problem, the fix, and why anyone pays \u2014 in two sentences? Investors decide in the first two.",
+      index: "01 / IDEA",
+      barWidth: "82%"
     },
     {
       title: "Market Validation",
-      desc: "Have you proven people actually want this?"
+      desc: "Evidence that real people want this \u2014 beyond your friends saying \u201Ccool idea\u201D.",
+      index: "02 / MARKET",
+      barWidth: "58%"
     },
     {
-      title: "Financial Thinking",
-      desc: "Do the numbers add up?"
+      title: "Business Model",
+      desc: "Whether your pricing and numbers survive contact with someone who reads them for a living.",
+      index: "03 / MODEL",
+      barWidth: "47%"
     },
     {
-      title: "Fundability",
-      desc: "Are you ready for investor conversations?"
+      title: "Investor Readiness",
+      desc: "What you\u2019d need in hand before a funding conversation \u2014 and how much of it you have today.",
+      index: "04 / READY",
+      barWidth: "65%"
     }
   ];
-  const howItWorks = [
-    { step: "1", title: "Take the assessment", desc: "Answer 30 focused questions about your idea, market, and numbers. No prep, no documents required." },
-    { step: "2", title: "See your score and gaps", desc: "Get your Funding Readiness Score and an honest read on exactly where investors would push back." },
-    { step: "3", title: "Unlock your next steps", desc: "Upgrade once ($99) to generate five downloadable documents \u2014 including a real editable PowerPoint Pitch Deck \u2014 plus the AI Pitch Coach." }
+  const googledWall = [
+    { index: "01 / TOO VAGUE", title: "\u201CNetwork more. Build traction.\u201D", desc: "Great. What does that mean for your idea, this week, with a full-time job? Generic advice never comes with a starting point." },
+    { index: "02 / TOO FAR AHEAD", title: "Written for funded founders", desc: "Most guides start at \u201Cwhen you meet investors\u201D. You need to know whether it\u2019s worth booking that meeting at all." },
+    { index: "03 / NO YARDSTICK", title: "Nobody defines \u201Cready\u201D", desc: "Investors screen against real criteria. If you can\u2019t see the checklist, you can\u2019t tell whether you\u2019re 80% there or 8%." }
   ];
-  const whoWeServe = [
-    { title: "Aspiring entrepreneurs", desc: "You have an idea and want to turn it into a viable business. Start with an honest read on where it stands before you go all in." },
-    { title: "Early-stage startups", desc: "You are building and validating your model. Find the gaps investors would flag and close them while you still have time." },
-    { title: "Small businesses seeking funding", desc: "You need capital to grow. Prepare a fundable case \u2014 the plan, deck, and financial model lenders and investors expect." },
-    { title: "Founders preparing for grants, accelerators & investors", desc: "The pitch is coming. Get pitch-ready with grant application support and AI-powered pitch practice before the big conversations." }
+  const outputs = [
+    { title: "Your Readiness Score", desc: "One number out of 100, benchmarked against what investors expect from someone at your stage \u2014 not from a funded founder three rounds ahead of you." },
+    { title: "Your gaps, ranked", desc: "The specific things that would make an investor pass today, in priority order \u2014 with why each one matters and how to fix it." },
+    { title: "What to do next", desc: "A plain-English action list you can work through on nights and weekends \u2014 before you touch your savings or your notice letter." }
   ];
   const faqs = [
-    { q: "How long does the assessment take?", a: "About 5\u201310 minutes. It is 30 focused questions about your idea, market, and numbers \u2014 no documents or prep required." },
-    { q: "Is it free?", a: "Yes. The assessment, your Funding Readiness Score, your category breakdown, and your top gaps with recommended actions are all free. A $99 one-time upgrade unlocks five downloadable documents \u2014 a Business Plan, editable PowerPoint Pitch Deck, Financial Model, Grant Application Assistant, and Action Plan \u2014 plus the AI Pitch Coach." },
-    { q: "What do I get at the end?", a: "Your overall Funding Readiness Score, a breakdown across Idea Clarity, Market Validation, Financial Thinking, and Fundability, and a clear view of the gaps investors would push back on \u2014 with the option to unlock the full document pack and AI pitch coaching, built from your own answers." },
-    { q: "Who is this for?", a: "Founders at every stage: aspiring entrepreneurs turning ideas into viable businesses, early-stage startups building and validating their model, small businesses preparing a fundable case, and founders getting pitch-ready for grants, accelerators, and investors." },
-    { q: "What is coming next?", a: "Business Support & Operations for founders post-incorporation \u2014 SOPs, HR handbook, employee contracts, vendor agreements, policies, KPI dashboards, and more \u2014 plus a bench of specialist AI coaches, from CFO AI to Grant Coach. Funding readiness is live today; these are next on the roadmap." }
-  ];
-  const readinessFree = [
-    "30-question readiness assessment",
-    "Funding Readiness Score with category breakdown",
-    "Top gaps and recommended actions"
-  ];
-  const readinessPaid = [
-    "Business Plan \u2014 a generated, investor-ready document",
-    "Pitch Deck \u2014 a full PPT-format deck in your brand name and colours, delivered as an editable file so you can add your logo",
-    "Financial Model generation",
-    "Grant Application Assistant",
-    "Action Plan & Executive Summary",
-    "Pitch Coach \u2014 AI-powered pitch practice with feedback"
-  ];
-  const comingSoonOps = [
-    "SOPs",
-    "Procurement policies",
-    "HR handbook",
-    "Employee contracts",
-    "Vendor agreements",
-    "Risk Register",
-    "KPI dashboard",
-    "OKRs",
-    "Board meeting templates",
-    "Company policies",
-    "Sales playbooks"
-  ];
-  const comingSoonCoaches = [
-    "CFO AI",
-    "CEO Coach",
-    "Grant Coach",
-    "Operations Manager",
-    "HR Manager",
-    "Procurement Manager",
-    "Marketing Advisor",
-    "Legal Document Assistant"
+    { q: "How long does this take?", a: "About 10\u201315 minutes. Thirty focused questions about your idea, your market, and your numbers \u2014 no essays, no spreadsheets, no pitch deck required. You can do it on your phone and save your progress if you get pulled away." },
+    { q: "Is it actually free?", a: "Yes. The full assessment, your Readiness Score, and your gap breakdown are free \u2014 no credit card. If you want more afterwards, there\u2019s a one-time $99 upgrade that generates your business plan, pitch deck, and financial model from your answers. Entirely optional." },
+    { q: "Do I need a business plan or pitch deck first?", a: "No \u2014 that\u2019s the point. You answer questions about the idea as it stands today, and the assessment tells you which of those documents you actually need and what has to be true before they\u2019re worth writing." },
+    { q: "What if my idea scores badly?", a: "Then you found out for the cost of 15 minutes instead of your savings. A low score comes with the same gap report as a high one: what\u2019s weak, why an investor would care, and what would move the number." },
+    { q: "Is my idea kept private?", a: "Yes. Your answers and results are private to your account. We don\u2019t share or sell your data, and you can delete your account and everything in it at any time." }
   ];
   const scoreCategoryIcons = [Lightbulb, Users, Calculator, Rocket];
-  const howItWorksIcons = [ClipboardList, Gauge, FileText];
-  const whoWeServeIcons = [Lightbulb, Rocket, Building2, Landmark];
+  const outputIcons = [Gauge, ClipboardList, FileText];
   const logoIsMono = typeof logoUrl === "string" && /\.mono\.[a-z0-9]+(?:[?#].*)?$/i.test(logoUrl);
   const BrandMark = ({
     size = 40,
@@ -12247,7 +12634,7 @@ function EmailGate({
               children: /* @__PURE__ */ jsx5(Sparkles2, { size: 22, strokeWidth: 2.4 })
             }
           ),
-          /* @__PURE__ */ jsx5("p", { className: "text-base font-extrabold", style: { color: textPrimary }, children: "Start your free assessment" }),
+          /* @__PURE__ */ jsx5("p", { className: "text-base font-extrabold", style: { color: textPrimary }, children: "Take the free assessment" }),
           /* @__PURE__ */ jsx5("p", { className: "mt-1 text-sm", style: { color: textMuted }, children: "Enter your email \u2014 your score and results are saved to it." })
         ] }),
         /* @__PURE__ */ jsxs3("form", { onSubmit: handleEmailSubmit, className: "space-y-4", children: [
@@ -12321,7 +12708,7 @@ function EmailGate({
               },
               "data-testid": "button-continue",
               children: [
-                loading ? "Just a moment..." : "Start my free assessment",
+                loading ? "Just a moment..." : "Take the free assessment",
                 !loading && /* @__PURE__ */ jsx5(ArrowRight, { size: 18, strokeWidth: 2.6 })
               ]
             }
@@ -12536,7 +12923,7 @@ function EmailGate({
                       {
                         className: "truncate text-xs transition-colors",
                         style: { color: scrolled ? textMuted : "rgba(255,255,255,0.75)" },
-                        children: tagline
+                        children: "AI operating system for founders"
                       }
                     )
                   ] })
@@ -12545,19 +12932,28 @@ function EmailGate({
                   /* @__PURE__ */ jsx5(
                     "a",
                     {
-                      href: "#platform",
+                      href: "#the-wall",
                       className: "text-sm font-medium transition-opacity hover:opacity-70",
                       style: { color: scrolled ? textMuted : "rgba(255,255,255,0.82)" },
-                      children: "Platform"
+                      children: "The problem"
                     }
                   ),
                   /* @__PURE__ */ jsx5(
                     "a",
                     {
-                      href: "#who-we-serve",
+                      href: "#covers",
                       className: "text-sm font-medium transition-opacity hover:opacity-70",
                       style: { color: scrolled ? textMuted : "rgba(255,255,255,0.82)" },
-                      children: "Who we serve"
+                      children: "What it covers"
+                    }
+                  ),
+                  /* @__PURE__ */ jsx5(
+                    "a",
+                    {
+                      href: "#outputs",
+                      className: "text-sm font-medium transition-opacity hover:opacity-70",
+                      style: { color: scrolled ? textMuted : "rgba(255,255,255,0.82)" },
+                      children: "What you get"
                     }
                   ),
                   /* @__PURE__ */ jsx5(
@@ -12576,9 +12972,9 @@ function EmailGate({
                     type: "button",
                     onClick: openLogin,
                     className: "flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition hover:opacity-90",
-                    style: { backgroundColor: highlightColor, color: onHighlight },
+                    style: { backgroundColor: primaryColor, color: onPrimary },
                     children: [
-                      "Start free assessment",
+                      "Take the free assessment",
                       /* @__PURE__ */ jsx5(ArrowRight, { size: 15, strokeWidth: 2.6 })
                     ]
                   }
@@ -12591,77 +12987,169 @@ function EmailGate({
             {
               id: "hero",
               className: "relative flex min-h-screen min-h-[100svh] items-center overflow-hidden px-6 py-24 sm:py-28",
-              style: { background: heroHasVideo ? "#0f172a" : heroGradient },
+              style: { background: heroGradient },
               children: [
-                heroHasVideo && /* @__PURE__ */ jsx5(
-                  "video",
-                  {
-                    src: heroVideoUrl,
-                    autoPlay: true,
-                    muted: true,
-                    loop: true,
-                    playsInline: true,
-                    className: "absolute inset-0 w-full h-full object-cover"
-                  }
-                ),
-                /* @__PURE__ */ jsx5("div", { className: "absolute inset-0 bg-slate-950/65" }),
-                !heroHasVideo && /* @__PURE__ */ jsx5("div", { className: "absolute inset-0", style: { background: heroScrim, opacity: 0.65 } }),
+                /* @__PURE__ */ jsx5("div", { className: "absolute inset-0", style: { background: heroScrim, opacity: 0.4 } }),
                 /* @__PURE__ */ jsx5(
                   "div",
                   {
-                    className: "relative z-10 mx-auto flex w-full max-w-5xl flex-col gap-8",
+                    className: "pointer-events-none absolute -right-40 -top-40 h-[560px] w-[560px] opacity-70 sm:h-[720px] sm:w-[720px]",
+                    "aria-hidden": "true",
+                    children: /* @__PURE__ */ jsxs3("svg", { viewBox: "0 0 900 900", fill: "none", className: "h-full w-full", children: [
+                      /* @__PURE__ */ jsx5("circle", { cx: "450", cy: "360", r: "420", stroke: primaryColor, strokeOpacity: "0.22" }),
+                      /* @__PURE__ */ jsx5("circle", { cx: "450", cy: "360", r: "300", stroke: palette?.secondary || primaryColor, strokeOpacity: "0.28" }),
+                      /* @__PURE__ */ jsx5("circle", { cx: "450", cy: "360", r: "180", stroke: primaryColor, strokeOpacity: "0.5" })
+                    ] })
+                  }
+                ),
+                /* @__PURE__ */ jsxs3(
+                  "div",
+                  {
+                    className: "relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-[1.15fr_0.85fr]",
                     style: {
                       opacity: entered ? 1 : 0,
                       transform: entered ? "none" : "translateY(20px)",
                       transition: "opacity 0.7s ease, transform 0.7s ease"
                     },
-                    children: /* @__PURE__ */ jsxs3("div", { className: "max-w-3xl space-y-5", children: [
-                      /* @__PURE__ */ jsx5("p", { className: "text-sm font-semibold uppercase tracking-[0.3em] text-white/70", children: brandName }),
-                      /* @__PURE__ */ jsx5(
-                        "h1",
-                        {
-                          className: "text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl",
-                          style: { color: "#ffffff" },
-                          children: "Your AI co-founder, from first idea to funded business."
-                        }
-                      ),
-                      /* @__PURE__ */ jsxs3(
-                        "p",
-                        {
-                          className: "max-w-2xl text-lg leading-8",
-                          style: { color: "rgba(255,255,255,0.78)" },
-                          children: [
-                            brandName,
-                            " is the AI operating system for every stage of your founder journey. Start with the free Funding Readiness assessment \u2014 then generate your business plan, pitch deck, and financial model, and practice your pitch with AI coaching."
-                          ]
-                        }
-                      ),
-                      /* @__PURE__ */ jsxs3("div", { className: "flex flex-col items-start gap-4 sm:flex-row", children: [
+                    children: [
+                      /* @__PURE__ */ jsxs3("div", { className: "max-w-3xl space-y-5", children: [
+                        /* @__PURE__ */ jsxs3("p", { className: "flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.3em] text-white/60", children: [
+                          /* @__PURE__ */ jsx5("span", { "aria-hidden": "true", style: { width: 16, height: 1, backgroundColor: primaryColor, display: "inline-block" } }),
+                          "Gap Radar \u2014 free readiness assessment"
+                        ] }),
                         /* @__PURE__ */ jsxs3(
-                          "button",
+                          "h1",
                           {
-                            type: "button",
-                            onClick: openLogin,
-                            "aria-controls": loginPanelId,
-                            className: "flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition hover:scale-[1.01]",
-                            style: { backgroundColor: "#ffffff", color: textPrimary, boxShadow: "0 16px 32px rgba(0,0,0,0.18)" },
-                            "data-testid": "button-open-login",
+                            className: "text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl",
+                            style: { color: "#ffffff", fontFamily: headingFontStack },
                             children: [
-                              "Start the free assessment",
-                              /* @__PURE__ */ jsx5(ArrowRight, { size: 18, strokeWidth: 2.6 })
+                              "Find out if your idea is",
+                              " ",
+                              /* @__PURE__ */ jsx5(
+                                "span",
+                                {
+                                  style: {
+                                    backgroundImage: `linear-gradient(100deg, ${palette?.secondary || "#A78BFA"}, ${primaryColor} 60%)`,
+                                    WebkitBackgroundClip: "text",
+                                    backgroundClip: "text",
+                                    color: "transparent"
+                                  },
+                                  children: "fundable"
+                                }
+                              ),
+                              " ",
+                              "\u2014 before you quit your day job."
                             ]
                           }
                         ),
                         /* @__PURE__ */ jsx5(
-                          "a",
+                          "p",
                           {
-                            href: "#how-it-works",
-                            className: "rounded-full px-6 py-3 text-sm font-semibold text-white/75 transition hover:text-white",
-                            children: "See how it works"
+                            className: "max-w-2xl text-lg leading-8",
+                            style: { color: "rgba(255,255,255,0.78)" },
+                            children: "You have a day job, an idea that won\u2019t leave you alone, and a search history full of \u201Chow to get funding for a startup\u201D. Gap Radar gives you the answer the internet won\u2019t: exactly where your idea stands, what investors actually expect, and what to fix first. Free, in about 15 minutes."
                           }
-                        )
-                      ] })
-                    ] })
+                        ),
+                        /* @__PURE__ */ jsxs3("div", { className: "flex flex-col items-start gap-4 sm:flex-row", children: [
+                          /* @__PURE__ */ jsxs3(
+                            "button",
+                            {
+                              type: "button",
+                              onClick: openLogin,
+                              "aria-controls": loginPanelId,
+                              className: "flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition hover:scale-[1.01]",
+                              style: {
+                                backgroundColor: primaryColor,
+                                color: onPrimary || "#ffffff",
+                                boxShadow: `0 16px 32px ${colorWithAlpha(primaryColor, 0.4)}`
+                              },
+                              "data-testid": "button-open-login",
+                              children: [
+                                "Take the free assessment",
+                                /* @__PURE__ */ jsx5(ArrowRight, { size: 18, strokeWidth: 2.6 })
+                              ]
+                            }
+                          ),
+                          /* @__PURE__ */ jsx5(
+                            "a",
+                            {
+                              href: "#the-wall",
+                              className: "rounded-full px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10",
+                              style: { border: "1px solid rgba(255,255,255,0.35)" },
+                              children: "Why this beats Googling"
+                            }
+                          )
+                        ] }),
+                        /* @__PURE__ */ jsx5("p", { className: "text-sm", style: { color: "rgba(255,255,255,0.55)" }, children: "Free \xB7 No credit card \xB7 No pitch deck required \xB7 Works on your phone" })
+                      ] }),
+                      /* @__PURE__ */ jsxs3(
+                        "div",
+                        {
+                          className: "relative mx-auto w-full max-w-sm rounded-[22px] p-6 backdrop-blur-sm",
+                          style: { backgroundColor: "rgba(255,255,255,0.04)", border: `1px solid rgba(255,255,255,0.14)` },
+                          children: [
+                            /* @__PURE__ */ jsx5("p", { className: "mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55", children: "Sample report \u2014 Readiness Score" }),
+                            /* @__PURE__ */ jsx5("div", { className: "mx-auto mb-1 flex justify-center", children: /* @__PURE__ */ jsxs3("svg", { width: "152", height: "152", viewBox: "0 0 168 168", children: [
+                              /* @__PURE__ */ jsx5("circle", { cx: "84", cy: "84", r: "72", stroke: "rgba(255,255,255,0.14)", strokeWidth: "10", fill: "none" }),
+                              /* @__PURE__ */ jsx5(
+                                "circle",
+                                {
+                                  cx: "84",
+                                  cy: "84",
+                                  r: "72",
+                                  stroke: primaryColor,
+                                  strokeWidth: "10",
+                                  fill: "none",
+                                  strokeLinecap: "round",
+                                  strokeDasharray: "452.4",
+                                  strokeDashoffset: 452.4 - 72 / 100 * 452.4,
+                                  transform: "rotate(-90 84 84)"
+                                }
+                              )
+                            ] }) }),
+                            /* @__PURE__ */ jsx5("p", { className: "-mt-[104px] mb-0 text-center text-[44px] font-bold text-white", children: "72" }),
+                            /* @__PURE__ */ jsx5("p", { className: "mb-1 mt-9 text-center text-xs text-white/45", children: "/ 100" }),
+                            /* @__PURE__ */ jsx5("p", { className: "mb-5 text-center text-sm font-semibold", style: { color: contrastColor }, children: "\u25CF Close \u2014 3 gaps between you and \u201Cready\u201D" }),
+                            /* @__PURE__ */ jsxs3("ul", { className: "space-y-2.5 text-sm text-white/70", children: [
+                              /* @__PURE__ */ jsxs3("li", { className: "flex items-center gap-2", children: [
+                                /* @__PURE__ */ jsx5(
+                                  "span",
+                                  {
+                                    className: "flex h-4 w-4 flex-none items-center justify-center rounded-full text-[10px]",
+                                    style: { backgroundColor: "rgba(52,211,153,0.16)", border: "1px solid rgba(52,211,153,0.5)", color: "#34D399" },
+                                    children: "\u2713"
+                                  }
+                                ),
+                                "Idea clarity \u2014 strong"
+                              ] }),
+                              /* @__PURE__ */ jsxs3("li", { className: "flex items-center gap-2", children: [
+                                /* @__PURE__ */ jsx5(
+                                  "span",
+                                  {
+                                    className: "flex h-4 w-4 flex-none items-center justify-center rounded-full text-[10px]",
+                                    style: { backgroundColor: colorWithAlpha(contrastColor, 0.16), border: `1px solid ${colorWithAlpha(contrastColor, 0.5)}`, color: contrastColor },
+                                    children: "!"
+                                  }
+                                ),
+                                "Market validation \u2014 2 gaps found"
+                              ] }),
+                              /* @__PURE__ */ jsxs3("li", { className: "flex items-center gap-2", children: [
+                                /* @__PURE__ */ jsx5(
+                                  "span",
+                                  {
+                                    className: "flex h-4 w-4 flex-none items-center justify-center rounded-full text-[10px]",
+                                    style: { backgroundColor: colorWithAlpha(contrastColor, 0.16), border: `1px solid ${colorWithAlpha(contrastColor, 0.5)}`, color: contrastColor },
+                                    children: "!"
+                                  }
+                                ),
+                                "Financial assumptions \u2014 needs work"
+                              ] })
+                            ] }),
+                            /* @__PURE__ */ jsx5("p", { className: "mt-4 text-center text-xs text-white/40", children: "A sample result. Yours will be this honest too." })
+                          ]
+                        }
+                      )
+                    ]
                   }
                 )
               ]
@@ -12670,58 +13158,35 @@ function EmailGate({
           /* @__PURE__ */ jsx5(
             "section",
             {
-              id: "how-it-works",
+              id: "the-wall",
               className: "border-b px-6 py-20",
               style: { backgroundColor: sectionBackground, borderColor },
               children: /* @__PURE__ */ jsxs3("div", { className: "max-w-6xl mx-auto", children: [
                 /* @__PURE__ */ jsxs3("div", { className: "mb-12 max-w-2xl", children: [
-                  /* @__PURE__ */ jsx5("p", { className: "text-sm font-semibold uppercase tracking-[0.3em]", style: { color: textMuted }, children: "How it works" }),
-                  /* @__PURE__ */ jsx5("h2", { className: "mt-4 text-3xl sm:text-4xl font-semibold mb-3", style: { color: textPrimary }, children: "From idea to investor-ready in three steps" }),
-                  /* @__PURE__ */ jsxs3("p", { className: "max-w-2xl text-base leading-7", style: { color: textMuted }, children: [
-                    "No prep required \u2014 take the assessment and ",
-                    brandName,
-                    " shows you exactly what to do next."
-                  ] })
+                  /* @__PURE__ */ jsx5("p", { className: "text-sm font-semibold uppercase tracking-[0.3em]", style: { color: textMuted }, children: "Sound familiar?" }),
+                  /* @__PURE__ */ jsx5("h2", { className: "mt-4 text-3xl sm:text-4xl font-semibold mb-3", style: { color: textPrimary }, children: "You\u2019ve done the Googling. It hasn\u2019t helped." }),
+                  /* @__PURE__ */ jsx5("p", { className: "max-w-2xl text-base leading-7", style: { color: textMuted }, children: "Search \u201Chow to get funding for a startup\u201D and you hit the same three walls \u2014 none of which answer the one question you actually have: is my idea fundable, and what\u2019s missing?" })
                 ] }),
-                /* @__PURE__ */ jsx5("div", { className: "grid gap-6 lg:grid-cols-3", children: howItWorks.map((item, i) => {
-                  const StepIcon = howItWorksIcons[i] ?? Sparkles2;
-                  return /* @__PURE__ */ jsxs3(
-                    "div",
-                    {
-                      className: "relative overflow-hidden rounded-3xl border p-8",
-                      style: { backgroundColor: panelColor, borderColor },
-                      children: [
-                        /* @__PURE__ */ jsx5(
-                          StepIcon,
-                          {
-                            size: 72,
-                            strokeWidth: 1.5,
-                            className: "pointer-events-none absolute -right-3 -top-3 opacity-10",
-                            style: { color: primaryColor }
-                          }
-                        ),
-                        /* @__PURE__ */ jsx5(
-                          "div",
-                          {
-                            className: "mb-4 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-semibold",
-                            style: { backgroundColor: highlightColor, color: onHighlight },
-                            children: item.step
-                          }
-                        ),
-                        /* @__PURE__ */ jsx5("h3", { className: "font-semibold mb-2", style: { color: textPrimary }, children: item.title }),
-                        /* @__PURE__ */ jsx5("p", { className: "text-sm leading-7", style: { color: textMuted }, children: item.desc })
-                      ]
-                    },
-                    item.step
-                  );
-                }) })
+                /* @__PURE__ */ jsx5("div", { className: "grid gap-6 lg:grid-cols-3", children: googledWall.map((item) => /* @__PURE__ */ jsxs3(
+                  "div",
+                  {
+                    className: "rounded-3xl border p-8",
+                    style: { backgroundColor: panelColor, borderColor },
+                    children: [
+                      /* @__PURE__ */ jsx5("p", { className: "mb-3 font-mono text-[11px] tracking-wider", style: { color: textMuted }, children: item.index }),
+                      /* @__PURE__ */ jsx5("h3", { className: "font-semibold mb-2", style: { color: textPrimary }, children: item.title }),
+                      /* @__PURE__ */ jsx5("p", { className: "text-sm leading-7", style: { color: textMuted }, children: item.desc })
+                    ]
+                  },
+                  item.index
+                )) })
               ] })
             }
           ),
           /* @__PURE__ */ jsx5(
             "section",
             {
-              id: "features",
+              id: "covers",
               className: "px-6 py-20",
               style: { backgroundColor: pageBackground },
               children: /* @__PURE__ */ jsxs3("div", { className: "max-w-6xl mx-auto", children: [
@@ -12731,30 +13196,35 @@ function EmailGate({
                     {
                       className: "mb-3 inline-flex items-center gap-1.5 text-sm font-semibold uppercase tracking-[0.3em]",
                       style: { color: textMuted },
-                      children: "The free assessment"
+                      children: "The straight answer"
                     }
                   ),
-                  /* @__PURE__ */ jsx5("h2", { className: "text-3xl sm:text-4xl font-semibold mb-3", style: { color: textPrimary }, children: "Your Funding Readiness Score, across four categories" }),
-                  /* @__PURE__ */ jsx5("p", { className: "max-w-2xl text-base leading-7", style: { color: textMuted }, children: "The assessment scores your idea in the four areas investors actually evaluate, so you know what is strong and what needs work before you pitch." })
+                  /* @__PURE__ */ jsx5("h2", { className: "text-3xl sm:text-4xl font-semibold mb-3", style: { color: textPrimary }, children: "One free assessment. The four things investors actually check." }),
+                  /* @__PURE__ */ jsx5("p", { className: "max-w-2xl text-base leading-7", style: { color: textMuted }, children: "Gap Radar asks 30 focused questions, then scores your idea across the four areas every investor screens before they\u2019ll take a meeting. No prep, no documents \u2014 just honest answers about where your idea stands today." })
                 ] }),
                 /* @__PURE__ */ jsx5("div", { className: "grid gap-6 sm:grid-cols-2 lg:grid-cols-4", children: scoreCategories.map((item, i) => {
-                  const CardIcon = scoreCategoryIcons[i] ?? Sparkles2;
+                  const accent = accentCycle[i % accentCycle.length];
+                  const CategoryIcon = scoreCategoryIcons[i] ?? Lightbulb;
                   return /* @__PURE__ */ jsxs3(
                     "div",
                     {
-                      className: "rounded-3xl border p-6 shadow-sm",
+                      className: "rounded-3xl border p-6 shadow-sm transition-transform hover:-translate-y-1",
                       style: { backgroundColor: panelColor, borderColor },
                       children: [
-                        /* @__PURE__ */ jsx5(
-                          "div",
-                          {
-                            className: "mb-4 flex h-12 w-12 items-center justify-center rounded-2xl",
-                            style: { backgroundColor: highlightColor, color: onHighlight },
-                            children: /* @__PURE__ */ jsx5(CardIcon, { size: 22, strokeWidth: 2.4 })
-                          }
-                        ),
+                        /* @__PURE__ */ jsxs3("div", { className: "mb-4 flex items-center justify-between", children: [
+                          /* @__PURE__ */ jsx5(
+                            "span",
+                            {
+                              className: "flex h-10 w-10 items-center justify-center rounded-2xl",
+                              style: { backgroundColor: accent.bg, color: accent.fg },
+                              children: /* @__PURE__ */ jsx5(CategoryIcon, { size: 20, strokeWidth: 2.2 })
+                            }
+                          ),
+                          /* @__PURE__ */ jsx5("p", { className: "font-mono text-[11px] tracking-wider", style: { color: textMuted }, children: item.index })
+                        ] }),
                         /* @__PURE__ */ jsx5("h3", { className: "text-xl font-semibold mb-2", style: { color: textPrimary }, children: item.title }),
-                        /* @__PURE__ */ jsx5("p", { className: "text-sm leading-7", style: { color: textMuted }, children: item.desc })
+                        /* @__PURE__ */ jsx5("p", { className: "text-sm leading-7", style: { color: textMuted }, children: item.desc }),
+                        /* @__PURE__ */ jsx5("div", { className: "mt-4 h-1 w-full overflow-hidden rounded-full", style: { backgroundColor: "rgba(255,255,255,0.08)" }, children: /* @__PURE__ */ jsx5("span", { className: "block h-full rounded-full", style: { width: item.barWidth, backgroundColor: accent.fg } }) })
                       ]
                     },
                     item.title
@@ -12763,136 +13233,27 @@ function EmailGate({
               ] })
             }
           ),
-          /* @__PURE__ */ jsx5("section", { id: "platform", className: "border-t px-6 py-20", style: { backgroundColor: pageBackground, borderColor }, children: /* @__PURE__ */ jsxs3("div", { className: "max-w-6xl mx-auto", children: [
+          /* @__PURE__ */ jsx5("section", { id: "outputs", className: "border-t px-6 py-20", style: { backgroundColor: pageBackground, borderColor }, children: /* @__PURE__ */ jsxs3("div", { className: "max-w-6xl mx-auto", children: [
             /* @__PURE__ */ jsxs3("div", { className: "mb-12 max-w-2xl", children: [
-              /* @__PURE__ */ jsx5("p", { className: "text-sm font-semibold uppercase tracking-[0.3em]", style: { color: textMuted }, children: "The platform" }),
-              /* @__PURE__ */ jsx5("h2", { className: "mt-4 text-3xl sm:text-4xl font-semibold mb-3", style: { color: textPrimary }, children: "Build, fund, and grow \u2014 with AI at every stage" }),
-              /* @__PURE__ */ jsxs3("p", { className: "max-w-2xl text-base leading-7", style: { color: textMuted }, children: [
-                "Investment & Funding Readiness is live today. Business operations tools and specialist AI coaches are next \u2014 ",
-                brandName,
-                " grows with you from first idea to running the company."
-              ] })
+              /* @__PURE__ */ jsx5("p", { className: "text-sm font-semibold uppercase tracking-[0.3em]", style: { color: textMuted }, children: "What you walk away with" }),
+              /* @__PURE__ */ jsx5("h2", { className: "mt-4 text-3xl sm:text-4xl font-semibold mb-3", style: { color: textPrimary }, children: "Not a pep talk. A report." }),
+              /* @__PURE__ */ jsx5("p", { className: "max-w-2xl text-base leading-7", style: { color: textMuted }, children: "Fifteen minutes in, you have three things you didn\u2019t have this morning:" })
             ] }),
-            /* @__PURE__ */ jsxs3("div", { className: "grid items-start gap-6 lg:grid-cols-3", children: [
-              /* @__PURE__ */ jsxs3("div", { className: "rounded-3xl border-2 p-6 sm:p-8", style: { backgroundColor: panelColor, borderColor: primaryColor }, children: [
-                /* @__PURE__ */ jsxs3(
-                  "span",
-                  {
-                    className: "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-                    style: { backgroundColor: highlightColor, color: onHighlight },
-                    children: [
-                      /* @__PURE__ */ jsx5(Sparkles2, { size: 13, strokeWidth: 2.6 }),
-                      "Live now"
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ jsx5("h3", { className: "mt-4 text-xl font-semibold", style: { color: textPrimary }, children: "Investment & Funding Readiness" }),
-                /* @__PURE__ */ jsx5("p", { className: "mt-1 text-sm leading-6", style: { color: textMuted }, children: "Know exactly where you stand \u2014 then generate what investors ask for." }),
-                /* @__PURE__ */ jsx5("p", { className: "mt-5 text-xs font-semibold uppercase tracking-wider", style: { color: textSubtle }, children: "Free" }),
-                /* @__PURE__ */ jsx5("ul", { className: "mt-2 space-y-2", children: readinessFree.map((item) => /* @__PURE__ */ jsxs3("li", { className: "flex items-start gap-2 text-sm leading-6", style: { color: textMuted }, children: [
-                  /* @__PURE__ */ jsx5(Check, { size: 16, strokeWidth: 2.8, className: "mt-1 shrink-0", style: { color: primaryColor } }),
-                  /* @__PURE__ */ jsx5("span", { children: item })
-                ] }, item)) }),
-                /* @__PURE__ */ jsx5("p", { className: "mt-5 text-xs font-semibold uppercase tracking-wider", style: { color: textSubtle }, children: "$99 one-time upgrade unlocks" }),
-                /* @__PURE__ */ jsx5("ul", { className: "mt-2 space-y-2", children: readinessPaid.map((item) => /* @__PURE__ */ jsxs3("li", { className: "flex items-start gap-2 text-sm leading-6", style: { color: textMuted }, children: [
-                  /* @__PURE__ */ jsx5(Sparkles2, { size: 16, strokeWidth: 2.4, className: "mt-1 shrink-0", style: { color: highlightColor } }),
-                  /* @__PURE__ */ jsx5("span", { children: item })
-                ] }, item)) }),
-                /* @__PURE__ */ jsxs3(
-                  "button",
-                  {
-                    type: "button",
-                    onClick: openLogin,
-                    className: "mt-6 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition hover:opacity-90",
-                    style: { backgroundColor: primaryColor, color: onPrimary },
-                    children: [
-                      "Start free assessment",
-                      /* @__PURE__ */ jsx5(ArrowRight, { size: 16, strokeWidth: 2.6 })
-                    ]
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ jsxs3("div", { className: "rounded-3xl border p-6 sm:p-8", style: { backgroundColor: panelColor, borderColor }, children: [
-                /* @__PURE__ */ jsxs3(
-                  "span",
-                  {
-                    className: "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-                    style: { backgroundColor: bgMedium, color: textMuted },
-                    children: [
-                      /* @__PURE__ */ jsx5(Lock, { size: 12, strokeWidth: 2.6 }),
-                      "Coming soon"
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ jsxs3("div", { className: "mt-4 flex items-center gap-2", children: [
-                  /* @__PURE__ */ jsx5(Briefcase, { size: 20, strokeWidth: 2.2, style: { color: primaryColor } }),
-                  /* @__PURE__ */ jsx5("h3", { className: "text-xl font-semibold", style: { color: textPrimary }, children: "Business Support & Operations" })
-                ] }),
-                /* @__PURE__ */ jsx5("p", { className: "mt-1 text-sm leading-6", style: { color: textMuted }, children: "Once you incorporate, generate the documents that run the company:" }),
-                /* @__PURE__ */ jsx5("div", { className: "mt-4 flex flex-wrap gap-2", children: comingSoonOps.map((item) => /* @__PURE__ */ jsx5(
-                  "span",
-                  {
-                    className: "rounded-full border px-3 py-1 text-xs font-medium",
-                    style: { borderColor, color: textMuted, backgroundColor: sectionBackground },
-                    children: item
-                  },
-                  item
-                )) })
-              ] }),
-              /* @__PURE__ */ jsxs3("div", { className: "rounded-3xl border p-6 sm:p-8", style: { backgroundColor: panelColor, borderColor }, children: [
-                /* @__PURE__ */ jsxs3(
-                  "span",
-                  {
-                    className: "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-                    style: { backgroundColor: bgMedium, color: textMuted },
-                    children: [
-                      /* @__PURE__ */ jsx5(Lock, { size: 12, strokeWidth: 2.6 }),
-                      "Coming soon"
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ jsxs3("div", { className: "mt-4 flex items-center gap-2", children: [
-                  /* @__PURE__ */ jsx5(Bot2, { size: 20, strokeWidth: 2.2, style: { color: primaryColor } }),
-                  /* @__PURE__ */ jsx5("h3", { className: "text-xl font-semibold", style: { color: textPrimary }, children: "AI Coaches" })
-                ] }),
-                /* @__PURE__ */ jsx5("p", { className: "mt-1 text-sm leading-6", style: { color: textMuted }, children: "Specialist AI agents on call for every role you can\u2019t hire yet:" }),
-                /* @__PURE__ */ jsx5("div", { className: "mt-4 flex flex-wrap gap-2", children: comingSoonCoaches.map((item) => /* @__PURE__ */ jsx5(
-                  "span",
-                  {
-                    className: "rounded-full border px-3 py-1 text-xs font-medium",
-                    style: { borderColor, color: textMuted, backgroundColor: sectionBackground },
-                    children: item
-                  },
-                  item
-                )) })
-              ] })
-            ] })
-          ] }) }),
-          /* @__PURE__ */ jsx5("section", { id: "who-we-serve", className: "border-y px-6 py-20", style: { backgroundColor: sectionBackground, borderColor }, children: /* @__PURE__ */ jsxs3("div", { className: "max-w-6xl mx-auto", children: [
-            /* @__PURE__ */ jsxs3("div", { className: "mb-12 max-w-2xl", children: [
-              /* @__PURE__ */ jsx5("p", { className: "text-sm font-semibold uppercase tracking-[0.3em]", style: { color: textMuted }, children: "Who we serve" }),
-              /* @__PURE__ */ jsx5("h2", { className: "mt-4 text-3xl sm:text-4xl font-semibold mb-3", style: { color: textPrimary }, children: "Built for founders at every stage" }),
-              /* @__PURE__ */ jsxs3("p", { className: "max-w-2xl text-base leading-7", style: { color: textMuted }, children: [
-                "Wherever you are on the journey, ",
-                brandName,
-                " meets you there."
-              ] })
-            ] }),
-            /* @__PURE__ */ jsx5("div", { className: "grid gap-6 sm:grid-cols-2 lg:grid-cols-4", children: whoWeServe.map((item, i) => {
-              const WhoIcon = whoWeServeIcons[i] ?? Heart;
+            /* @__PURE__ */ jsx5("div", { className: "grid gap-6 lg:grid-cols-3", children: outputs.map((item, i) => {
+              const accent = accentCycle[i % accentCycle.length];
+              const OutputIcon = outputIcons[i] ?? FileText;
               return /* @__PURE__ */ jsxs3(
                 "div",
                 {
-                  className: "relative overflow-hidden rounded-3xl border p-6 shadow-sm",
+                  className: "rounded-3xl border p-8 shadow-sm",
                   style: { backgroundColor: panelColor, borderColor },
                   children: [
-                    /* @__PURE__ */ jsx5(WhoIcon, { size: 64, strokeWidth: 1.5, className: "pointer-events-none absolute -right-2 -top-2 opacity-10", style: { color: primaryColor } }),
                     /* @__PURE__ */ jsx5(
                       "div",
                       {
                         className: "mb-4 flex h-12 w-12 items-center justify-center rounded-2xl",
-                        style: { backgroundColor: highlightColor, color: onHighlight },
-                        children: /* @__PURE__ */ jsx5(WhoIcon, { size: 22, strokeWidth: 2.4 })
+                        style: { backgroundColor: accent.bg, color: accent.fg },
+                        children: /* @__PURE__ */ jsx5(OutputIcon, { size: 22, strokeWidth: 2.4 })
                       }
                     ),
                     /* @__PURE__ */ jsx5("h3", { className: "text-lg font-semibold mb-2", style: { color: textPrimary }, children: item.title }),
@@ -12901,10 +13262,21 @@ function EmailGate({
                 },
                 item.title
               );
-            }) })
+            }) }),
+            /* @__PURE__ */ jsx5(
+              "div",
+              {
+                className: "mt-8 rounded-3xl border p-6 sm:p-8",
+                style: { backgroundColor: accentCycle[0].bg, borderColor: colorWithAlpha(primaryColor, 0.35) },
+                children: /* @__PURE__ */ jsx5("p", { className: "text-base font-medium leading-7", style: { color: textPrimary }, children: "And if your idea isn\u2019t ready? The report says so \u2014 plainly \u2014 and shows you exactly why. That\u2019s the point. Better to hear it from a free assessment tonight than from an investor after you\u2019ve handed in your notice." })
+              }
+            )
           ] }) }),
-          /* @__PURE__ */ jsx5("section", { id: "faq", className: "px-6 py-20", style: { backgroundColor: sectionBackground }, children: /* @__PURE__ */ jsxs3("div", { className: "max-w-3xl mx-auto", children: [
-            /* @__PURE__ */ jsx5("h2", { className: "text-3xl sm:text-4xl font-semibold mb-10", style: { color: textPrimary }, children: "Frequently asked questions" }),
+          /* @__PURE__ */ jsx5("section", { id: "faq", className: "px-6 py-20", style: { backgroundColor: sectionBackground }, children: /* @__PURE__ */ jsxs3("div", { className: "max-w-6xl mx-auto grid gap-10 lg:grid-cols-[0.8fr_1.2fr]", children: [
+            /* @__PURE__ */ jsxs3("div", { children: [
+              /* @__PURE__ */ jsx5("p", { className: "text-sm font-semibold uppercase tracking-[0.3em]", style: { color: textMuted }, children: "FAQ" }),
+              /* @__PURE__ */ jsx5("h2", { className: "mt-4 text-3xl sm:text-4xl font-semibold", style: { color: textPrimary }, children: "Fair questions, straight answers" })
+            ] }),
             /* @__PURE__ */ jsx5("div", { className: "space-y-3", children: faqs.map((item) => /* @__PURE__ */ jsxs3(
               "details",
               {
@@ -12928,28 +13300,28 @@ function EmailGate({
               item.q
             )) })
           ] }) }),
-          /* @__PURE__ */ jsx5("section", { className: "px-6 py-20", style: { backgroundColor: primaryColor }, children: /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx5("section", { className: "px-6 py-20", style: { backgroundColor: pageBackground }, children: /* @__PURE__ */ jsx5(
             "div",
             {
-              className: "relative mx-auto max-w-4xl overflow-hidden rounded-[2rem] border border-white/10 px-8 py-16 text-center",
-              style: { backgroundColor: "rgba(15,23,42,0.2)", color: onPrimary },
+              className: "relative mx-auto max-w-4xl overflow-hidden rounded-[2rem] px-8 py-16 text-center",
+              style: {
+                background: `radial-gradient(600px 300px at 20% 0%, ${colorWithAlpha(primaryColor, 0.5)}, transparent 60%), linear-gradient(135deg, ${palette?.primaryScale?.["900"] || "#4C1D95"}, #150B2E)`,
+                border: `1px solid ${borderColor}`,
+                color: "#ffffff"
+              },
               children: /* @__PURE__ */ jsxs3("div", { className: "relative z-10", children: [
                 /* @__PURE__ */ jsx5("div", { className: "flex justify-center mb-6", children: /* @__PURE__ */ jsx5(BrandMark, { size: 48, blockColor: "#ffffff" }) }),
-                /* @__PURE__ */ jsx5("h2", { className: "text-3xl sm:text-4xl font-semibold mb-4", children: "Wherever you are in the journey, start here" }),
-                /* @__PURE__ */ jsxs3("p", { className: "mx-auto mb-8 max-w-2xl leading-7 opacity-85", children: [
-                  "The free Funding Readiness assessment is live today. Get your score in minutes \u2014 then let ",
-                  brandName,
-                  " help you build, fund, and grow from there. No credit card required."
-                ] }),
+                /* @__PURE__ */ jsx5("h2", { className: "text-3xl sm:text-4xl font-semibold mb-4", children: "Stop guessing. Find out tonight." }),
+                /* @__PURE__ */ jsx5("p", { className: "mx-auto mb-8 max-w-2xl leading-7 opacity-85", children: "Fifteen minutes, free, on your phone. You\u2019ll know exactly where your idea stands and what to fix \u2014 before you bet your savings or your notice period on it." }),
                 /* @__PURE__ */ jsxs3(
                   "button",
                   {
                     type: "button",
                     onClick: openLogin,
                     className: "inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition hover:scale-[1.01]",
-                    style: { backgroundColor: "#ffffff", color: textPrimary, boxShadow: "0 16px 32px rgba(0,0,0,0.18)" },
+                    style: { backgroundColor: "#ffffff", color: "#0A0B14", boxShadow: "0 16px 32px rgba(0,0,0,0.18)" },
                     children: [
-                      "Start the free assessment",
+                      "Take the free assessment",
                       /* @__PURE__ */ jsx5(ArrowRight, { size: 18, strokeWidth: 2.6 })
                     ]
                   }
@@ -12957,33 +13329,48 @@ function EmailGate({
               ] })
             }
           ) }),
-          /* @__PURE__ */ jsxs3("footer", { className: "px-6 py-12", style: { backgroundColor: palette?.text?.primary || "#012538", color: "rgba(255,255,255,0.85)" }, children: [
-            /* @__PURE__ */ jsxs3("div", { className: "max-w-6xl mx-auto flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between", children: [
+          /* @__PURE__ */ jsxs3("footer", { className: "px-6 py-16", style: { backgroundColor: palette?.surfaces?.pageAlt || pageBackground || "#05060B", color: "rgba(255,255,255,0.85)" }, children: [
+            /* @__PURE__ */ jsxs3("div", { className: "max-w-6xl mx-auto flex flex-col gap-12 md:flex-row md:justify-between", children: [
               /* @__PURE__ */ jsxs3("div", { className: "max-w-sm", children: [
                 /* @__PURE__ */ jsxs3("div", { className: "flex items-center gap-2", children: [
                   /* @__PURE__ */ jsx5(BrandMark, { size: 28 }),
                   /* @__PURE__ */ jsx5("span", { className: "text-base font-semibold", style: { color: "#ffffff" }, children: brandName })
                 ] }),
-                /* @__PURE__ */ jsx5("p", { className: "mt-3 text-sm", style: { color: "rgba(255,255,255,0.65)" }, children: tagline })
+                /* @__PURE__ */ jsx5("p", { className: "mt-3 text-sm", style: { color: "rgba(255,255,255,0.55)" }, children: "AI operating system for founders" })
               ] }),
-              /* @__PURE__ */ jsxs3("nav", { className: "flex flex-wrap gap-x-8 gap-y-2 text-sm", children: [
-                /* @__PURE__ */ jsx5("a", { href: "#how-it-works", className: "transition-colors hover:text-white", style: { color: "rgba(255,255,255,0.65)" }, children: "How it works" }),
-                /* @__PURE__ */ jsx5("a", { href: "#platform", className: "transition-colors hover:text-white", style: { color: "rgba(255,255,255,0.65)" }, children: "Platform" }),
-                /* @__PURE__ */ jsx5("a", { href: "#who-we-serve", className: "transition-colors hover:text-white", style: { color: "rgba(255,255,255,0.65)" }, children: "Who we serve" }),
-                /* @__PURE__ */ jsx5("a", { href: "#faq", className: "transition-colors hover:text-white", style: { color: "rgba(255,255,255,0.65)" }, children: "FAQ" })
+              /* @__PURE__ */ jsxs3("div", { className: "flex flex-wrap gap-x-16 gap-y-8", children: [
+                /* @__PURE__ */ jsxs3("div", { children: [
+                  /* @__PURE__ */ jsx5("p", { className: "mb-3.5 font-mono text-[11px] uppercase tracking-[0.1em]", style: { color: "rgba(255,255,255,0.4)" }, children: "Product" }),
+                  /* @__PURE__ */ jsxs3("nav", { className: "flex flex-col gap-2.5 text-sm", children: [
+                    /* @__PURE__ */ jsx5("a", { href: "#the-wall", className: "transition-colors hover:text-white", style: { color: "rgba(255,255,255,0.65)" }, children: "The problem" }),
+                    /* @__PURE__ */ jsx5("a", { href: "#covers", className: "transition-colors hover:text-white", style: { color: "rgba(255,255,255,0.65)" }, children: "What it covers" }),
+                    /* @__PURE__ */ jsx5("a", { href: "#outputs", className: "transition-colors hover:text-white", style: { color: "rgba(255,255,255,0.65)" }, children: "What you get" }),
+                    /* @__PURE__ */ jsx5("a", { href: "#faq", className: "transition-colors hover:text-white", style: { color: "rgba(255,255,255,0.65)" }, children: "FAQ" })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxs3("div", { children: [
+                  /* @__PURE__ */ jsx5("p", { className: "mb-3.5 font-mono text-[11px] uppercase tracking-[0.1em]", style: { color: "rgba(255,255,255,0.4)" }, children: "Company" }),
+                  /* @__PURE__ */ jsxs3("nav", { className: "flex flex-col gap-2.5 text-sm", children: [
+                    /* @__PURE__ */ jsx5("a", { href: "#privacy", className: "transition-colors hover:text-white", style: { color: "rgba(255,255,255,0.65)" }, children: "Privacy Policy" }),
+                    /* @__PURE__ */ jsx5("a", { href: "mailto:hello@foundaros.com", className: "transition-colors hover:text-white", style: { color: "rgba(255,255,255,0.65)" }, children: "Contact" })
+                  ] })
+                ] })
               ] })
             ] }),
             /* @__PURE__ */ jsxs3(
               "div",
               {
-                className: "max-w-6xl mx-auto mt-8 border-t pt-6 text-xs",
-                style: { borderColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.45)" },
+                className: "max-w-6xl mx-auto mt-12 flex flex-col gap-2 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between",
+                style: { borderColor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.4)" },
                 children: [
-                  "\xA9 ",
-                  (/* @__PURE__ */ new Date()).getFullYear(),
-                  " ",
-                  brandName,
-                  ". All rights reserved."
+                  /* @__PURE__ */ jsxs3("span", { children: [
+                    "\xA9 ",
+                    (/* @__PURE__ */ new Date()).getFullYear(),
+                    " ",
+                    brandName,
+                    ". All rights reserved."
+                  ] }),
+                  /* @__PURE__ */ jsx5("span", { children: "Built for founders in Africa & beyond." })
                 ]
               }
             )
@@ -13023,11 +13410,8 @@ function EmailGate({
                 }
               ),
               /* @__PURE__ */ jsxs3("div", { className: "p-6 sm:p-8", children: [
-                /* @__PURE__ */ jsxs3("h2", { id: "email-gate-login-title", className: "text-2xl font-extrabold mb-1", style: { color: textPrimary }, children: [
-                  "Welcome to ",
-                  brandName
-                ] }),
-                /* @__PURE__ */ jsx5("p", { className: "text-sm mb-5", style: { color: textMuted }, children: "Enter your email to start your free assessment. Already taken it? Same door \u2014 you\u2019ll pick up right where you left off." }),
+                /* @__PURE__ */ jsx5("h2", { id: "email-gate-login-title", className: "text-2xl font-extrabold mb-1", style: { color: textPrimary }, children: "Let\u2019s find out where you stand" }),
+                /* @__PURE__ */ jsx5("p", { className: "text-sm mb-5", style: { color: textMuted }, children: "Enter your email to take the free assessment \u2014 your score and results are saved to it. Already taken it? Same door: you\u2019ll pick up right where you left off." }),
                 /* @__PURE__ */ jsx5(LoginPanel, { compact: true })
               ] })
             ]
@@ -13038,7 +13422,7 @@ function EmailGate({
   ] });
 }
 
-// ../../../tmp/space-workspace-104526-AQmLZx/components/Settings.tsx
+// ../../../tmp/space-workspace-104526-O7nwUN/components/Settings.tsx
 import { useState as useState5, useEffect as useEffect5 } from "react";
 import { Save as Save2, CreditCard, LogOut, Clock, CheckCircle2, AlertCircle, Loader2 as Loader22, ExternalLink, CalendarX } from "lucide-react";
 init_colors();
@@ -13494,7 +13878,7 @@ function Settings({ spaceId }) {
   ] }) });
 }
 
-// ../../../tmp/space-workspace-104526-AQmLZx/lib/tenant-delegation-canvas.ts
+// ../../../tmp/space-workspace-104526-O7nwUN/lib/tenant-delegation-canvas.ts
 function isTenantDelegationCanvas() {
   if (typeof window === "undefined") return false;
   const layout = new URLSearchParams(window.location.search).get("layout");
@@ -13502,7 +13886,7 @@ function isTenantDelegationCanvas() {
   return !!window.__TENANT_DELEGATION__ || !!window.__TENANT_DELEGATION_CANVAS__ || layout === "canvas-only";
 }
 
-// ../../../tmp/space-workspace-104526-AQmLZx/Desktop.tsx
+// ../../../tmp/space-workspace-104526-O7nwUN/Desktop.tsx
 import { Fragment as Fragment4, jsx as jsx7, jsxs as jsxs5 } from "react/jsx-runtime";
 var PRIMARY_THREAD_ID = "main";
 var THREAD_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
@@ -13599,12 +13983,12 @@ function resolveGenesisRuntimeTheme(config) {
 var baseIconMap = {
   Activity,
   Moon,
-  Heart: Heart2,
+  Heart,
   Calendar,
   Users: Users2,
   FileText: FileText2,
   BarChart,
-  Bot: Bot3,
+  Bot: Bot2,
   Folder: Folder2,
   Plane,
   TrendingUp,
@@ -13650,7 +14034,7 @@ var baseIconMap = {
   Mountain,
   Waves,
   Compass,
-  Map,
+  Map: Map2,
   Navigation,
   Car,
   Bike,
@@ -13662,7 +14046,7 @@ var baseIconMap = {
   Diamond,
   Gem,
   Key,
-  Lock: Lock2,
+  Lock,
   Unlock,
   Shield,
   Eye: Eye2,
@@ -13745,8 +14129,8 @@ iconMap["travel"] = Plane;
 iconMap["flight"] = Plane;
 iconMap["money"] = Wallet;
 iconMap["finance"] = DollarSign;
-iconMap["health"] = Heart2;
-iconMap["wellness"] = Heart2;
+iconMap["health"] = Heart;
+iconMap["wellness"] = Heart;
 iconMap["notes"] = FileText2;
 iconMap["note"] = FileText2;
 iconMap["log"] = List;
@@ -14500,7 +14884,7 @@ function SpaceDesktop({
   ] });
 }
 
-// ../../../tmp/space-workspace-104526-AQmLZx/main.tsx
+// ../../../tmp/space-workspace-104526-O7nwUN/main.tsx
 import { Fragment as Fragment6, jsx as jsx9, jsxs as jsxs7 } from "react/jsx-runtime";
 window.React = React;
 var CONFIG = {
@@ -14532,274 +14916,276 @@ var CONFIG = {
   },
   "desktop": {
     "theme": {
-      "gradient": "from-[#f2f9fc] via-[#eafbf9] to-[#fff5f5]",
-      "accentColor": "#ff6b6b",
+      "gradient": "from-[#0A0B14] via-[#0D0F1D] to-[#4C1D95]",
+      "accentColor": "#7C3AED",
       "dockStyle": "glass"
     },
     "themeRecipe": "glass",
     "themeTokens": {
       "palette": {
-        "primary": "#0284c7",
-        "highlight": "#ff6b6b",
-        "contrast": "#2dd4bf",
-        "secondary": "#ff6b6b",
-        "accent": "#2dd4bf",
+        "primary": "#7C3AED",
+        "highlight": "#14B8A6",
+        "contrast": "#F5A623",
+        "secondary": "#A78BFA",
+        "accent": "#10B981",
         "primaryScale": {
-          "50": "#ebf5fb",
-          "100": "#d7ebf6",
-          "200": "#b8ddef",
-          "500": "#0279b7",
-          "600": "#0284c7",
-          "700": "#026fa7",
-          "900": "#015783"
+          "50": "#F3EFFE",
+          "100": "#E4D9FC",
+          "200": "#C9B3F9",
+          "500": "#8B5CF6",
+          "600": "#7C3AED",
+          "700": "#6224D6",
+          "900": "#4C1D95"
         },
         "highlightScale": {
-          "50": "#fff3f3",
-          "100": "#ffe7e7",
-          "200": "#ffd6d6",
-          "500": "#eb6262",
-          "600": "#ff6b6b",
-          "700": "#d65a5a",
-          "900": "#a84747"
+          "50": "#ECFDF9",
+          "100": "#CCFBF1",
+          "200": "#99F6E4",
+          "500": "#2DD4BF",
+          "600": "#14B8A6",
+          "700": "#0F766E",
+          "900": "#134E4A"
         },
         "surfaces": {
-          "page": "#f2f9fc",
-          "pageAlt": "#eafbf9",
-          "gradientFrom": "#f2f9fc",
-          "gradientVia": "#eafbf9",
-          "gradientTo": "#fff5f5",
-          "card": "#ffffff",
-          "cardHover": "#f5fafd",
-          "panel": "#ffffff",
-          "panelStrong": "#ffffff",
-          "muted": "#fafdfe",
-          "accentSoft": "#fff0f0",
-          "border": "#c7e4f3",
-          "borderStrong": "#a9d5ec"
+          "page": "#0A0B14",
+          "pageAlt": "#0D0F1D",
+          "gradientFrom": "#0A0B14",
+          "gradientVia": "#0D0F1D",
+          "gradientTo": "#4C1D95",
+          "card": "rgba(255,255,255,0.03)",
+          "cardHover": "rgba(255,255,255,0.06)",
+          "panel": "#10121F",
+          "panelStrong": "#141726",
+          "muted": "#0D0F1D",
+          "accentSoft": "rgba(124,58,237,0.12)",
+          "border": "rgba(167,139,250,0.18)",
+          "borderStrong": "rgba(167,139,250,0.35)"
         },
         "text": {
-          "primary": "#012538",
-          "secondary": "#01476b",
-          "brand": "#012538",
-          "accent": "#471e1e",
-          "muted": "#015c8b",
-          "onPrimary": "#000000",
-          "onHighlight": "#111827",
-          "onContrast": "#111827"
+          "primary": "#F5F5FA",
+          "secondary": "#9599B8",
+          "brand": "#F5F5FA",
+          "accent": "#A78BFA",
+          "muted": "#6B7094",
+          "onPrimary": "#FFFFFF",
+          "onHighlight": "#0A0B14",
+          "onContrast": "#0A0B14"
         },
         "semantic": {
-          "success": "#16a34a",
-          "warning": "#d97706",
-          "danger": "#dc2626"
+          "success": "#10B981",
+          "warning": "#F5A623",
+          "danger": "#F0653F"
         },
         "shell": {
-          "buttonText": "#000000",
-          "accentButtonText": "#111827",
-          "dockText": "#000000",
-          "icon": "#471e1e",
-          "shadow": "#b3daee",
-          "shadowStrong": "#90c9e6"
+          "buttonText": "#FFFFFF",
+          "accentButtonText": "#0A0B14",
+          "dockText": "#F5F5FA",
+          "icon": "#A78BFA",
+          "shadow": "rgba(124,58,237,0.35)",
+          "shadowStrong": "rgba(124,58,237,0.6)"
         }
       },
       "typography": {
-        "headingFont": "DM Sans",
-        "bodyFont": "DM Sans",
-        "fontFamily": '"DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        "headingFont": "Space Grotesk",
+        "bodyFont": "Inter",
+        "fontFamily": '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       },
       "shell": {
-        "accentColor": "#ff6b6b",
+        "accentColor": "#7C3AED",
         "dockStyle": "glass",
-        "pageBackground": "#f2f9fc",
-        "gateBackground": "linear-gradient(135deg, #f2f9fc, #eafbf9, #fff5f5)",
-        "panelBackground": "#ffffff",
-        "panelStrongBackground": "#ffffff"
+        "pageBackground": "#0A0B14",
+        "gateBackground": "radial-gradient(1100px 620px at 82% -8%, rgba(124,58,237,0.38), transparent 62%), radial-gradient(760px 520px at 6% 20%, rgba(245,166,35,0.14), transparent 65%), linear-gradient(180deg, #0A0B14 0%, #0D0F1D 100%)",
+        "panelBackground": "#10121F",
+        "panelStrongBackground": "#141726"
       },
       "cssVariables": {
-        "--space-brand-primary": "#0284c7",
-        "--space-brand-highlight": "#ff6b6b",
-        "--space-brand-contrast": "#2dd4bf",
-        "--space-brand-primary-50": "#ebf5fb",
-        "--space-brand-primary-100": "#d7ebf6",
-        "--space-brand-primary-200": "#b8ddef",
-        "--space-brand-primary-500": "#0279b7",
-        "--space-brand-primary-600": "#0284c7",
-        "--space-brand-primary-700": "#026fa7",
-        "--space-brand-primary-900": "#015783",
-        "--space-brand-highlight-50": "#fff3f3",
-        "--space-brand-highlight-100": "#ffe7e7",
-        "--space-brand-highlight-200": "#ffd6d6",
-        "--space-brand-highlight-500": "#eb6262",
-        "--space-brand-highlight-600": "#ff6b6b",
-        "--space-brand-highlight-700": "#d65a5a",
-        "--space-brand-highlight-900": "#a84747",
-        "--space-surface-page": "#f2f9fc",
-        "--space-surface-page-alt": "#eafbf9",
-        "--space-surface-gradient-from": "#f2f9fc",
-        "--space-surface-gradient-via": "#eafbf9",
-        "--space-surface-gradient-to": "#fff5f5",
-        "--space-surface-card": "#ffffff",
-        "--space-surface-card-hover": "#f5fafd",
-        "--space-surface-panel": "#ffffff",
-        "--space-surface-panel-strong": "#ffffff",
-        "--space-surface-muted": "#fafdfe",
-        "--space-surface-accent-soft": "#fff0f0",
-        "--space-border-default": "#c7e4f3",
-        "--space-border-strong": "#a9d5ec",
-        "--space-text-primary": "#012538",
-        "--space-text-secondary": "#01476b",
-        "--space-text-brand": "#012538",
-        "--space-text-accent": "#471e1e",
-        "--space-text-muted": "#015c8b",
-        "--space-text-on-primary": "#000000",
-        "--space-text-on-highlight": "#111827",
-        "--space-text-on-contrast": "#111827",
-        "--space-semantic-success": "#16a34a",
-        "--space-semantic-warning": "#d97706",
-        "--space-semantic-danger": "#dc2626",
-        "--space-shell-button-text": "#000000",
-        "--space-shell-accent-button-text": "#111827",
-        "--space-shell-dock-text": "#000000",
-        "--space-shell-icon": "#471e1e",
-        "--space-shell-shadow": "#b3daee",
-        "--space-shell-shadow-strong": "#90c9e6"
+        "--space-brand-primary": "#7C3AED",
+        "--space-brand-highlight": "#14B8A6",
+        "--space-brand-contrast": "#F5A623",
+        "--space-brand-primary-50": "#F3EFFE",
+        "--space-brand-primary-100": "#E4D9FC",
+        "--space-brand-primary-200": "#C9B3F9",
+        "--space-brand-primary-500": "#8B5CF6",
+        "--space-brand-primary-600": "#7C3AED",
+        "--space-brand-primary-700": "#6224D6",
+        "--space-brand-primary-900": "#4C1D95",
+        "--space-brand-highlight-50": "#ECFDF9",
+        "--space-brand-highlight-100": "#CCFBF1",
+        "--space-brand-highlight-200": "#99F6E4",
+        "--space-brand-highlight-500": "#2DD4BF",
+        "--space-brand-highlight-600": "#14B8A6",
+        "--space-brand-highlight-700": "#0F766E",
+        "--space-brand-highlight-900": "#134E4A",
+        "--space-surface-page": "#0A0B14",
+        "--space-surface-page-alt": "#0D0F1D",
+        "--space-surface-gradient-from": "#0A0B14",
+        "--space-surface-gradient-via": "#0D0F1D",
+        "--space-surface-gradient-to": "#4C1D95",
+        "--space-surface-card": "rgba(255,255,255,0.03)",
+        "--space-surface-card-hover": "rgba(255,255,255,0.06)",
+        "--space-surface-panel": "#10121F",
+        "--space-surface-panel-strong": "#141726",
+        "--space-surface-muted": "#0D0F1D",
+        "--space-surface-accent-soft": "rgba(124,58,237,0.12)",
+        "--space-border-default": "rgba(167,139,250,0.18)",
+        "--space-border-strong": "rgba(167,139,250,0.35)",
+        "--space-text-primary": "#F5F5FA",
+        "--space-text-secondary": "#9599B8",
+        "--space-text-brand": "#F5F5FA",
+        "--space-text-accent": "#A78BFA",
+        "--space-text-muted": "#6B7094",
+        "--space-text-on-primary": "#FFFFFF",
+        "--space-text-on-highlight": "#0A0B14",
+        "--space-text-on-contrast": "#0A0B14",
+        "--space-semantic-success": "#10B981",
+        "--space-semantic-warning": "#F5A623",
+        "--space-semantic-danger": "#F0653F",
+        "--space-shell-button-text": "#FFFFFF",
+        "--space-shell-accent-button-text": "#0A0B14",
+        "--space-shell-dock-text": "#F5F5FA",
+        "--space-shell-icon": "#A78BFA",
+        "--space-shell-shadow": "rgba(124,58,237,0.35)",
+        "--space-shell-shadow-strong": "rgba(124,58,237,0.6)"
       }
     },
     "layout": {
       "agentPosition": "center",
       "dockPosition": "left",
       "appWindowSize": "medium",
-      "customerLandsOnAgent": true
+      "defaultLandingView": "app",
+      "defaultLandingAppId": "gap-radar",
+      "customerLandsOnAgent": false
     },
     "branding": {
       "name": "FoundarOS",
-      "tagline": "The AI operating system for every stage of your founder journey.",
+      "tagline": "AI operating system for founders",
       "logoUrl": "https://storage.googleapis.com/audos-images/brand-icons/09a33912-84fd-457d-ac2c-621ba4082667.mono.png",
-      "headingFont": "DM Sans",
-      "bodyFont": "DM Sans",
+      "headingFont": "Space Grotesk",
+      "bodyFont": "Inter",
       "colors": {
-        "primary": "#0284c7",
-        "highlight": "#ff6b6b",
-        "contrast": "#2dd4bf",
-        "secondary": "#ff6b6b",
-        "accent": "#2dd4bf",
+        "primary": "#7C3AED",
+        "highlight": "#14B8A6",
+        "contrast": "#F5A623",
+        "secondary": "#A78BFA",
+        "accent": "#10B981",
         "primaryScale": {
-          "50": "#ebf5fb",
-          "100": "#d7ebf6",
-          "200": "#b8ddef",
-          "500": "#0279b7",
-          "600": "#0284c7",
-          "700": "#026fa7",
-          "900": "#015783"
+          "50": "#F3EFFE",
+          "100": "#E4D9FC",
+          "200": "#C9B3F9",
+          "500": "#8B5CF6",
+          "600": "#7C3AED",
+          "700": "#6224D6",
+          "900": "#4C1D95"
         },
         "highlightScale": {
-          "50": "#fff3f3",
-          "100": "#ffe7e7",
-          "200": "#ffd6d6",
-          "500": "#eb6262",
-          "600": "#ff6b6b",
-          "700": "#d65a5a",
-          "900": "#a84747"
+          "50": "#ECFDF9",
+          "100": "#CCFBF1",
+          "200": "#99F6E4",
+          "500": "#2DD4BF",
+          "600": "#14B8A6",
+          "700": "#0F766E",
+          "900": "#134E4A"
         },
         "surfaces": {
-          "page": "#f2f9fc",
-          "pageAlt": "#eafbf9",
-          "gradientFrom": "#f2f9fc",
-          "gradientVia": "#eafbf9",
-          "gradientTo": "#fff5f5",
-          "card": "#ffffff",
-          "cardHover": "#f5fafd",
-          "panel": "#ffffff",
-          "panelStrong": "#ffffff",
-          "muted": "#fafdfe",
-          "accentSoft": "#fff0f0",
-          "border": "#c7e4f3",
-          "borderStrong": "#a9d5ec"
+          "page": "#0A0B14",
+          "pageAlt": "#0D0F1D",
+          "gradientFrom": "#0A0B14",
+          "gradientVia": "#0D0F1D",
+          "gradientTo": "#4C1D95",
+          "card": "rgba(255,255,255,0.03)",
+          "cardHover": "rgba(255,255,255,0.06)",
+          "panel": "#10121F",
+          "panelStrong": "#141726",
+          "muted": "#0D0F1D",
+          "accentSoft": "rgba(124,58,237,0.12)",
+          "border": "rgba(167,139,250,0.18)",
+          "borderStrong": "rgba(167,139,250,0.35)"
         },
         "text": {
-          "primary": "#012538",
-          "secondary": "#01476b",
-          "brand": "#012538",
-          "accent": "#471e1e",
-          "muted": "#015c8b",
-          "onPrimary": "#000000",
-          "onHighlight": "#111827",
-          "onContrast": "#111827"
+          "primary": "#F5F5FA",
+          "secondary": "#9599B8",
+          "brand": "#F5F5FA",
+          "accent": "#A78BFA",
+          "muted": "#6B7094",
+          "onPrimary": "#FFFFFF",
+          "onHighlight": "#0A0B14",
+          "onContrast": "#0A0B14"
         },
         "semantic": {
-          "success": "#16a34a",
-          "warning": "#d97706",
-          "danger": "#dc2626"
+          "success": "#10B981",
+          "warning": "#F5A623",
+          "danger": "#F0653F"
         },
         "shell": {
-          "buttonText": "#000000",
-          "accentButtonText": "#111827",
-          "dockText": "#000000",
-          "icon": "#471e1e",
-          "shadow": "#b3daee",
-          "shadowStrong": "#90c9e6"
+          "buttonText": "#FFFFFF",
+          "accentButtonText": "#0A0B14",
+          "dockText": "#F5F5FA",
+          "icon": "#A78BFA",
+          "shadow": "rgba(124,58,237,0.35)",
+          "shadowStrong": "rgba(124,58,237,0.6)"
         }
       },
       "palette": {
-        "primary": "#0284c7",
-        "highlight": "#ff6b6b",
-        "contrast": "#2dd4bf",
-        "secondary": "#ff6b6b",
-        "accent": "#2dd4bf",
+        "primary": "#7C3AED",
+        "highlight": "#14B8A6",
+        "contrast": "#F5A623",
+        "secondary": "#A78BFA",
+        "accent": "#10B981",
         "primaryScale": {
-          "50": "#ebf5fb",
-          "100": "#d7ebf6",
-          "200": "#b8ddef",
-          "500": "#0279b7",
-          "600": "#0284c7",
-          "700": "#026fa7",
-          "900": "#015783"
+          "50": "#F3EFFE",
+          "100": "#E4D9FC",
+          "200": "#C9B3F9",
+          "500": "#8B5CF6",
+          "600": "#7C3AED",
+          "700": "#6224D6",
+          "900": "#4C1D95"
         },
         "highlightScale": {
-          "50": "#fff3f3",
-          "100": "#ffe7e7",
-          "200": "#ffd6d6",
-          "500": "#eb6262",
-          "600": "#ff6b6b",
-          "700": "#d65a5a",
-          "900": "#a84747"
+          "50": "#ECFDF9",
+          "100": "#CCFBF1",
+          "200": "#99F6E4",
+          "500": "#2DD4BF",
+          "600": "#14B8A6",
+          "700": "#0F766E",
+          "900": "#134E4A"
         },
         "surfaces": {
-          "page": "#f2f9fc",
-          "pageAlt": "#eafbf9",
-          "gradientFrom": "#f2f9fc",
-          "gradientVia": "#eafbf9",
-          "gradientTo": "#fff5f5",
-          "card": "#ffffff",
-          "cardHover": "#f5fafd",
-          "panel": "#ffffff",
-          "panelStrong": "#ffffff",
-          "muted": "#fafdfe",
-          "accentSoft": "#fff0f0",
-          "border": "#c7e4f3",
-          "borderStrong": "#a9d5ec"
+          "page": "#0A0B14",
+          "pageAlt": "#0D0F1D",
+          "gradientFrom": "#0A0B14",
+          "gradientVia": "#0D0F1D",
+          "gradientTo": "#4C1D95",
+          "card": "rgba(255,255,255,0.03)",
+          "cardHover": "rgba(255,255,255,0.06)",
+          "panel": "#10121F",
+          "panelStrong": "#141726",
+          "muted": "#0D0F1D",
+          "accentSoft": "rgba(124,58,237,0.12)",
+          "border": "rgba(167,139,250,0.18)",
+          "borderStrong": "rgba(167,139,250,0.35)"
         },
         "text": {
-          "primary": "#012538",
-          "secondary": "#01476b",
-          "brand": "#012538",
-          "accent": "#471e1e",
-          "muted": "#015c8b",
-          "onPrimary": "#000000",
-          "onHighlight": "#111827",
-          "onContrast": "#111827"
+          "primary": "#F5F5FA",
+          "secondary": "#9599B8",
+          "brand": "#F5F5FA",
+          "accent": "#A78BFA",
+          "muted": "#6B7094",
+          "onPrimary": "#FFFFFF",
+          "onHighlight": "#0A0B14",
+          "onContrast": "#0A0B14"
         },
         "semantic": {
-          "success": "#16a34a",
-          "warning": "#d97706",
-          "danger": "#dc2626"
+          "success": "#10B981",
+          "warning": "#F5A623",
+          "danger": "#F0653F"
         },
         "shell": {
-          "buttonText": "#000000",
-          "accentButtonText": "#111827",
-          "dockText": "#000000",
-          "icon": "#471e1e",
-          "shadow": "#b3daee",
-          "shadowStrong": "#90c9e6"
+          "buttonText": "#FFFFFF",
+          "accentButtonText": "#0A0B14",
+          "dockText": "#F5F5FA",
+          "icon": "#A78BFA",
+          "shadow": "rgba(124,58,237,0.35)",
+          "shadowStrong": "rgba(124,58,237,0.6)"
         }
       }
     }
@@ -14810,18 +15196,24 @@ var CONFIG = {
     },
     "pptxgenjs": {
       "version": "4.0.1"
+    },
+    "docx": {
+      "version": "9.1.1"
+    },
+    "xlsx": {
+      "version": "0.18.5"
     }
   },
   "agent": {
-    "welcomeMessage": "Welcome to FoundarOS \u2014 the AI operating system for every stage of your founder journey. Live today: the free 5-minute Funding Readiness assessment in Gap Radar, which shows exactly where you stand and what investors will ask. Start there, and I'll help you close the gaps \u2014 from first idea to funded business.",
+    "welcomeMessage": "Welcome to FoundarOS. You came for a straight answer: is your idea fundable, and what's missing? The free Gap Radar assessment takes about 15 minutes \u2014 and I'll walk you through your score and what to fix first.",
     "starterPrompts": [
-      "How does the Funding Readiness assessment work?",
+      "How does the Startup Readiness assessment work?",
       "Which stage of the founder journey am I in?",
-      "What's included in the $99 Funding Readiness Pack?",
-      "Help me close my biggest funding gap"
+      "What's included in the $99 Starter Pack?",
+      "Help me close my biggest startup gap"
     ]
   },
-  "updatedAt": "2026-07-15T11:29:46.877Z"
+  "updatedAt": "2026-07-20T00:00:00.000Z"
 };
 var APPS = {
   "gap-radar": React.lazy(() => Promise.resolve().then(() => (init_App(), App_exports)).then((m) => {
@@ -14895,6 +15287,45 @@ var PlatformAppContext = React.createContext({
   },
   renderApp: () => null
 });
+function MissingPlatformApp({ appId }) {
+  useEffect8(() => {
+    const message = "The requested app is not included in this published workspace.";
+    console.error("[Space] App is not registered in the published bundle:", appId);
+    if (window.parent !== window) {
+      try {
+        window.parent.postMessage({
+          source: "audos-space-state",
+          state: "load_failed",
+          code: "app_not_registered",
+          appId,
+          message
+        }, window.location.origin);
+      } catch {
+      }
+    }
+  }, [appId]);
+  return /* @__PURE__ */ jsx9(
+    "div",
+    {
+      role: "alert",
+      style: {
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "2rem",
+        background: "#fafafa",
+        color: "#0f172a",
+        fontFamily: "system-ui, sans-serif"
+      },
+      children: /* @__PURE__ */ jsxs7("div", { style: { maxWidth: "28rem", textAlign: "center" }, children: [
+        /* @__PURE__ */ jsx9("div", { style: { fontSize: "2.5rem", marginBottom: "1rem" }, children: "\u26A0\uFE0F" }),
+        /* @__PURE__ */ jsx9("h2", { style: { margin: "0 0 0.5rem", fontSize: "1.25rem" }, children: "App unavailable" }),
+        /* @__PURE__ */ jsx9("p", { style: { margin: 0, color: "#64748b", lineHeight: 1.5 }, children: "This app is not included in the workspace's published version. Try again after it has been republished." })
+      ] })
+    }
+  );
+}
 function PlatformAppSlot({ appId }) {
   const ctx = React.useContext(PlatformAppContext);
   const id = appId ?? ctx.currentAppId;
@@ -14912,11 +15343,22 @@ function PlatformAppController({ children, initialAppId }) {
   const renderApp = React.useCallback((appId) => {
     if (!appId) return null;
     const AppComponent = APPS[appId];
-    if (!AppComponent) return null;
+    if (!AppComponent) return /* @__PURE__ */ jsx9(MissingPlatformApp, { appId });
     const appConfig = CONFIG.apps.find((a) => a.id === appId);
     return /* @__PURE__ */ jsx9(AppErrorBoundary2, { appName: appConfig?.name, children: /* @__PURE__ */ jsx9(Suspense2, { fallback: /* @__PURE__ */ jsx9(LoadingSpinner, {}), children: /* @__PURE__ */ jsx9(AppComponent, { appConfig, dataFile: appConfig?.dataFile || "" }) }) });
   }, []);
   return /* @__PURE__ */ jsx9(PlatformAppContext.Provider, { value: { currentAppId, navigate, renderApp }, children: children({ currentAppId, navigate, PlatformAppSlot }) });
+}
+function isTenantDelegationProductRun() {
+  if (typeof window === "undefined") return false;
+  if (window.__TENANT_DELEGATION__) return true;
+  if (window.__TENANT_DELEGATION_CANVAS__) return true;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return !!(params.get("ta_session") && params.get("delegation_token"));
+  } catch {
+    return false;
+  }
 }
 function SubscriptionReadyGate({ mode, children }) {
   const { sessionId, subscriptionReady } = useSpaceRuntime();
@@ -14927,6 +15369,9 @@ function SubscriptionReadyGate({ mode, children }) {
     const timer = setTimeout(() => setSubscriptionTimedOut(true), 8e3);
     return () => clearTimeout(timer);
   }, [subscriptionReady, sessionId]);
+  if (isTenantDelegationProductRun()) {
+    return /* @__PURE__ */ jsx9(Fragment6, { children });
+  }
   if (mode === "customer" && sessionId && !subscriptionReady && !subscriptionTimedOut) {
     return /* @__PURE__ */ jsx9("div", { style: { position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--space-surface-gradient-from, #fafafa)" }, children: /* @__PURE__ */ jsx9(LoadingSpinner, {}) });
   }
@@ -14936,60 +15381,79 @@ function DesktopBlankScreenGuard({ mode, children }) {
   const { sessionId, subscription, subscriptionReady } = useSpaceRuntime();
   const containerRef = React.useRef(null);
   const [isBlank, setIsBlank] = React.useState(false);
+  const delegatedProductRun = isTenantDelegationProductRun();
   React.useLayoutEffect(() => {
+    if (delegatedProductRun) {
+      if (isBlank) setIsBlank(false);
+      return;
+    }
     if (mode !== "customer" || !sessionId || !subscriptionReady) return;
     const el = containerRef.current;
     if (!el) return;
     const hasContent = el.childElementCount > 0 || el.textContent && el.textContent.trim().length > 0;
     if (!hasContent) {
-      setIsBlank(true);
-    } else if (isBlank) {
-      setIsBlank(false);
+      const raf = requestAnimationFrame(() => {
+        const el2 = containerRef.current;
+        if (!el2) return;
+        const stillEmpty = el2.childElementCount === 0 && !(el2.textContent && el2.textContent.trim().length > 0);
+        if (stillEmpty) setIsBlank(true);
+      });
+      return () => cancelAnimationFrame(raf);
     }
+    if (isBlank) setIsBlank(false);
   });
-  if (isBlank && mode === "customer" && sessionId) {
-    const spaceName = CONFIG.name || "this space";
-    const isForcedVisitorPreview = typeof window !== "undefined" && window.__AUDOS_FORCE_VISITOR__ === true;
-    const signedInEmail = subscription && subscription.email ? subscription.email : null;
-    const stripVisitorParam = () => {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("as");
-      return url.toString();
-    };
-    const enterSignedInSpace = () => {
-      window.location.href = stripVisitorParam();
-    };
-    const goToSignIn = () => {
-      try {
-        const sid = window.__SPACE_ID__ || CONFIG.id || "";
-        if (sid) localStorage.removeItem("space_session_" + sid);
-      } catch (e) {
-      }
-      window.location.href = stripVisitorParam();
-    };
-    if (isForcedVisitorPreview || !signedInEmail) {
-      return /* @__PURE__ */ jsx9("div", { style: { position: "fixed", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem", fontFamily: "system-ui, -apple-system, sans-serif", background: "var(--space-surface-gradient-from, #fafafa)", color: "#333" }, children: /* @__PURE__ */ jsxs7("div", { style: { maxWidth: "400px", textAlign: "center" }, children: [
-        /* @__PURE__ */ jsx9("div", { style: { width: "64px", height: "64px", margin: "0 auto 1.5rem", borderRadius: "50%", background: "linear-gradient(135deg, #6366f1, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }, children: /* @__PURE__ */ jsxs7("svg", { width: "28", height: "28", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
-          /* @__PURE__ */ jsx9("path", { d: "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" }),
-          /* @__PURE__ */ jsx9("polyline", { points: "10 17 15 12 10 7" }),
-          /* @__PURE__ */ jsx9("line", { x1: "15", y1: "12", x2: "3", y2: "12" })
-        ] }) }),
-        /* @__PURE__ */ jsx9("h2", { style: { fontSize: "1.5rem", fontWeight: 600, marginBottom: "0.75rem" }, children: "Welcome to " + spaceName }),
-        /* @__PURE__ */ jsx9("p", { style: { color: "#666", lineHeight: 1.6, marginBottom: "1.5rem" }, children: isForcedVisitorPreview ? "You're signed in. You were viewing the signed-out preview \u2014 continue below to open the signed-in view." : "Please sign in to access this content." }),
-        /* @__PURE__ */ jsx9("button", { onClick: isForcedVisitorPreview ? enterSignedInSpace : goToSignIn, style: { padding: "0.625rem 1.5rem", borderRadius: "0.5rem", border: "none", background: "#6366f1", color: "#fff", fontSize: "0.875rem", fontWeight: 500, cursor: "pointer" }, children: isForcedVisitorPreview ? "Enter " + spaceName : "Sign in" })
-      ] }) });
-    }
-    return /* @__PURE__ */ jsx9("div", { style: { position: "fixed", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem", fontFamily: "system-ui, -apple-system, sans-serif", background: "var(--space-surface-gradient-from, #fafafa)", color: "#333" }, children: /* @__PURE__ */ jsxs7("div", { style: { maxWidth: "400px", textAlign: "center" }, children: [
-      /* @__PURE__ */ jsx9("div", { style: { width: "64px", height: "64px", margin: "0 auto 1.5rem", borderRadius: "50%", background: "linear-gradient(135deg, #6366f1, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }, children: /* @__PURE__ */ jsxs7("svg", { width: "28", height: "28", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
-        /* @__PURE__ */ jsx9("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
-        /* @__PURE__ */ jsx9("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
-      ] }) }),
-      /* @__PURE__ */ jsx9("h2", { style: { fontSize: "1.5rem", fontWeight: 600, marginBottom: "0.75rem" }, children: "Welcome to " + spaceName }),
-      /* @__PURE__ */ jsx9("p", { style: { color: "#666", lineHeight: 1.6, marginBottom: "1.5rem" }, children: subscription && (subscription.status === "not_subscribed" || subscription.status === "registered" || subscription.status === "not_registered") ? "A subscription is required to access this content. Please subscribe to get started, or contact the workspace owner for access." : subscription && subscription.status === "trial_expired" ? "Your trial has ended. Please subscribe to continue accessing this content." : subscription && (subscription.status === "canceled" || subscription.status === "past_due") ? "Your subscription is no longer active. Please renew to regain access." : "Your account does not currently have access to this content. Please contact the workspace owner for assistance." }),
-      /* @__PURE__ */ jsx9("button", { onClick: () => window.location.reload(), style: { padding: "0.625rem 1.5rem", borderRadius: "0.5rem", border: "none", background: "#6366f1", color: "#fff", fontSize: "0.875rem", fontWeight: 500, cursor: "pointer" }, children: "Refresh Page" })
-    ] }) });
+  if (delegatedProductRun) {
+    return /* @__PURE__ */ jsx9(Fragment6, { children });
   }
-  return /* @__PURE__ */ jsx9("div", { ref: containerRef, style: { display: "contents" }, children });
+  const spaceName = CONFIG.name || "this space";
+  const isForcedVisitorPreview = typeof window !== "undefined" && window.__AUDOS_FORCE_VISITOR__ === true;
+  const signedInEmail = subscription && subscription.email ? subscription.email : null;
+  const stripVisitorParam = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("as");
+    return url.toString();
+  };
+  const enterSignedInSpace = () => {
+    window.location.href = stripVisitorParam();
+  };
+  const goToSignIn = () => {
+    try {
+      const sid = window.__SPACE_ID__ || CONFIG.id || "";
+      if (sid) localStorage.removeItem("space_session_" + sid);
+    } catch (e) {
+    }
+    window.location.href = stripVisitorParam();
+  };
+  const welcomeOverlay = isBlank && mode === "customer" && sessionId ? isForcedVisitorPreview || !signedInEmail ? /* @__PURE__ */ jsx9("div", { style: { position: "fixed", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem", fontFamily: "system-ui, -apple-system, sans-serif", background: "var(--space-surface-gradient-from, #fafafa)", color: "#333", zIndex: 9999 }, children: /* @__PURE__ */ jsxs7("div", { style: { maxWidth: "400px", textAlign: "center" }, children: [
+    /* @__PURE__ */ jsx9("div", { style: { width: "64px", height: "64px", margin: "0 auto 1.5rem", borderRadius: "50%", background: "linear-gradient(135deg, #6366f1, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }, children: /* @__PURE__ */ jsxs7("svg", { width: "28", height: "28", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
+      /* @__PURE__ */ jsx9("path", { d: "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" }),
+      /* @__PURE__ */ jsx9("polyline", { points: "10 17 15 12 10 7" }),
+      /* @__PURE__ */ jsx9("line", { x1: "15", y1: "12", x2: "3", y2: "12" })
+    ] }) }),
+    /* @__PURE__ */ jsx9("h2", { style: { fontSize: "1.5rem", fontWeight: 600, marginBottom: "0.75rem" }, children: "Welcome to " + spaceName }),
+    /* @__PURE__ */ jsx9("p", { style: { color: "#666", lineHeight: 1.6, marginBottom: "1.5rem" }, children: isForcedVisitorPreview ? "You're signed in. You were viewing the signed-out preview \u2014 continue below to open the signed-in view." : "Please sign in to access this content." }),
+    /* @__PURE__ */ jsx9("button", { onClick: isForcedVisitorPreview ? enterSignedInSpace : goToSignIn, style: { padding: "0.625rem 1.5rem", borderRadius: "0.5rem", border: "none", background: "#6366f1", color: "#fff", fontSize: "0.875rem", fontWeight: 500, cursor: "pointer" }, children: isForcedVisitorPreview ? "Enter " + spaceName : "Sign in" })
+  ] }) }) : /* @__PURE__ */ jsx9("div", { style: { position: "fixed", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem", fontFamily: "system-ui, -apple-system, sans-serif", background: "var(--space-surface-gradient-from, #fafafa)", color: "#333", zIndex: 9999 }, children: /* @__PURE__ */ jsxs7("div", { style: { maxWidth: "400px", textAlign: "center" }, children: [
+    /* @__PURE__ */ jsx9("div", { style: { width: "64px", height: "64px", margin: "0 auto 1.5rem", borderRadius: "50%", background: "linear-gradient(135deg, #6366f1, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }, children: /* @__PURE__ */ jsxs7("svg", { width: "28", height: "28", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
+      /* @__PURE__ */ jsx9("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
+      /* @__PURE__ */ jsx9("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
+    ] }) }),
+    /* @__PURE__ */ jsx9("h2", { style: { fontSize: "1.5rem", fontWeight: 600, marginBottom: "0.75rem" }, children: "Welcome to " + spaceName }),
+    /* @__PURE__ */ jsx9("p", { style: { color: "#666", lineHeight: 1.6, marginBottom: "1.5rem" }, children: subscription && (subscription.status === "not_subscribed" || subscription.status === "registered" || subscription.status === "not_registered") ? "A subscription is required to access this content. Please subscribe to get started, or contact the workspace owner for access." : subscription && subscription.status === "trial_expired" ? "Your trial has ended. Please subscribe to continue accessing this content." : subscription && (subscription.status === "canceled" || subscription.status === "past_due") ? "Your subscription is no longer active. Please renew to regain access." : "Your account does not currently have access to this content. Please contact the workspace owner for assistance." }),
+    /* @__PURE__ */ jsx9("button", { onClick: () => window.location.reload(), style: { padding: "0.625rem 1.5rem", borderRadius: "0.5rem", border: "none", background: "#6366f1", color: "#fff", fontSize: "0.875rem", fontWeight: 500, cursor: "pointer" }, children: "Refresh Page" })
+  ] }) }) : null;
+  return /* @__PURE__ */ jsxs7(Fragment6, { children: [
+    /* @__PURE__ */ jsx9(
+      "div",
+      {
+        ref: containerRef,
+        style: isBlank ? { display: "none" } : { display: "contents" },
+        "aria-hidden": isBlank ? true : void 0,
+        children
+      }
+    ),
+    welcomeOverlay
+  ] });
 }
 function SpaceDesktop2({ mode, spaceId, sessionId }) {
   const initialAppId = window.__DEEP_LINK_APP_ID__ || null;
@@ -15018,8 +15482,14 @@ function SpaceDesktop2({ mode, spaceId, sessionId }) {
 }
 var __urlParams = new URLSearchParams(window.location.search);
 var __configEntryAppId = null;
-window.__DEEP_LINK_APP_ID__ = __urlParams.get("app") || __configEntryAppId;
-window.__DEEP_LINK_SCREEN__ = __urlParams.get("screen") || (__configEntryAppId ? "app" : null);
+var __compiledPublicAppRoute = { "appIds": [], "spaceAppOnlyEntryId": null };
+var __privateDeepLink = {
+  appId: __urlParams.get("app") || __configEntryAppId,
+  screen: __urlParams.get("screen") || (__configEntryAppId ? "app" : null)
+};
+var __publicAppId = resolveCompiledPublicAppId(__compiledPublicAppRoute, window.location.hash, __privateDeepLink);
+window.__DEEP_LINK_APP_ID__ = __publicAppId ?? __privateDeepLink.appId;
+window.__DEEP_LINK_SCREEN__ = __publicAppId === null ? __privateDeepLink.screen : "app";
 var rootElement = document.getElementById("root");
 if (rootElement) {
   const root = createRoot(rootElement);
@@ -15058,6 +15528,35 @@ if (rootElement) {
         // self-heal that prevents the multi-hour outages of 2026-04-22.
         // Sent via sendBeacon (or fetch keepalive fallback) so the
         // request survives the page reload the user is about to trigger.
+        // Task #2797: lightweight breadcrumb trail — the last few visitor
+        // interactions (clicks + route changes) preceding a crash. Only
+        // short labels / paths are kept, never input values or query strings.
+        var __crumbs = [];
+        function pushCrumb(c) {
+          try {
+            __crumbs.push(c);
+            if (__crumbs.length > 5) __crumbs.shift();
+          } catch (_e) {}
+        }
+        function pathOnly(u) {
+          try { return String(u || '').split(/[?#]/)[0].slice(0, 200); } catch (_e) { return ''; }
+        }
+        pushCrumb({ route: pathOnly(location.pathname), at: Date.now() });
+        document.addEventListener('click', function(ev) {
+          try {
+            var t = ev.target && ev.target.closest ? ev.target.closest('button, a, [role="button"]') : null;
+            if (!t) return;
+            var label = (t.getAttribute('aria-label') || t.textContent || t.tagName || '').trim().slice(0, 60);
+            pushCrumb({ action: 'click: ' + label, at: Date.now() });
+          } catch (_e) {}
+        }, true);
+        window.addEventListener('hashchange', function() {
+          pushCrumb({ route: pathOnly(location.pathname) + (location.hash ? location.hash.slice(0, 60) : ''), at: Date.now() });
+        });
+        window.addEventListener('popstate', function() {
+          pushCrumb({ route: pathOnly(location.pathname), at: Date.now() });
+        });
+
         var __runtimeErrorReported = false;
         function reportRuntimeErrorToServer(msg, line) {
           try {
@@ -15082,6 +15581,8 @@ if (rootElement) {
               line: line || null,
               userAgent: (navigator && navigator.userAgent) || null,
               href: (location && location.href) || null,
+              pagePath: pathOnly(location && location.pathname),
+              breadcrumbs: __crumbs.slice(-5),
               when: Date.now()
             });
             if (navigator && typeof navigator.sendBeacon === 'function') {
@@ -15192,14 +15693,21 @@ if (rootElement) {
         // so the user sees the actual error, not just an opaque spinner.
         setTimeout(function() {
           var isTopLevel = (window === window.parent);
+          // Product Run / tenant delegation iframe. Apps often mount with
+          // position:fixed (out of #root's document flow), so #root.offsetHeight
+          // stays ~0 even when the calendar is fully visible. Never auto-reload
+          // or empty-overlay that surface — that is the Bipp "refresh" bug.
+          var isDelegatedProductRun = !!(window.__TENANT_DELEGATION__ || window.__TENANT_DELEGATION_CANVAS__);
           var usingCdnFallback = /[?&]cdn=fallback/.test(window.location.search);
           var alreadyTriedCdn = false;
           try { alreadyTriedCdn = !!sessionStorage.getItem('__audos_cdn_fallback'); } catch(e) {}
 
           // CDN fallback helper: redirect with ?cdn=fallback so the server
           // rewrites the import map from esm.sh to cdn.jsdelivr.net.
+          // Top-level pages only — never Product Run iframes (location.replace
+          // remounts the whole calendar) and never generic preview iframes.
           function tryCdnFallback() {
-            if (!isTopLevel || usingCdnFallback || alreadyTriedCdn) return false;
+            if (!isTopLevel || isDelegatedProductRun || usingCdnFallback || alreadyTriedCdn) return false;
             try { sessionStorage.setItem('__audos_cdn_fallback', String(Date.now())); } catch(e) {}
             var u = new URL(window.location.href);
             u.searchParams.set('cdn', 'fallback');
@@ -15228,6 +15736,12 @@ if (rootElement) {
             // Step 2: CDN fallback — esm.sh may be unreachable
             if (tryCdnFallback()) return;
             showRecovery('The page failed to load. This may be a network or regional issue.', 'No content rendered in the root element after 8s. The application bundle may have failed to evaluate.');
+            return;
+          }
+          // Product Run: React mounted (children present). Fixed-position app
+          // canvases leave #root at 0 height — that is success, not emptiness.
+          if (isDelegatedProductRun) {
+            hideLoader();
             return;
           }
           // Check if rendered content has any visible height

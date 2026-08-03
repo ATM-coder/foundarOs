@@ -7,6 +7,16 @@ import {
   scopedSpaceSessionStorageKey,
 } from './lib/tenant-delegation-canvas';
 
+// Google Search Console site verification. Runs once at module load (not inside any
+// React render), so the tag lands in document.head unconditionally on every surface
+// and survives bundle recompiles. Keep the content value in sync with Search Console.
+if (typeof document !== 'undefined' && !document.querySelector('meta[name="google-site-verification"]')) {
+  const googleSiteVerificationMeta = document.createElement('meta');
+  googleSiteVerificationMeta.name = 'google-site-verification';
+  googleSiteVerificationMeta.content = 'ng4is9phSZA2oU-aX7cOb1h_Xp-b3oR3XilAZAIRBAI';
+  document.head.appendChild(googleSiteVerificationMeta);
+}
+
 export type SpaceMode = 'entrepreneur' | 'customer';
 
 export interface FileInfo {
