@@ -9,6 +9,9 @@ export interface AppConfig {
   icon?: string;
   component: string;
   dataFile?: string;
+  // Optional shell audiences. Apps limited to entrepreneur/owner/admin/internal
+  // are hidden from customer mode and rendered in the Internal sidebar group.
+  allowedRoles?: Array<'entrepreneur' | 'customer' | 'owner' | 'admin' | 'internal'>;
   // When true, the EmailGate is bypassed for direct deep-link access via ?app=<id>.
   // Used for tokenised entrypoints where the app component itself validates the token.
   public?: boolean;

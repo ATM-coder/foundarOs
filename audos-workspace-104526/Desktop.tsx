@@ -264,6 +264,12 @@ function makeThreadId(): string {
   return `thr_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
+const INTERNAL_APP_ROLES = new Set(['entrepreneur', 'owner', 'admin', 'internal']);
+
+function isInternalApp(app: SpaceConfig['apps'][number]): boolean {
+  return Boolean(app.allowedRoles?.some(role => INTERNAL_APP_ROLES.has(role)));
+}
+
 export default function SpaceDesktop({
   mode,
   spaceId,
@@ -275,6 +281,12 @@ export default function SpaceDesktop({
 }: SpaceDesktopProps) {
   const { sessionId, email, isBootstrappingSession, trackEvent, subscriptionReady } = useSpaceRuntime();
   const isMobile = useIsMobile(); // JS-based media query to prevent double-mounting AgentChat
+  const visibleApps = useMemo(
+    () => config.apps.filter(app => !isInternalApp(app) || mode === 'entrepreneur'),
+    [config.apps, mode],
+  );
+  const standardApps = useMemo(() => visibleApps.filter(app => !isInternalApp(app)), [visibleApps]);
+  const internalApps = useMemo(() => visibleApps.filter(isInternalApp), [visibleApps]);
 
   // Timeout guard: if subscriptionReady stays false for too long, unblock the UI
   // so the user isn't stuck on an infinite spinner (fixes EmailGate hang bug).
@@ -471,7 +483,7 @@ export default function SpaceDesktop({
   const openPanel = (panelId: PanelId) => {
     setIsPanelExpanded(false);
     setIsAppHomeShell(false);
-    const app = config.apps.find(a => a.id === panelId);
+    const app = visibleApps.find(a => a.id === panelId);
     if (app) {
       trackEvent('app_opened', { appId: panelId, appName: app.name });
     }
@@ -499,12 +511,12 @@ export default function SpaceDesktop({
     | undefined;
   const defaultLandingApp = (() => {
     if (layoutConfig?.defaultLandingView !== 'app') return null;
-    if (!config.apps.length) return null;
+    if (!visibleApps.length) return null;
     const wanted = layoutConfig?.defaultLandingAppId?.toLowerCase();
     const byId = wanted
-      ? config.apps.find(a => a.id.toLowerCase() === wanted)
+      ? visibleApps.find(a => a.id.toLowerCase() === wanted)
       : undefined;
-    return byId || config.apps[0];
+    return byId || visibleApps[0];
   })();
 
   // Leave the app-home landing state and return to the agent-centric view:
@@ -531,7 +543,7 @@ export default function SpaceDesktop({
     const params = new URLSearchParams(window.location.search);
     const requestedAppId = params.get('app') || (window as any).__DEEP_LINK_APP_ID__ || initialAppId;
     if (!requestedAppId) return false;
-    const matchingApp = config.apps.find(a => a.id.toLowerCase() === String(requestedAppId).toLowerCase());
+    const matchingApp = visibleApps.find(a => a.id.toLowerCase() === String(requestedAppId).toLowerCase());
     return !!matchingApp && (matchingApp as any).public === true;
   })();
   // Tenant-agent delegation (Product Run standing access / job handoff): the
@@ -579,7 +591,7 @@ export default function SpaceDesktop({
     const deepLinkId = hash || urlAppParam?.toLowerCase() || '';
 
     if (deepLinkId) {
-      const matchingApp = config.apps.find(
+      const matchingApp = visibleApps.find(
         app => app.id.toLowerCase() === deepLinkId || app.name.toLowerCase() === deepLinkId
       );
 
@@ -618,7 +630,7 @@ export default function SpaceDesktop({
       return;
     }
     // Default: land in the agent conversation, no panel.
-  }, [sessionId, config.apps]);
+  }, [sessionId, visibleApps]);
 
   // Update URL hash when active panel changes
   useEffect(() => {
@@ -656,7 +668,7 @@ export default function SpaceDesktop({
         return;
       }
 
-      const matchingApp = config.apps.find(
+      const matchingApp = visibleApps.find(
         app => app.id.toLowerCase() === hash || app.name.toLowerCase() === hash
       );
 
@@ -680,7 +692,7 @@ export default function SpaceDesktop({
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [config.apps]);
+  }, [visibleApps]);
 
   // Listen for app deep-link events from agent chat (openApp contract)
   useEffect(() => {
@@ -731,7 +743,7 @@ export default function SpaceDesktop({
 
   // Resolve the active panel's metadata
   const isAppPanel = activePanelId && !['files', 'settings'].includes(activePanelId);
-  const currentAppConfig = isAppPanel ? config.apps.find(app => app.id === activePanelId) : null;
+  const currentAppConfig = isAppPanel ? visibleApps.find(app => app.id === activePanelId) : null;
   const CurrentApp = isAppPanel && activePanelId ? apps[activePanelId] : null;
 
   const runtimeTheme = resolveGenesisRuntimeTheme(config);
@@ -820,6 +832,31 @@ export default function SpaceDesktop({
 
   // --- Shared render pieces ---------------------------------------------
 
+  const renderAppLauncher = (app: SpaceConfig['apps'][number]) => {
+    const isActive = activePanelId === app.id;
+    const IconComponent = app.icon && iconMap[app.icon] ? iconMap[app.icon] : Activity;
+    return (
+      <button
+        key={app.id}
+        onClick={() => openPanel(app.id)}
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all border ${
+          isActive
+            ? 'bg-[var(--space-surface-card)] border-[color-mix(in_srgb,var(--space-brand-primary-500)_40%,transparent)] shadow-[0_4px_14px_rgba(0,0,0,0.08)]'
+            : 'bg-[var(--space-surface-card)] border-[var(--space-border-default)] shadow-[0_1px_4px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_14px_rgba(0,0,0,0.09)] hover:-translate-y-px'
+        }`}
+        data-testid={`button-app-${app.id}`}
+      >
+        <span className="w-9 h-9 rounded-xl bg-[var(--space-surface-accent-soft)] flex items-center justify-center flex-shrink-0">
+          <IconComponent className="w-[18px] h-[18px] text-[var(--space-text-brand)]" />
+        </span>
+        <span className="min-w-0 flex flex-col">
+          <span className="truncate text-sm font-medium text-[var(--space-text-primary)]">{app.name}</span>
+          <span className="truncate text-[11px] text-[var(--space-text-muted)]">{isActive ? 'Open now' : 'Open app'}</span>
+        </span>
+      </button>
+    );
+  };
+
   const renderSidebarContent = (opts: { onClose?: () => void }) => (
     <div className="flex flex-col h-full min-h-0">
       {/* Sidebar header */}
@@ -881,37 +918,26 @@ export default function SpaceDesktop({
           })}
         </div>
 
-        {/* Apps section */}
-        {config.apps.length > 0 && (
+        {/* Customer-facing apps */}
+        {standardApps.length > 0 && (
           <>
             <div className="text-[11px] font-medium uppercase tracking-wide px-2 pt-4 pb-1 text-[var(--space-text-muted)]">
               Apps
             </div>
             <div className="flex flex-col gap-2 px-0.5 pt-1">
-              {config.apps.map(app => {
-                const isActive = activePanelId === app.id;
-                const IconComponent = app.icon && iconMap[app.icon] ? iconMap[app.icon] : Activity;
-                return (
-                  <button
-                    key={app.id}
-                    onClick={() => openPanel(app.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all border ${
-                      isActive
-                        ? 'bg-[var(--space-surface-card)] border-[var(--space-brand-primary-500)]/40 shadow-[0_4px_14px_rgba(0,0,0,0.08)]'
-                        : 'bg-[var(--space-surface-card)] border-[var(--space-border-default)] shadow-[0_1px_4px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_14px_rgba(0,0,0,0.09)] hover:-translate-y-px'
-                    }`}
-                    data-testid={`button-app-${app.id}`}
-                  >
-                    <span className="w-9 h-9 rounded-xl bg-[var(--space-surface-accent-soft)] flex items-center justify-center flex-shrink-0">
-                      <IconComponent className="w-[18px] h-[18px] text-[var(--space-text-brand)]" />
-                    </span>
-                    <span className="min-w-0 flex flex-col">
-                      <span className="truncate text-sm font-medium text-[var(--space-text-primary)]">{app.name}</span>
-                      <span className="truncate text-[11px] text-[var(--space-text-muted)]">{isActive ? 'Open now' : 'Open app'}</span>
-                    </span>
-                  </button>
-                );
-              })}
+              {standardApps.map(renderAppLauncher)}
+            </div>
+          </>
+        )}
+
+        {/* Founder/admin tools never render in customer mode. */}
+        {mode === 'entrepreneur' && internalApps.length > 0 && (
+          <>
+            <div className="text-[11px] font-medium uppercase tracking-wide px-2 pt-4 pb-1 text-[var(--space-text-muted)]">
+              Internal
+            </div>
+            <div className="flex flex-col gap-2 px-0.5 pt-1">
+              {internalApps.map(renderAppLauncher)}
             </div>
           </>
         )}

@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "provider": "flutterwave",
+  "mode": "connect",
+  "stripeAccountId": null,
+  "platformFeeBps": 200,
+  "currency": "NGN",
+  "businessName": "FoundarOS",
+  "supportEmail": "info.appareltm@gmail.com",
+  "defaultTrialDays": 7,
+  "defaultPriceCents": 500,
+  "defaultPriceId": null
+}

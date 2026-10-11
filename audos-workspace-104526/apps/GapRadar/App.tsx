@@ -33,8 +33,17 @@ import {
   Briefcase,
   BellRing,
   Rocket,
+  LayoutDashboard,
+  FolderOpen,
+  User,
+  Building2,
+  ShieldCheck,
+  BarChart3,
+  Pencil,
+  ChevronRight,
 } from 'lucide-react';
 import { tw } from '../../lib/colors';
+import StageDiagnostic from './StageDiagnostic';
 import {
   QUESTIONS,
   TOTAL_QUESTIONS,
@@ -66,6 +75,8 @@ import type { PackDocument, PackInput } from './documents';
  *   assessment_sessions   — status, current_index, answers (json),
  *                           overall_score, category_scores (json),
  *                           top_gaps (json), completed_at
+ *   onboarding_profiles   — paid founder's five-step onboarding answers
+ *   readiness_snapshots   — paid founder's five-area readiness scores
  * ========================================================================== */
 
 type GapStatus = 'open' | 'in_progress' | 'fixed';
@@ -96,19 +107,187 @@ interface AssessmentSessionRow {
 
 interface ReadinessPackRow {
   id: number;
-  stripe_session_id: string | null;
+  stripe_session_id: string | null; // Flutterwave checkout reference (audos_chk_...)
   status: string | null;
   customer_email: string | null;
   amount_cents: number | null;
   overall_score: number | null;
   documents: unknown;
   generated_at: string | null;
+  payment_provider?: string | null;
+  payment_currency?: string | null;
+  provider_tx_id?: string | null;
+  paid_at?: string | null;
   created_at?: string;
 }
 
 interface PaymentNotice {
   state: 'verifying' | 'generating' | 'success' | 'error';
   message?: string;
+}
+
+type PaidScreen = 'payment-success' | 'onboarding' | 'snapshot' | 'dashboard' | 'documents' | 'profile' | 'gap-radar';
+
+type YesNo = '' | 'Yes' | 'No';
+type ProgressAnswer = '' | 'Yes' | 'No' | 'In progress';
+
+interface OnboardingAnswers {
+  full_name: string;
+  country: string;
+  linkedin_url: string;
+  business_name: string;
+  industry: string;
+  business_stage: string;
+  product_description: string;
+  target_customer: string;
+  problem_solved: string;
+  registered_business: YesNo;
+  pitch_deck_status: ProgressAnswer;
+  financial_projections_status: ProgressAnswer;
+  spoken_to_investors: YesNo;
+  needs: string[];
+}
+
+interface OnboardingProfileRow extends Omit<OnboardingAnswers, 'needs'> {
+  id: number;
+  status: string;
+  step_completed: number;
+  needs: string[] | string | null;
+  completed_at: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface ReadinessScores {
+  business_clarity: number;
+  legal_compliance: number;
+  pitch_readiness: number;
+  investor_readiness: number;
+  financial_preparation: number;
+  overall_score: number;
+  recommendations: string[];
+}
+
+interface ReadinessSnapshotRow {
+  id: number;
+  business_clarity: number;
+  legal_compliance: number;
+  pitch_readiness: number;
+  investor_readiness: number;
+  financial_preparation: number;
+  overall_score: number;
+  recommendations: unknown;
+  generated_at: string;
+  created_at?: string;
+}
+
+interface PaymentConfirmation {
+  reference: string;
+  paidAt: string;
+}
+
+const EMPTY_ONBOARDING: OnboardingAnswers = {
+  full_name: '',
+  country: '',
+  linkedin_url: '',
+  business_name: '',
+  industry: '',
+  business_stage: '',
+  product_description: '',
+  target_customer: '',
+  problem_solved: '',
+  registered_business: '',
+  pitch_deck_status: '',
+  financial_projections_status: '',
+  spoken_to_investors: '',
+  needs: [],
+};
+
+const ONBOARDING_NEEDS = [
+  'Understand what investors look for',
+  'Build my pitch deck',
+  'Create financial projections',
+  'Develop my business plan',
+  'Find the right investors',
+  'Understand my funding readiness score',
+];
+
+function profileToAnswers(profile: OnboardingProfileRow | null): OnboardingAnswers {
+  if (!profile) return { ...EMPTY_ONBOARDING, needs: [] };
+  return {
+    full_name: profile.full_name || '',
+    country: profile.country || '',
+    linkedin_url: profile.linkedin_url || '',
+    business_name: profile.business_name || '',
+    industry: profile.industry || '',
+    business_stage: profile.business_stage || '',
+    product_description: profile.product_description || '',
+    target_customer: profile.target_customer || '',
+    problem_solved: profile.problem_solved || '',
+    registered_business: profile.registered_business || '',
+    pitch_deck_status: profile.pitch_deck_status || '',
+    financial_projections_status: profile.financial_projections_status || '',
+    spoken_to_investors: profile.spoken_to_investors || '',
+    needs: parseJsonField<string[]>(profile.needs, []),
+  };
+}
+
+function computeReadinessSnapshot(profile: OnboardingAnswers): ReadinessScores {
+  const clarityFields = [
+    profile.business_name,
+    profile.industry,
+    profile.business_stage,
+    profile.product_description,
+    profile.target_customer,
+    profile.problem_solved,
+  ];
+  const completedClarity = clarityFields.filter((value) => value.trim().length > 0).length;
+  const businessClarity = Math.round(20 + (completedClarity / clarityFields.length) * 80);
+  const legalCompliance = profile.registered_business === 'Yes' ? 100 : 25;
+  const readinessValue = (value: ProgressAnswer) => (value === 'Yes' ? 100 : value === 'In progress' ? 60 : 20);
+  const pitchReadiness = Math.round(
+    (readinessValue(profile.pitch_deck_status) + readinessValue(profile.financial_projections_status)) / 2,
+  );
+  const investorReadiness = Math.min(
+    100,
+    (profile.spoken_to_investors === 'Yes' ? 80 : 35) +
+      (profile.needs.includes('Understand my funding readiness score') ? 20 : 5),
+  );
+  const financialPreparation = readinessValue(profile.financial_projections_status);
+  const areaScores = {
+    business_clarity: businessClarity,
+    legal_compliance: legalCompliance,
+    pitch_readiness: pitchReadiness,
+    investor_readiness: investorReadiness,
+    financial_preparation: financialPreparation,
+  };
+  const recommendationsByArea: Record<keyof typeof areaScores, string> = {
+    business_clarity: 'Sharpen your one-line value proposition, target customer, and problem statement before investor outreach.',
+    legal_compliance: 'Register the business and organise core legal records so investors can complete due diligence confidently.',
+    pitch_readiness: 'Turn your story and financial assumptions into a concise investor deck with evidence behind every claim.',
+    investor_readiness: 'Start ten investor-learning conversations and build a focused list of investors aligned with your stage.',
+    financial_preparation: 'Create a three-year financial model covering revenue, costs, runway, and the milestones this raise will fund.',
+  };
+  const lowestAreas = (Object.entries(areaScores) as Array<[keyof typeof areaScores, number]>)
+    .sort((a, b) => a[1] - b[1])
+    .slice(0, 3);
+  return {
+    ...areaScores,
+    overall_score: Math.round(Object.values(areaScores).reduce((sum, score) => sum + score, 0) / 5),
+    recommendations: lowestAreas.map(([area]) => recommendationsByArea[area]),
+  };
+}
+
+function snapshotRowToScores(row: ReadinessSnapshotRow): ReadinessScores {
+  return {
+    business_clarity: row.business_clarity,
+    legal_compliance: row.legal_compliance,
+    pitch_readiness: row.pitch_readiness,
+    investor_readiness: row.investor_readiness,
+    financial_preparation: row.financial_preparation,
+    overall_score: row.overall_score,
+    recommendations: parseJsonField<string[]>(row.recommendations, []),
+  };
 }
 
 interface DbTableApi {
@@ -423,89 +602,41 @@ function AssessmentScreen({
 }
 
 /* ============================================================================
- * PAYWALL — one-time unlock on the results screen.
+ * PAYWALL — one-time unlock on the results screen. LIVE payments.
  *
- * Uses the platform Stripe integration (`POST /api/payments/checkout`) by
- * default, or a Stripe Payment Link when STRIPE_PAYMENT_LINK_URL is set.
+ * Flutterwave is the only checkout provider for every market and charges
+ * exactly $99 USD.
  *
- * ⚠️ KEY MODE (re-verified 2026-07-16): the platform payments API runs LIVE
- * Stripe keys — checkout sessions come back as `cs_live_...`, the 4242 test
- * card is DECLINED, and real cards ARE charged. There are NO sk_live_ /
- * pk_live_ keys anywhere in this codebase to swap for sk_test_ / pk_test_
- * ones: this app never touches Stripe directly. All payments are proxied
- * through the Audos platform (`/api/payments/*`) and the keys live
- * server-side on the platform — no workspace file, config value, request
- * flag, or header can switch them (probed testMode / mode / livemode flags
- * on 2026-07-16; every session still came back `cs_live_...`). Switching the
- * PLATFORM Stripe account to test mode is an Audos platform-side change, not
- * a workspace change.
+ * The charge is always $99 USD (`amount: 9900, currency: 'usd'`). Do NOT
+ * remove the explicit `currency`: without it the platform falls back to the
+ * workspace currency and charges the wrong amount/currency.
  *
- * ✅ STRIPE TEST MODE (STRIPE_TEST_MODE = true, current state):
- * While the switch below is on, the LIVE platform checkout is disabled — the
- * unlock button never opens a live-mode session, so the 4242 card can't be
- * rejected and no real card can be charged. To run the full end-to-end test
- * checkout with card 4242 4242 4242 4242:
- * 1. In your Stripe dashboard, toggle to TEST mode and create a $99 Payment
- *    Link: https://dashboard.stripe.com/test/payment-links
- * 2. Under "After payment", choose "Don't show confirmation page" and set
- *    the redirect URL to your app's URL with this query appended:
- *      ?payment_success=true&session_id={CHECKOUT_SESSION_ID}
- * 3. Paste the link (starts with https://buy.stripe.com/test_...) into
- *    STRIPE_PAYMENT_LINK_URL below and publish.
- * The unlock button then opens Stripe's TEST checkout (4242 is accepted) and,
- * on return, the app completes the unlock + document generation. Test-mode
- * sessions (`cs_test_...`) can't be verified through the live-mode platform
- * API, so they are trusted while STRIPE_TEST_MODE is true — safe only
- * because live checkout is disabled in test mode.
+ * Verification and ALL paid-state writes are server-side. The Flutterwave hook
+ * verifies checkout and exclusively writes the protected columns on
+ * `readiness_packs` (status, amount_cents, paid_at, provider_tx_id, and
+ * payment_provider). Browser inserts are blocked; the app only writes the
+ * non-protected documents, overall_score, and generated_at fields after a
+ * verified payment. The Flutterwave hook also receives charge.completed
+ * webhooks.
  *
- * Alternative (no Stripe at all): while STRIPE_TEST_MODE is true, use the
- * "Generate test documents" button shown on the paywall. After test mode is
- * turned off, append ?founder_test=1 to expose the founder-only simulation.
- * It exercises the complete post-payment flow (purchase record → document
- * generation → downloads).
- *
- * 🚀 BEFORE REAL SALES: set STRIPE_TEST_MODE = false and either clear
- * STRIPE_PAYMENT_LINK_URL (to use the built-in platform checkout) or replace
- * it with a LIVE Payment Link (https://buy.stripe.com/... without `test_`).
+ * ⚠️ LIVE keys — there is no test mode on this endpoint and test cards are
+ * declined. The founder-only no-charge preview is disabled in production by
+ * the PAYMENTS_LIVE flag below and never writes paid state to the database.
  * ========================================================================== */
 
-// TEST MODE SWITCH — while true, the live platform checkout is disabled (no
-// real card can be charged, the 4242 test card is never sent to a live-mode
-// session) and returns from a TEST-mode Payment Link unlock the documents.
-// TODO(founder): set to false before selling for real.
-const STRIPE_TEST_MODE = true;
+/** LIVE/TEST PAYMENT FLAG: keep true in production. Set false only for a
+ *  controlled founder preview of the no-charge document-generation flow. */
+const PAYMENTS_LIVE = true;
 
-// TODO(founder): paste your Stripe TEST-mode Payment Link here (create it at
-// https://dashboard.stripe.com/test/payment-links — the URL starts with
-// https://buy.stripe.com/test_...) to test checkout with card 4242 4242 4242
-// 4242. Later, with STRIPE_TEST_MODE = false, a LIVE link
-// ("https://buy.stripe.com/...") can be used for real sales, or leave this
-// empty to use the built-in platform checkout.
-const STRIPE_PAYMENT_LINK_URL = '';
-const UNLOCK_PRICE_CENTS = 9900; // $99 one-time — TODO(founder): confirm pricing
+const UNLOCK_PRICE_CENTS = 9900; // $99 one-time (corrected from the earlier $49 listing)
+const UNLOCK_CURRENCY = 'usd';
 
-function getStripePaymentLinkUrl(): string | null {
-  const rawUrl = STRIPE_PAYMENT_LINK_URL.trim();
-  if (!rawUrl) return null;
+// The Flutterwave hook owns ALL paid-state writes on readiness_packs.
+const FLUTTERWAVE_PAYMENT_HOOK_URL = '/api/workspaces/104526/hooks/flutterwave-payment/execute';
 
-  try {
-    const url = new URL(rawUrl);
-    const isStripePaymentLink = url.protocol === 'https:' && url.hostname === 'buy.stripe.com';
-    const isTestLink = url.pathname.startsWith('/test_');
-    if (!isStripePaymentLink || isTestLink !== STRIPE_TEST_MODE) {
-      console.error('[GapRadar] Stripe Payment Link does not match the active Stripe mode.');
-      return null;
-    }
-    return url.toString();
-  } catch {
-    console.error('[GapRadar] Stripe Payment Link is not a valid URL.');
-    return null;
-  }
-}
-
-/** Founder-only safe test mode: true in studio (entrepreneur) mode or when
- *  founder_test=1 appears anywhere in the URL. Enables a "simulate successful
- *  payment" button so the full post-payment flow (document generation →
+/** Founder-only no-charge preview. PAYMENTS_LIVE overrides this off in production.
+ *  When payments are not live, studio (entrepreneur) mode or founder_test=1
+ *  enables a preview button for the post-payment flow (document generation →
  *  download UI) can be tested without charging a card. The simulated purchase
  *  row is scoped to the current visitor session only, so it never unlocks
  *  documents for real customers.
@@ -539,6 +670,8 @@ function founderFlagInUrls(): boolean {
 const FOUNDER_TEST_AT_LOAD = founderFlagInUrls();
 
 function isFounderTestMode(): boolean {
+  if (PAYMENTS_LIVE) return false;
+
   try {
     const w = window as Window & { __SPACE_MODE__?: string };
     if (w.__SPACE_MODE__ === 'entrepreneur') return true;
@@ -580,6 +713,50 @@ function getSessionEmail(): string | null {
   }
 }
 
+/** The visitor's workspace session id (same recovery order as
+ *  SpaceRuntimeContext), forwarded to the payment hook as X-Session-Id so the
+ *  platform can validate it and stamp row ownership server-side. */
+function getSessionId(): string | null {
+  try {
+    const w = window as Window & { __SPACE_ID__?: string };
+    const spaceId = w.__SPACE_ID__ || '';
+    const stored = localStorage.getItem(`space_session_${spaceId}`);
+    if (stored) {
+      const session = JSON.parse(stored);
+      const recovered = session.workspaceSessionId || session.sessionId || session.id;
+      if (recovered) return String(recovered);
+    }
+    return sessionStorage.getItem('space_session_id');
+  } catch {
+    return null;
+  }
+}
+
+/** POST to the Flutterwave hook, forwarding the visitor session so
+ *  server-side row ownership and the shared paid-tier entitlement work. */
+async function callPaymentHook(payload: Record<string, unknown>): Promise<{
+  httpOk: boolean;
+  ok?: boolean;
+  code?: string;
+  packId?: number | null;
+}> {
+  const sessionId = getSessionId();
+  const res = await fetch(FLUTTERWAVE_PAYMENT_HOOK_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(sessionId ? { 'X-Session-Id': sessionId } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = (await res.json().catch(() => null)) as {
+    ok?: boolean;
+    code?: string;
+    packId?: number | null;
+  } | null;
+  return { httpOk: res.ok, ...(data || {}) };
+}
+
 function PaywallCard({
   onSimulateTestPurchase,
   simulating,
@@ -587,24 +764,13 @@ function PaywallCard({
   onSimulateTestPurchase: () => void;
   simulating: boolean;
 }) {
-  const [state, setState] = useState<'idle' | 'loading' | 'unavailable' | 'testmode'>(() =>
-    STRIPE_TEST_MODE && !getStripePaymentLinkUrl() ? 'testmode' : 'idle',
-  );
+  const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const busy = state === 'loading';
 
   const handleUnlock = async () => {
-    const paymentLinkUrl = getStripePaymentLinkUrl();
-    if (paymentLinkUrl) {
-      redirectToCheckout(paymentLinkUrl);
-      return;
-    }
-    // Test mode without a valid Payment Link: block the LIVE platform checkout so
-    // the 4242 test card is never rejected by a live-mode session and no real
-    // card can be charged while payment testing is in progress.
-    if (STRIPE_TEST_MODE) {
-      setState('testmode');
-      return;
-    }
     setState('loading');
+    setErrorMessage(null);
     try {
       const w = window as Window & { __APP_ID__?: string; __SPACE_ID__?: string };
       const res = await fetch('/api/payments/checkout', {
@@ -615,28 +781,43 @@ function PaywallCard({
         },
         body: JSON.stringify({
           amount: UNLOCK_PRICE_CENTS,
+          // Explicit USD is REQUIRED: without it the platform charges in the
+          // workspace currency and uses the wrong currency for this $99 pack.
+          currency: UNLOCK_CURRENCY,
           productName: 'FoundarOS Funding Readiness Pack',
-          productDescription: 'Five downloadable founder documents, including an editable PowerPoint pitch deck, plus the AI Pitch Coach',
+          productDescription:
+            'Your personalized founder documents, ongoing gap tracker, editable pitch materials, and AI Pitch Coach',
           customerEmail: getSessionEmail() || undefined,
-          // {CHECKOUT_SESSION_ID} is a Stripe template literal — Stripe replaces
-          // it with the real Checkout session id on redirect, so the app can
-          // verify the payment via GET /api/payments/status/:sessionId.
           successUrl:
             window.location.origin +
             window.location.pathname +
-            '?payment_success=true&session_id={CHECKOUT_SESSION_ID}' +
+            '?payment_success=true&session_id={CHECKOUT_SESSION_ID}&payment_provider=flutterwave' +
             (window.location.hash || '#gap-radar'),
           cancelUrl: window.location.href,
+          metadata: { product: 'gap-radar-readiness-pack' },
         }),
       });
       const data = await res.json();
-      if (res.ok && data?.checkoutUrl) {
-        redirectToCheckout(data.checkoutUrl);
-      } else {
-        setState('unavailable');
+      if (!res.ok || !data?.checkoutUrl) {
+        throw new Error(data?.error || 'Flutterwave checkout is unavailable.');
       }
-    } catch {
-      setState('unavailable');
+
+      if (data.sessionId) {
+        try {
+          await callPaymentHook({
+            action: 'begin',
+            sessionId: data.sessionId,
+            provider: 'flutterwave',
+            email: getSessionEmail() || undefined,
+          });
+        } catch {
+          /* non-blocking: confirm can create the row after payment */
+        }
+      }
+      redirectToCheckout(data.checkoutUrl);
+    } catch (error) {
+      setState('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Flutterwave checkout is unavailable. Please try again.');
     }
   };
 
@@ -650,48 +831,43 @@ function PaywallCard({
           <Lock className={`w-5 h-5 ${tw.icon.accent}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className={`text-base font-semibold ${tw.typography.color.primary} mb-1`}>
-            Ready to close your gaps faster?
-          </h4>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+            <h4 className={`text-base font-semibold ${tw.typography.color.primary}`}>
+              Turn your diagnosis into a funder-ready action pack
+            </h4>
+            <span className={`${tw.badge.default} ${tw.badge.warning} text-xs font-bold`} data-testid="text-unlock-price">
+              $99 one-time
+            </span>
+          </div>
           <p className={`text-sm ${tw.typography.color.secondary} mb-4`}>
-            Unlock five downloadable documents plus AI coaching, all built from your assessment answers: a generated Business Plan, a
-            full Pitch Deck — an editable, presentation-ready deck pre-populated with your brand name
-            and preferred colours, with room to drop in your own logo — a 3-year Financial Model, a
-            Grant Application Assistant, a step-by-step Action Plan, plus the interactive AI Pitch
-            Coach for pitch practice with feedback.
+            Put your evidence roadmap to work with editable funding documents, ongoing gap tracking, and pitch feedback.
           </p>
-          {state === 'testmode' ? (
-            <div className={`${tw.card.flat} p-3`} data-testid="notice-test-mode">
-              <p className={`text-sm font-medium ${tw.typography.color.primary}`}>Payments are in test mode</p>
-              <p className={`text-xs ${tw.typography.color.tertiary}`}>
-                Live checkout is disabled and no cards are charged. Use the test button below to
-                generate the full document pack and verify every download.
-              </p>
-            </div>
-          ) : state === 'unavailable' ? (
-            <div className={`${tw.card.flat} p-3`}>
-              <p className={`text-sm font-medium ${tw.typography.color.primary}`}>Coming soon</p>
-              <p className={`text-xs ${tw.typography.color.tertiary}`}>
-                Payment setup is pending — check back shortly. Your results are saved.
-              </p>
-            </div>
-          ) : (
-            <button
-              onClick={handleUnlock}
-              disabled={state === 'loading'}
-              className={`w-full sm:w-auto px-5 py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 ${tw.button.accent} disabled:opacity-50`}
-              data-testid="button-unlock-plan"
-            >
-              {state === 'loading' ? (
-                <div className="w-4 h-4 animate-spin rounded-full border-2 border-[var(--space-border-default)] border-t-[var(--space-text-on-highlight)]" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              Unlock for ${(UNLOCK_PRICE_CENTS / 100).toFixed(0)} — one-time
-            </button>
+          <button
+            onClick={handleUnlock}
+            disabled={busy}
+            className={`w-full px-5 py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 ${tw.button.accent} disabled:opacity-50`}
+            data-testid="button-unlock-flutterwave"
+          >
+            {busy ? (
+              <div className="w-4 h-4 animate-spin rounded-full border-2 border-[var(--space-border-default)] border-t-[var(--space-text-on-highlight)]" />
+            ) : (
+              <Lock className="w-4 h-4" />
+            )}
+            {busy ? 'Opening secure checkout…' : 'Unlock my Funding Readiness Pack — $99'}
+          </button>
+          <p className={`mt-3 text-xs ${tw.typography.color.tertiary}`}>
+            Also includes your personalized Business Plan, editable Pitch Deck, Financial Model, Grant Application Assistant, and AI Pitch Coach.
+          </p>
+          <p className={`mt-1.5 text-[11px] ${tw.typography.color.muted}`} data-testid="text-processor-caption">
+            Secure Flutterwave checkout · $99 USD · unlocks only after verified payment
+          </p>
+          {errorMessage && (
+            <p className={`mt-2 text-xs ${tw.typography.color.secondary}`} role="alert">
+              {errorMessage}
+            </p>
           )}
 
-          {(STRIPE_TEST_MODE || isFounderTestMode()) && (
+          {isFounderTestMode() && (
             <div className="mt-3" data-testid="section-founder-test">
               <button
                 onClick={onSimulateTestPurchase}
@@ -700,15 +876,12 @@ function PaywallCard({
                 data-testid="button-founder-test-unlock"
               >
                 {simulating
-                  ? 'Generating test documents…'
-                  : STRIPE_TEST_MODE
-                    ? 'Generate test documents (no charge)'
-                    : 'Founder test: simulate successful payment (no charge)'}
+                  ? 'Generating preview documents…'
+                  : 'Founder preview: generate documents (no charge)'}
               </button>
               <p className={`mt-2 text-xs ${tw.typography.color.tertiary}`}>
-                {STRIPE_TEST_MODE
-                  ? 'This skips Stripe and exercises the complete post-payment flow: document generation, saved access, and downloads. Test data is limited to this visitor session.'
-                  : 'This founder-only simulation skips Stripe and tests document generation and downloads without charging a card.'}
+                This founder-only preview skips checkout and exercises document generation
+                and downloads without charging a card.
               </p>
             </div>
           )}
@@ -1498,6 +1671,367 @@ function DocumentsSection({
 }
 
 /* ============================================================================
+ * PAID FOUNDER EXPERIENCE — confirmation, onboarding, snapshot and journey
+ * ========================================================================== */
+
+function PaidNavigation({ active, onNavigate }: { active: PaidScreen; onNavigate: (screen: PaidScreen) => void }) {
+  const items: Array<{ id: PaidScreen; label: string; icon: typeof LayoutDashboard }> = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'documents', label: 'Documents', icon: FolderOpen },
+    { id: 'profile', label: 'Profile', icon: User },
+  ];
+  return (
+    <nav className="sticky top-0 z-20 border-b border-[var(--space-border-default)] bg-[var(--space-surface-card)]">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <button onClick={() => onNavigate('dashboard')} className="flex items-center gap-2 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-[var(--space-brand-primary)] flex items-center justify-center">
+            <Rocket className="w-4 h-4 text-[var(--space-text-on-highlight)]" />
+          </div>
+          <div className="text-left hidden sm:block">
+            <p className={`text-sm font-bold ${tw.typography.color.primary}`}>FoundarOS</p>
+            <p className={`text-[10px] ${tw.typography.color.tertiary}`}>Fundraising Readiness</p>
+          </div>
+        </button>
+        <div className="flex items-center gap-1">
+          {items.map((item) => {
+            const Icon = item.icon;
+            const selected = active === item.id || (item.id === 'dashboard' && active === 'snapshot');
+            return (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                  selected ? tw.button.primary : tw.button.ghost
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+function PaidPage({ active, onNavigate, children }: { active: PaidScreen; onNavigate: (screen: PaidScreen) => void; children: ReactNode }) {
+  return (
+    <div className="min-h-full w-full bg-transparent overflow-y-auto">
+      <PaidNavigation active={active} onNavigate={onNavigate} />
+      {children}
+    </div>
+  );
+}
+
+function PaymentSuccessScreen({ confirmation, onStart }: { confirmation: PaymentConfirmation; onStart: () => void }) {
+  const nextSteps = [
+    'Complete your 5-step onboarding to personalise your plan',
+    'Get your Founder Readiness Snapshot',
+    'Access your 7-step fundraising journey',
+  ];
+  return (
+    <div className="min-h-full w-full bg-transparent overflow-y-auto px-4 py-10 sm:py-16">
+      <div className="max-w-2xl mx-auto">
+        <div className={`${tw.card.elevated} border border-[var(--space-border-default)] p-6 sm:p-9 text-center`} data-testid="screen-payment-confirmed">
+          <div className="w-16 h-16 mx-auto rounded-full bg-[var(--space-semantic-success-100)] flex items-center justify-center mb-5">
+            <CheckCircle2 className={`w-9 h-9 ${tw.icon.success}`} />
+          </div>
+          <h1 className={`text-2xl sm:text-3xl font-bold ${tw.typography.color.primary}`}>
+            Payment Confirmed — Welcome to FoundarOS Fundraising Readiness
+          </h1>
+          <p className={`mt-3 text-sm ${tw.typography.color.secondary}`}>
+            Your secure $99 purchase is verified. Let’s personalise your fundraising plan.
+          </p>
+          <dl className={`${tw.card.flat} mt-7 p-4 text-left grid sm:grid-cols-2 gap-4`}>
+            <div>
+              <dt className={`text-[11px] uppercase tracking-wide ${tw.typography.color.tertiary}`}>Merchant</dt>
+              <dd className={`text-sm font-semibold ${tw.typography.color.primary}`}>ALTANATIVEZ HAVEN LIMITED</dd>
+            </div>
+            <div>
+              <dt className={`text-[11px] uppercase tracking-wide ${tw.typography.color.tertiary}`}>Amount</dt>
+              <dd className={`text-sm font-semibold ${tw.typography.color.primary}`}>$99 USD</dd>
+            </div>
+            <div>
+              <dt className={`text-[11px] uppercase tracking-wide ${tw.typography.color.tertiary}`}>Transaction reference</dt>
+              <dd className={`text-sm font-mono break-all ${tw.typography.color.primary}`}>{confirmation.reference}</dd>
+            </div>
+            <div>
+              <dt className={`text-[11px] uppercase tracking-wide ${tw.typography.color.tertiary}`}>Payment date</dt>
+              <dd className={`text-sm ${tw.typography.color.primary}`}>{new Date(confirmation.paidAt).toLocaleString()}</dd>
+            </div>
+          </dl>
+          <div className="mt-7 text-left">
+            <p className={`text-xs font-semibold uppercase tracking-wide ${tw.typography.color.tertiary}`}>What happens next</p>
+            <ol className="mt-3 space-y-3">
+              {nextSteps.map((step, index) => (
+                <li key={step} className="flex items-center gap-3">
+                  <span className="w-7 h-7 shrink-0 rounded-full bg-[var(--space-surface-accent-soft)] flex items-center justify-center text-xs font-bold text-[var(--space-brand-primary)]">
+                    {index + 1}
+                  </span>
+                  <span className={`text-sm ${tw.typography.color.secondary}`}>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <button onClick={onStart} className={`mt-8 w-full sm:w-auto px-6 py-3 rounded-xl text-sm font-semibold ${tw.button.accent}`}>
+            Start Your Onboarding →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FormField({ label, optional, children }: { label: string; optional?: boolean; children: ReactNode }) {
+  return (
+    <label className="block">
+      <span className={`block text-sm font-medium mb-1.5 ${tw.typography.color.primary}`}>
+        {label} {optional && <span className={`font-normal ${tw.typography.color.tertiary}`}>(optional)</span>}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+const inputClass = 'w-full rounded-xl border border-[var(--space-border-default)] bg-[var(--space-surface-card)] px-3.5 py-3 text-sm text-[var(--space-text-primary)] outline-none focus:border-[var(--space-brand-primary)]';
+
+function ChoiceButtons({ value, options, onChange }: { value: string; options: string[]; onChange: (value: string) => void }) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      {options.map((option) => (
+        <button
+          type="button"
+          key={option}
+          onClick={() => onChange(option)}
+          className={`px-3 py-2.5 rounded-xl border text-sm font-medium ${
+            value === option
+              ? 'border-[var(--space-brand-primary)] bg-[var(--space-surface-accent-soft)] text-[var(--space-brand-primary)]'
+              : 'border-[var(--space-border-default)] bg-[var(--space-surface-card)] text-[var(--space-text-secondary)]'
+          }`}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function OnboardingScreen({ initial, saving, error, onSubmit, onCancel }: {
+  initial: OnboardingAnswers;
+  saving: boolean;
+  error: string | null;
+  onSubmit: (answers: OnboardingAnswers) => void;
+  onCancel?: () => void;
+}) {
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState<OnboardingAnswers>(initial);
+  const titles = ['About You', 'About Your Business', "What You're Building", 'Where You Are Today', 'What You Need Most'];
+  const update = <K extends keyof OnboardingAnswers>(key: K, value: OnboardingAnswers[K]) =>
+    setForm((current) => ({ ...current, [key]: value }));
+  const stepValid = [
+    !!form.full_name.trim() && !!form.country.trim(),
+    !!form.business_name.trim() && !!form.industry.trim() && !!form.business_stage,
+    !!form.product_description.trim() && !!form.target_customer.trim() && !!form.problem_solved.trim(),
+    !!form.registered_business && !!form.pitch_deck_status && !!form.financial_projections_status && !!form.spoken_to_investors,
+    form.needs.length > 0 && form.needs.length <= 3,
+  ][step];
+  const toggleNeed = (need: string) => {
+    if (form.needs.includes(need)) update('needs', form.needs.filter((item) => item !== need));
+    else if (form.needs.length < 3) update('needs', [...form.needs, need]);
+  };
+
+  return (
+    <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12" data-testid="screen-paid-onboarding">
+      <div className="mb-6">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <p className={`text-sm font-semibold ${tw.typography.color.brand}`}>Step {step + 1} of 5</p>
+          <p className={`text-xs ${tw.typography.color.tertiary}`}>{Math.round(((step + 1) / 5) * 100)}% complete</p>
+        </div>
+        <div className="h-2 rounded-full bg-[var(--space-border-default)] overflow-hidden">
+          <div className="h-full rounded-full bg-[var(--space-brand-primary)] transition-all" style={{ width: `${((step + 1) / 5) * 100}%` }} />
+        </div>
+      </div>
+      <div className={`${tw.card.elevated} border border-[var(--space-border-default)] p-5 sm:p-8`}>
+        <h1 className={`text-2xl font-bold ${tw.typography.color.primary}`}>{titles[step]}</h1>
+        <p className={`mt-1 text-sm ${tw.typography.color.tertiary}`}>Your answers personalise your readiness snapshot and fundraising journey.</p>
+        <div className="mt-7 space-y-5">
+          {step === 0 && <>
+            <FormField label="Full name"><input className={inputClass} value={form.full_name} onChange={(e) => update('full_name', e.target.value)} /></FormField>
+            <FormField label="Country"><input className={inputClass} value={form.country} onChange={(e) => update('country', e.target.value)} /></FormField>
+            <FormField label="LinkedIn profile URL" optional><input type="url" className={inputClass} placeholder="https://linkedin.com/in/..." value={form.linkedin_url} onChange={(e) => update('linkedin_url', e.target.value)} /></FormField>
+          </>}
+          {step === 1 && <>
+            <FormField label="Business name"><input className={inputClass} value={form.business_name} onChange={(e) => update('business_name', e.target.value)} /></FormField>
+            <FormField label="Industry / sector"><input className={inputClass} value={form.industry} onChange={(e) => update('industry', e.target.value)} /></FormField>
+            <FormField label="Business stage"><ChoiceButtons value={form.business_stage} options={['Idea', 'Pre-revenue', 'Early revenue', 'Scaling']} onChange={(value) => update('business_stage', value)} /></FormField>
+          </>}
+          {step === 2 && <>
+            <FormField label="One-line description of your product or service"><textarea rows={3} className={inputClass} value={form.product_description} onChange={(e) => update('product_description', e.target.value)} /></FormField>
+            <FormField label="Target customer"><textarea rows={3} className={inputClass} value={form.target_customer} onChange={(e) => update('target_customer', e.target.value)} /></FormField>
+            <FormField label="Problem you solve"><textarea rows={3} className={inputClass} value={form.problem_solved} onChange={(e) => update('problem_solved', e.target.value)} /></FormField>
+          </>}
+          {step === 3 && <>
+            <FormField label="Do you have a registered business?"><ChoiceButtons value={form.registered_business} options={['Yes', 'No']} onChange={(value) => update('registered_business', value as YesNo)} /></FormField>
+            <FormField label="Do you have a pitch deck?"><ChoiceButtons value={form.pitch_deck_status} options={['Yes', 'No', 'In progress']} onChange={(value) => update('pitch_deck_status', value as ProgressAnswer)} /></FormField>
+            <FormField label="Do you have financial projections?"><ChoiceButtons value={form.financial_projections_status} options={['Yes', 'No', 'In progress']} onChange={(value) => update('financial_projections_status', value as ProgressAnswer)} /></FormField>
+            <FormField label="Have you spoken to any investors?"><ChoiceButtons value={form.spoken_to_investors} options={['Yes', 'No']} onChange={(value) => update('spoken_to_investors', value as YesNo)} /></FormField>
+          </>}
+          {step === 4 && <>
+            <p className={`text-sm ${tw.typography.color.secondary}`}>Choose up to 3 priorities ({form.needs.length}/3 selected).</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {ONBOARDING_NEEDS.map((need) => {
+                const selected = form.needs.includes(need);
+                const disabled = !selected && form.needs.length >= 3;
+                return <button type="button" key={need} disabled={disabled} onClick={() => toggleNeed(need)} className={`p-4 rounded-xl border text-left text-sm transition-colors disabled:opacity-40 ${selected ? 'border-[var(--space-brand-primary)] bg-[var(--space-surface-accent-soft)] text-[var(--space-text-primary)]' : 'border-[var(--space-border-default)] bg-[var(--space-surface-card)] text-[var(--space-text-secondary)]'}`}>
+                  <span className="flex items-center gap-2"><span className={`w-5 h-5 rounded-md border flex items-center justify-center ${selected ? 'bg-[var(--space-brand-primary)] border-[var(--space-brand-primary)]' : 'border-[var(--space-border-default)]'}`}>{selected && <Check className="w-3.5 h-3.5 text-[var(--space-text-on-highlight)]" />}</span>{need}</span>
+                </button>;
+              })}
+            </div>
+          </>}
+        </div>
+        {error && <p className={`mt-5 text-sm ${tw.typography.color.secondary}`} role="alert">{error}</p>}
+        <div className="mt-8 flex items-center justify-between gap-3">
+          <button type="button" onClick={() => step === 0 ? onCancel?.() : setStep(step - 1)} disabled={step === 0 && !onCancel} className={`px-4 py-2.5 rounded-lg text-sm font-medium ${tw.button.secondary} disabled:opacity-30`}>
+            {step === 0 && onCancel ? 'Cancel' : 'Back'}
+          </button>
+          {step < 4 ? (
+            <button type="button" onClick={() => setStep(step + 1)} disabled={!stepValid} className={`px-5 py-2.5 rounded-lg text-sm font-semibold ${tw.button.primary} disabled:opacity-40`}>Continue <ArrowRight className="inline w-4 h-4 ml-1" /></button>
+          ) : (
+            <button type="button" onClick={() => onSubmit(form)} disabled={!stepValid || saving} className={`px-5 py-3 rounded-lg text-sm font-semibold ${tw.button.accent} disabled:opacity-40`}>
+              {saving ? 'Generating your snapshot…' : 'Generate My Readiness Snapshot →'}
+            </button>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function ReadinessSnapshotScreen({ scores, onJourney }: { scores: ReadinessScores; onJourney: () => void }) {
+  const areas = [
+    ['Business Clarity', scores.business_clarity, Building2],
+    ['Legal & Compliance', scores.legal_compliance, ShieldCheck],
+    ['Pitch Readiness', scores.pitch_readiness, Megaphone],
+    ['Investor Readiness', scores.investor_readiness, User],
+    ['Financial Preparation', scores.financial_preparation, BarChart3],
+  ] as const;
+  return (
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12" data-testid="screen-readiness-snapshot">
+      <div className="text-center max-w-2xl mx-auto">
+        <p className={`text-xs font-semibold uppercase tracking-widest ${tw.typography.color.brand}`}>Founder Readiness Snapshot</p>
+        <div className="mt-4 flex flex-col items-center">
+          <ScoreRing score={scores.overall_score} size={160} />
+          <h1 className={`mt-4 text-2xl font-bold ${tw.typography.color.primary}`}>Your Founder Readiness Score</h1>
+          <p className={`mt-1 text-sm ${tw.typography.color.tertiary}`}>A personalised baseline for your fundraising journey.</p>
+        </div>
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-8">
+        {areas.map(([label, score, Icon]) => (
+          <div key={label} className={`${tw.card.elevated} border border-[var(--space-border-default)] p-4`}>
+            <div className="flex items-center justify-between gap-2"><Icon className={`w-4 h-4 ${tw.icon.primary}`} /><span className={`text-xl font-bold ${tw.typography.color.primary}`}>{score}</span></div>
+            <p className={`mt-3 text-xs font-semibold ${tw.typography.color.secondary}`}>{label}</p>
+            <div className="mt-2 h-1.5 rounded-full bg-[var(--space-border-default)] overflow-hidden"><div className="h-full rounded-full bg-[var(--space-brand-primary)]" style={{ width: `${score}%` }} /></div>
+          </div>
+        ))}
+      </div>
+      <div className={`${tw.card.elevated} border border-[var(--space-border-default)] p-5 sm:p-6 mt-6`}>
+        <h2 className={`text-lg font-semibold ${tw.typography.color.primary}`}>Your priority actions</h2>
+        <div className="mt-4 grid md:grid-cols-3 gap-3">
+          {scores.recommendations.map((recommendation, index) => (
+            <div key={recommendation} className={`${tw.card.flat} p-4`}><span className={`text-xs font-bold ${tw.typography.color.brand}`}>0{index + 1}</span><p className={`mt-2 text-sm leading-relaxed ${tw.typography.color.secondary}`}>{recommendation}</p></div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-7 text-center"><button onClick={onJourney} className={`px-6 py-3 rounded-xl text-sm font-semibold ${tw.button.accent}`}>View Your Fundraising Journey →</button></div>
+    </main>
+  );
+}
+
+function JourneyDashboard({ profile, snapshot, documents, onNavigate }: { profile: OnboardingProfileRow | null; snapshot: ReadinessScores | null; documents: PackDocument[]; onNavigate: (screen: PaidScreen) => void }) {
+  const hasBusinessPlan = documents.some((doc) => doc.id === 'business-plan');
+  const hasPitchDeck = documents.some((doc) => doc.id === 'pitch-deck');
+  const steps: Array<{ title: string; description: string; status: string; screen?: PaidScreen }> = [
+    { title: 'Understand Your Readiness', description: 'Review your Founder Readiness Snapshot', status: snapshot ? 'Complete' : 'In Progress', screen: 'snapshot' as PaidScreen },
+    { title: 'Clarify Your Business Model', description: 'Build and refine your Business Plan', status: hasBusinessPlan ? 'Complete' : 'In Progress', screen: 'documents' as PaidScreen },
+    { title: 'Build Your Pitch Deck', description: 'Create your investor-ready story', status: hasPitchDeck ? 'Complete' : 'In Progress', screen: 'documents' as PaidScreen },
+    { title: 'Prepare Financial Projections', description: 'Build investor-grade financials', status: 'Locked' },
+    { title: 'Identify Target Investors', description: 'Create your focused investor list', status: 'Locked' },
+    { title: 'Craft Your Outreach Strategy', description: 'Plan warm introductions and outreach', status: 'Locked' },
+    { title: 'Execute & Iterate', description: 'Track conversations and improve your pitch', status: 'Locked' },
+  ];
+  return (
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12" data-testid="screen-paid-dashboard">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div><p className={`text-sm ${tw.typography.color.brand}`}>Your fundraising journey</p><h1 className={`text-2xl sm:text-3xl font-bold ${tw.typography.color.primary}`}>Welcome back{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}</h1><p className={`mt-2 text-sm ${tw.typography.color.tertiary}`}>Follow the seven steps from readiness to investor execution.</p></div>
+        {snapshot && <button onClick={() => onNavigate('snapshot')} className={`px-4 py-2.5 rounded-xl text-sm font-semibold ${tw.button.secondary}`}>Readiness score: {snapshot.overall_score}</button>}
+      </div>
+      <div className="mt-8 space-y-3">
+        {steps.map((step, index) => {
+          const active = index < 3;
+          return <button key={step.title} type="button" disabled={!active} onClick={() => step.screen && onNavigate(step.screen)} className={`${tw.card.elevated} border border-[var(--space-border-default)] w-full p-4 sm:p-5 text-left flex items-center gap-4 disabled:opacity-70`}>
+            <span className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center font-bold ${active ? 'bg-[var(--space-surface-accent-soft)] text-[var(--space-brand-primary)]' : 'bg-[var(--space-surface-muted)] text-[var(--space-text-muted)]'}`}>{index + 1}</span>
+            <span className="flex-1 min-w-0"><span className={`block text-sm font-semibold ${tw.typography.color.primary}`}>{step.title}</span><span className={`block text-xs mt-0.5 ${tw.typography.color.tertiary}`}>{step.description}</span></span>
+            <span className={`shrink-0 text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-full ${active ? 'bg-[var(--space-semantic-success-100)] text-[var(--space-semantic-success)]' : 'bg-[var(--space-surface-muted)] text-[var(--space-text-muted)]'}`}>{active ? step.status : 'Coming Soon'}</span>
+            {active && <ChevronRight className={`w-4 h-4 ${tw.icon.muted}`} />}
+          </button>;
+        })}
+      </div>
+      <div className="grid md:grid-cols-2 gap-4 mt-8">
+        <div className={`${tw.card.elevated} border border-[var(--space-border-default)] p-5`}><div className="flex items-center justify-between"><span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--space-semantic-success-100)] text-[var(--space-semantic-success)]">Active</span><Target className={`w-5 h-5 ${tw.icon.primary}`} /></div><h2 className={`mt-4 text-lg font-semibold ${tw.typography.color.primary}`}>Fundraising Readiness</h2><p className={`mt-2 text-sm ${tw.typography.color.secondary}`}>Use your assessment, Gap Radar, documents, and pitch coach to prepare for investors.</p><button onClick={() => onNavigate('gap-radar')} className={`mt-4 px-4 py-2 rounded-lg text-xs font-semibold ${tw.button.primary}`}>Open Gap Radar</button></div>
+        <div className={`${tw.card.elevated} border border-[var(--space-border-default)] p-5`}><div className="flex items-center justify-between"><span className={`text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--space-surface-muted)] ${tw.typography.color.tertiary}`}>Coming Soon</span><Bot className={`w-5 h-5 ${tw.icon.muted}`} /></div><h2 className={`mt-4 text-lg font-semibold ${tw.typography.color.primary}`}>Business Operations AI</h2><p className={`mt-2 text-sm ${tw.typography.color.secondary}`}>Full AI operating system for running and scaling your business. Launching soon.</p><a href="mailto:hello@foundaros.com?subject=Notify%20me%20about%20Business%20Operations%20AI" className={`inline-block mt-4 px-4 py-2 rounded-lg text-xs font-semibold ${tw.button.secondary}`}>Notify Me</a></div>
+      </div>
+    </main>
+  );
+}
+
+function DocumentVaultScreen({ documents, generatedAt, rebuilding, onRebuild }: { documents: PackDocument[]; generatedAt: string | null; rebuilding: boolean; onRebuild: () => void }) {
+  const vaultDocuments = [
+    { id: 'business-plan', label: 'Business Plan' },
+    { id: 'pitch-deck', label: 'Pitch Deck Outline' },
+    { id: 'action-plan', label: 'Action Plan' },
+  ];
+  const hasAny = vaultDocuments.some((item) => documents.some((doc) => doc.id === item.id));
+  return (
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12" data-testid="screen-document-vault">
+      <div><p className={`text-sm ${tw.typography.color.brand}`}>Document Vault</p><h1 className={`text-2xl sm:text-3xl font-bold ${tw.typography.color.primary}`}>Your fundraising documents</h1><p className={`mt-2 text-sm ${tw.typography.color.tertiary}`}>Generate, download, and refresh the working documents built from your assessment.</p></div>
+      <div className="mt-8 space-y-3">
+        {vaultDocuments.map((item) => {
+          const document = documents.find((doc) => doc.id === item.id);
+          return <div key={item.id} className={`${tw.card.elevated} border border-[var(--space-border-default)] p-4 sm:p-5 flex flex-wrap items-center gap-4`}>
+            <div className="w-11 h-11 rounded-xl bg-[var(--space-surface-accent-soft)] flex items-center justify-center"><FileText className={`w-5 h-5 ${tw.icon.primary}`} /></div>
+            <div className="flex-1 min-w-[180px]"><h2 className={`text-sm font-semibold ${tw.typography.color.primary}`}>{item.label}</h2><p className={`text-xs mt-1 ${tw.typography.color.tertiary}`}>{document ? `Generated${generatedAt ? ` · ${new Date(generatedAt).toLocaleDateString()}` : ''}` : 'Pending'}</p></div>
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${document ? 'bg-[var(--space-semantic-success-100)] text-[var(--space-semantic-success)]' : 'bg-[var(--space-surface-muted)] text-[var(--space-text-muted)]'}`}>{document ? 'Generated' : 'Pending'}</span>
+            {document && <div className="flex items-center gap-2"><button onClick={() => downloadDocument(document)} className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${tw.button.primary}`}><Download className="w-3.5 h-3.5" />Download</button><button onClick={onRebuild} disabled={rebuilding} className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${tw.button.secondary} disabled:opacity-50`}><RefreshCw className={`w-3.5 h-3.5 ${rebuilding ? 'animate-spin' : ''}`} />Regenerate</button></div>}
+          </div>;
+        })}
+      </div>
+      {!hasAny && <button onClick={onRebuild} disabled={rebuilding} className={`mt-6 px-5 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 ${tw.button.accent} disabled:opacity-50`}><Sparkles className="w-4 h-4" />{rebuilding ? 'Generating documents…' : 'Generate Documents'}</button>}
+      {documents.length > 0 && <div className="mt-8"><DocumentsSection documents={documents} generatedAt={generatedAt} onRebuild={onRebuild} rebuilding={rebuilding} /></div>}
+    </main>
+  );
+}
+
+function ProfileScreen({ profile, onEdit }: { profile: OnboardingProfileRow; onEdit: () => void }) {
+  const answers = profileToAnswers(profile);
+  const fields = [
+    ['Full name', answers.full_name], ['Country', answers.country], ['LinkedIn', answers.linkedin_url || 'Not provided'],
+    ['Business', answers.business_name], ['Industry', answers.industry], ['Stage', answers.business_stage],
+    ['What you are building', answers.product_description], ['Target customer', answers.target_customer], ['Problem solved', answers.problem_solved],
+    ['Registered business', answers.registered_business], ['Pitch deck', answers.pitch_deck_status], ['Financial projections', answers.financial_projections_status], ['Investor conversations', answers.spoken_to_investors],
+  ];
+  return (
+    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12" data-testid="screen-founder-profile">
+      <div className="flex items-end justify-between gap-4"><div><p className={`text-sm ${tw.typography.color.brand}`}>Founder Profile</p><h1 className={`text-2xl sm:text-3xl font-bold ${tw.typography.color.primary}`}>Your onboarding answers</h1></div><button onClick={onEdit} className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 ${tw.button.primary}`}><Pencil className="w-4 h-4" />Edit</button></div>
+      <div className={`${tw.card.elevated} border border-[var(--space-border-default)] mt-8 overflow-hidden`}>
+        <dl className="divide-y divide-[var(--space-border-default)]">{fields.map(([label, value]) => <div key={label} className="grid sm:grid-cols-[180px_1fr] gap-1 sm:gap-5 p-4"><dt className={`text-xs font-semibold ${tw.typography.color.tertiary}`}>{label}</dt><dd className={`text-sm whitespace-pre-wrap ${tw.typography.color.primary}`}>{value}</dd></div>)}</dl>
+      </div>
+      <div className={`${tw.card.elevated} border border-[var(--space-border-default)] mt-4 p-5`}><h2 className={`text-sm font-semibold ${tw.typography.color.primary}`}>Top priorities</h2><div className="mt-3 flex flex-wrap gap-2">{answers.needs.map((need) => <span key={need} className="px-3 py-1.5 rounded-full text-xs bg-[var(--space-surface-accent-soft)] text-[var(--space-brand-primary)]">{need}</span>)}</div></div>
+    </main>
+  );
+}
+
+/* ============================================================================
  * PITCH COACH — interactive AI feedback on the founder's elevator pitch.
  * Part of the paid tier: shown below "Your Documents" once a purchase exists.
  * Feedback is displayed inline (not a download) and scored across the six
@@ -1935,22 +2469,35 @@ function ComingSoonSection() {
 }
 
 /* ============================================================================
- * RESULTS — overall score, category breakdown, top 3 gaps, paywall
+ * RESULTS — score, free teaser, paid gap details, and conversion paywall
  * ========================================================================== */
 function ResultsScreen({
   overall,
   categoryScores,
   topGaps,
+  hasPaidAccess,
   onRetake,
   upgradeSlot,
 }: {
   overall: number;
   categoryScores: Record<CategoryId, number>;
   topGaps: TopGap[];
+  hasPaidAccess: boolean;
   onRetake: () => void;
   /** Paywall card (unpaid) or the unlocked "Your Documents" section (paid). */
   upgradeSlot: ReactNode;
 }) {
+  const severityRank: Record<Severity, number> = { low: 0, medium: 1, high: 2, critical: 3 };
+  // Free visitors receive only the least-critical finding. Locked findings are
+  // deliberately not rendered, so their titles, answers, and actions never
+  // appear as readable DOM content before the server-verified paid unlock.
+  const displayedGaps = hasPaidAccess
+    ? topGaps
+    : [...topGaps]
+        .sort((a, b) => severityRank[a.severity] - severityRank[b.severity] || a.score_impact - b.score_impact)
+        .slice(0, 1);
+  const lockedGapCount = hasPaidAccess ? 0 : Math.max(0, topGaps.length - displayedGaps.length);
+
   return (
     <div className="px-4 sm:px-5 pt-5 pb-6 border-b border-[var(--space-border-default)]">
       <div className="max-w-3xl mx-auto">
@@ -2002,14 +2549,21 @@ function ResultsScreen({
           </div>
         </div>
 
-        {/* Top gaps */}
+        {/* Free visitors see one low-severity teaser; paid visitors see every gap. */}
         {topGaps.length > 0 && (
           <div className="mb-6">
-            <h3 className={`text-sm font-semibold ${tw.typography.color.primary} mb-2.5`}>
-              Top {topGaps.length} gap{topGaps.length !== 1 ? 's' : ''} holding you back
+            <h3 className={`text-sm font-semibold ${tw.typography.color.primary} mb-1`}>
+              {hasPaidAccess
+                ? `All ${topGaps.length} gap${topGaps.length !== 1 ? 's' : ''} holding you back`
+                : 'One gap you can start working on now'}
             </h3>
+            {!hasPaidAccess && (
+              <p className={`text-xs ${tw.typography.color.tertiary} mb-2.5`}>
+                This is a surface-level preview from your assessment.
+              </p>
+            )}
             <ul className="space-y-2.5">
-              {topGaps.map((gap) => {
+              {displayedGaps.map((gap) => {
                 const cat = categoryMeta(gap.category);
                 const CatIcon = cat.icon;
                 const sevClass: Record<Severity, string> = {
@@ -2041,9 +2595,41 @@ function ResultsScreen({
                 );
               })}
             </ul>
-            <p className={`text-[11px] ${tw.typography.color.muted} mt-2`}>
-              These gaps were added to your gap board below so you can track them to “fixed”.
-            </p>
+
+            {lockedGapCount > 0 && (
+              <div
+                className="relative mt-3 overflow-hidden rounded-xl border border-[var(--space-border-default)] bg-[var(--space-surface-muted)] p-4"
+                data-testid="card-locked-critical-gaps"
+                aria-label={`${lockedGapCount} critical gaps locked`}
+              >
+                <div className="absolute inset-0 opacity-55 blur-sm" aria-hidden="true">
+                  <div className="h-full p-4 space-y-3">
+                    <div className="h-3 w-2/3 rounded bg-[var(--space-border-default)]" />
+                    <div className="h-2.5 w-full rounded bg-[var(--space-border-default)]" />
+                    <div className="h-2.5 w-5/6 rounded bg-[var(--space-border-default)]" />
+                  </div>
+                </div>
+                <div className="relative z-10 flex items-center gap-3 rounded-lg bg-[var(--space-surface-card)] p-3 shadow-sm">
+                  <div className="w-10 h-10 shrink-0 rounded-full bg-[var(--space-surface-accent-soft)] flex items-center justify-center">
+                    <Lock className={`w-5 h-5 ${tw.icon.primary}`} />
+                  </div>
+                  <div>
+                    <p className={`text-sm font-semibold ${tw.typography.color.primary}`}>
+                      You have {lockedGapCount} critical gap{lockedGapCount !== 1 ? 's' : ''} that investors will flag
+                    </p>
+                    <p className={`text-xs ${tw.typography.color.tertiary}`}>
+                      Their details and recommended fixes are locked.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {hasPaidAccess && (
+              <p className={`text-[11px] ${tw.typography.color.muted} mt-2`}>
+                These gaps are available in your gap board so you can track them to “fixed”.
+              </p>
+            )}
           </div>
         )}
 
@@ -2617,6 +3203,24 @@ export default function GapRadar() {
     limit: 5,
   });
 
+  const {
+    data: onboardingRows,
+    loading: onboardingLoading,
+    refresh: refreshOnboarding,
+  } = window.useWorkspaceDB<OnboardingProfileRow>('onboarding_profiles', {
+    orderBy: { column: 'created_at', direction: 'desc' },
+    limit: 1,
+  });
+
+  const {
+    data: snapshotRows,
+    loading: snapshotsLoading,
+    refresh: refreshSnapshots,
+  } = window.useWorkspaceDB<ReadinessSnapshotRow>('readiness_snapshots', {
+    orderBy: { column: 'created_at', direction: 'desc' },
+    limit: 1,
+  });
+
   const [view, setView] = useState<View>('loading');
   const [rowId, setRowId] = useState<number | null>(null);
   const [answers, setAnswers] = useState<AnswerMap>({});
@@ -2630,11 +3234,34 @@ export default function GapRadar() {
   // Paid Founder Pack state (post-payment verification + generated documents)
   const [paymentNotice, setPaymentNotice] = useState<PaymentNotice | null>(null);
   const [rebuildingPack, setRebuildingPack] = useState(false);
+  const [paidScreen, setPaidScreen] = useState<PaidScreen>('dashboard');
+  const [paymentConfirmation, setPaymentConfirmation] = useState<PaymentConfirmation | null>(null);
+  const [savingOnboarding, setSavingOnboarding] = useState(false);
+  const [onboardingError, setOnboardingError] = useState<string | null>(null);
+  const [localSnapshot, setLocalSnapshot] = useState<ReadinessScores | null>(null);
   const paymentCheckRef = useRef(false);
+  const paidRouteInitializedRef = useRef(false);
+
+  // Founder-test preview pack, held in browser memory ONLY. Paid state on
+  // readiness_packs is server-owned (protected columns + no client inserts),
+  // so the simulation never writes to the database — see simulateTestPurchase.
+  const [testPack, setTestPack] = useState<{
+    documents: PackDocument[];
+    generatedAt: string;
+    overallScore: number;
+  } | null>(null);
 
   const paidPack = (packRows || []).find((p) => p.status === 'paid') || null;
+  const paidAccess = !!(paidPack || testPack || paymentConfirmation);
+  const onboardingProfile = (onboardingRows || []).find((profile) => profile.status === 'completed') || null;
+  const storedSnapshot = snapshotRows?.[0] ? snapshotRowToScores(snapshotRows[0]) : null;
+  const currentSnapshot = localSnapshot || storedSnapshot;
   const packDocuments = useMemo(() => {
-    const parsed = paidPack ? parseJsonField<unknown>(paidPack.documents, []) : [];
+    const parsed = paidPack
+      ? parseJsonField<unknown>(paidPack.documents, [])
+      : testPack
+        ? testPack.documents
+        : [];
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(
       (doc): doc is PackDocument =>
@@ -2646,7 +3273,53 @@ export default function GapRadar() {
         typeof doc.filename === 'string' &&
         typeof doc.content === 'string',
     );
-  }, [paidPack]);
+  }, [paidPack, testPack]);
+
+  useEffect(() => {
+    if (!paidAccess || paidRouteInitializedRef.current || onboardingLoading || snapshotsLoading || paymentConfirmation) return;
+    paidRouteInitializedRef.current = true;
+    setPaidScreen(onboardingProfile ? 'dashboard' : 'onboarding');
+  }, [paidAccess, onboardingLoading, snapshotsLoading, onboardingProfile, paymentConfirmation]);
+
+  const saveOnboarding = async (profile: OnboardingAnswers) => {
+    if (savingOnboarding) return;
+    setSavingOnboarding(true);
+    setOnboardingError(null);
+    const scores = computeReadinessSnapshot(profile);
+    const profilePayload = {
+      ...profile,
+      needs: JSON.stringify(profile.needs),
+      status: 'completed',
+      step_completed: 5,
+      completed_at: new Date().toISOString(),
+    };
+    const snapshotPayload = {
+      overall_score: scores.overall_score,
+      business_clarity: scores.business_clarity,
+      legal_compliance: scores.legal_compliance,
+      pitch_readiness: scores.pitch_readiness,
+      investor_readiness: scores.investor_readiness,
+      financial_preparation: scores.financial_preparation,
+      recommendations: JSON.stringify(scores.recommendations),
+      generated_at: new Date().toISOString(),
+    };
+    try {
+      const existingProfile = onboardingRows?.[0];
+      if (existingProfile) await window.__workspaceDb.from('onboarding_profiles').update(existingProfile.id, profilePayload);
+      else await window.__workspaceDb.from('onboarding_profiles').insert(profilePayload);
+      const existingSnapshot = snapshotRows?.[0];
+      if (existingSnapshot) await window.__workspaceDb.from('readiness_snapshots').update(existingSnapshot.id, snapshotPayload);
+      else await window.__workspaceDb.from('readiness_snapshots').insert(snapshotPayload);
+      setLocalSnapshot(scores);
+      refreshOnboarding();
+      refreshSnapshots();
+      setPaidScreen('snapshot');
+    } catch {
+      setOnboardingError('We could not save your profile. Check your connection and try again.');
+    } finally {
+      setSavingOnboarding(false);
+    }
+  };
 
   // Decide the initial view once the latest assessment session has loaded.
   useEffect(() => {
@@ -2835,14 +3508,16 @@ export default function GapRadar() {
     return input;
   }, [answers, result]);
 
-  // On return from Stripe Checkout: verify the session server-side, generate
-  // the three documents from the stored assessment, and record the purchase.
+  // Flutterwave returns with a checkout reference. The app confirms it through
+  // the Flutterwave hook before generating documents or granting access.
   useEffect(() => {
     if (paymentCheckRef.current || packsLoading) return;
     const params = new URLSearchParams(window.location.search);
-    const stripeSessionId = params.get('session_id');
+    const checkoutSessionId = params.get('session_id') || params.get('tx_ref');
     const flaggedSuccess = params.get('payment_success') === 'true';
-    if (!stripeSessionId && !flaggedSuccess) {
+    // Flutterwave appends status/tx_ref/transaction_id to the redirect URL.
+    const returnStatus = (params.get('status') || '').toLowerCase();
+    if (!checkoutSessionId && !flaggedSuccess && !returnStatus) {
       paymentCheckRef.current = true;
       return;
     }
@@ -2853,25 +3528,45 @@ export default function GapRadar() {
         const url = new URL(window.location.href);
         url.searchParams.delete('session_id');
         url.searchParams.delete('payment_success');
+        url.searchParams.delete('payment_provider');
+        url.searchParams.delete('status');
+        url.searchParams.delete('tx_ref');
+        url.searchParams.delete('transaction_id');
         window.history.replaceState({}, '', url.toString());
       } catch {
         /* ignore */
       }
     };
 
-    // Already recorded (e.g. reload after a verified purchase) — nothing to do.
-    if (stripeSessionId && (packRows || []).some((p) => p.stripe_session_id === stripeSessionId)) {
+    if (returnStatus === 'cancelled' || returnStatus === 'canceled' || returnStatus === 'failed') {
+      setPaymentNotice({
+        state: 'error',
+        message: 'The checkout was not completed and no charge was made. You can unlock the pack any time.',
+      });
       cleanUrl();
       return;
     }
 
-    if (!stripeSessionId) {
-      // Legacy redirect without the Stripe session id — cannot verify server-side.
+    const knownRow = checkoutSessionId
+      ? (packRows || []).find((p) => p.stripe_session_id === checkoutSessionId) || null
+      : null;
+
+    if (knownRow && knownRow.status === 'paid') {
+      setPaymentConfirmation({
+        reference: params.get('tx_ref') || knownRow.provider_tx_id || knownRow.stripe_session_id || checkoutSessionId || 'Flutterwave payment',
+        paidAt: knownRow.paid_at || new Date().toISOString(),
+      });
+      setPaidScreen('payment-success');
+      cleanUrl();
+      return;
+    }
+
+    if (!checkoutSessionId) {
       if ((packRows || []).length === 0) {
         setPaymentNotice({
           state: 'error',
           message:
-            "We couldn't confirm the payment automatically (the return link is missing the Stripe session id). If you were charged, reply in the chat and we'll unlock your documents.",
+            "We couldn't confirm the payment automatically (the return link is missing the checkout reference). If you were charged, reply in the chat and we'll unlock your documents.",
         });
       }
       cleanUrl();
@@ -2881,74 +3576,54 @@ export default function GapRadar() {
     (async () => {
       setPaymentNotice({ state: 'verifying' });
       try {
-        // TEST MODE: `cs_test_...` sessions come from the founder's own
-        // TEST-mode Payment Link and cannot be verified through the live-mode
-        // platform API, so they are trusted while STRIPE_TEST_MODE is true.
-        // This cannot unlock an unpaid live purchase because the live
-        // checkout is disabled whenever STRIPE_TEST_MODE is on.
-        if (STRIPE_TEST_MODE && stripeSessionId.startsWith('cs_test_')) {
-          setPaymentNotice({ state: 'generating' });
-          const input = await loadLatestAssessmentInput();
-          const documents = await generatePackDocumentsAI(input);
-          if (!validatePackDocuments(documents, input)) {
-            throw new Error('document_validation_failed');
+        // The Flutterwave hook verifies the charge and enforces $99 USD before
+        // writing protected paid-state columns. The browser can only write
+        // generated documents onto the verified purchase row.
+        const confirmation = await callPaymentHook({
+          action: 'confirm',
+          sessionId: checkoutSessionId,
+          transactionId: params.get('transaction_id') || undefined,
+        });
+        if (!confirmation.httpOk || confirmation.ok !== true) {
+          if (confirmation.code === 'amount_mismatch') {
+            setPaymentNotice({
+              state: 'error',
+              message: 'This payment does not match the $99 Funding Readiness Pack. Your documents were not unlocked.',
+            });
+            cleanUrl();
+            return;
           }
-          await window.__workspaceDb.from('readiness_packs').insert({
-            stripe_session_id: stripeSessionId,
-            status: 'paid',
-            customer_email: getSessionEmail() || null,
-            amount_cents: 0, // test-mode purchase — no real charge
-            overall_score: input.overallScore,
-            documents: JSON.stringify(documents),
-            generated_at: new Date().toISOString(),
-          });
-          refreshPacks();
-          setPaymentNotice({ state: 'success' });
-          cleanUrl();
-          return;
-        }
-        const res = await fetch(`/api/payments/status/${encodeURIComponent(stripeSessionId)}`);
-        const status = await res.json().catch(() => null);
-        if (!res.ok || !status || status.paymentStatus !== 'paid') {
-          // Keep the URL params so a delayed Stripe confirmation can be retried.
           setPaymentNotice({
             state: 'error',
             message:
-              'This payment session is not confirmed as paid yet. If you just completed checkout, wait a few seconds and reload this page to retry.',
+              confirmation.code === 'not_paid' || confirmation.code === 'webhook_pending'
+                ? 'This payment is waiting for the secure provider confirmation. Wait a few seconds and reload this page to retry.'
+                : 'We could not verify the payment right now. Your payment is safe — reload this page to retry.',
           });
           return;
         }
-        // A paid session for another product must never unlock this $99 pack.
-        if (status.amountTotal !== UNLOCK_PRICE_CENTS || String(status.currency || '').toLowerCase() !== 'usd') {
-          setPaymentNotice({
-            state: 'error',
-            message: 'This payment does not match the $99 Funding Readiness Pack. Your documents were not unlocked.',
-          });
-          cleanUrl();
-          return;
-        }
+        setPaymentConfirmation({
+          reference: params.get('tx_ref') || params.get('transaction_id') || checkoutSessionId,
+          paidAt: new Date().toISOString(),
+        });
+        setPaidScreen('payment-success');
         setPaymentNotice({ state: 'generating' });
         const input = await loadLatestAssessmentInput();
-        // AI-personalized via the platform OpenAI proxy; any document whose AI
-        // call fails keeps its deterministic template version.
         const documents = await generatePackDocumentsAI(input);
         if (!validatePackDocuments(documents, input)) {
           throw new Error('document_validation_failed');
         }
-        await window.__workspaceDb.from('readiness_packs').insert({
-          stripe_session_id: stripeSessionId,
-          status: 'paid',
-          customer_email: (status && status.customerEmail) || getSessionEmail() || null,
-          amount_cents: status && typeof status.amountTotal === 'number' ? status.amountTotal : null,
-          overall_score: input.overallScore,
+        const packRowId = knownRow?.id ?? confirmation.packId;
+        if (!packRowId) throw new Error('verified_pack_missing');
+        await window.__workspaceDb.from('readiness_packs').update(packRowId, {
           documents: JSON.stringify(documents),
+          overall_score: input.overallScore,
           generated_at: new Date().toISOString(),
         });
         refreshPacks();
-        setPaymentNotice({ state: 'success' });
+        setPaymentNotice(null);
         cleanUrl();
       } catch (error) {
-        // Keep the URL params so fulfillment can be retried after the problem is resolved.
         const assessmentMissing = error instanceof Error && error.message === 'assessment_incomplete';
         setPaymentNotice({
           state: 'error',
@@ -2960,17 +3635,14 @@ export default function GapRadar() {
     })();
   }, [packsLoading, packRows, loadLatestAssessmentInput, refreshPacks]);
 
-  // FOUNDER TEST PATH — the platform Stripe integration runs LIVE keys
-  // (re-verified 2026-07-16: /api/payments/checkout returns cs_live_...
-  // sessions), which is why its checkout is disabled while STRIPE_TEST_MODE
-  // is true. This simulation
-  // exercises everything AFTER payment success — recording the purchase,
-  // generating the documents, and the download UI — without touching Stripe.
-  // Pack rows are visitor-session-scoped, so a simulated purchase never
-  // unlocks documents for real customers.
+  // FOUNDER TEST PATH — checkout uses the server-configured Flutterwave key,
+  // so this simulation exercises everything AFTER payment success without
+  // touching Flutterwave or the database. Paid state is server-only, so
+  // the preview pack lives in browser memory for this page visit and is gone
+  // on reload. It can never unlock documents for real customers.
   const [simulatingPurchase, setSimulatingPurchase] = useState(false);
   const simulateTestPurchase = async () => {
-    if (simulatingPurchase || paidPack) return;
+    if (simulatingPurchase || paidPack || testPack) return;
     setSimulatingPurchase(true);
     setPaymentNotice({ state: 'generating' });
     try {
@@ -2979,31 +3651,31 @@ export default function GapRadar() {
       if (!validatePackDocuments(documents, input)) {
         throw new Error('document_validation_failed');
       }
-      await window.__workspaceDb.from('readiness_packs').insert({
-        stripe_session_id: `founder_test_${Date.now()}`,
-        status: 'paid',
-        customer_email: getSessionEmail() || null,
-        amount_cents: 0,
-        overall_score: input.overallScore,
-        documents: JSON.stringify(documents),
-        generated_at: new Date().toISOString(),
+      const generatedAt = new Date().toISOString();
+      setTestPack({
+        documents,
+        generatedAt,
+        overallScore: input.overallScore,
       });
-      await refreshPacks();
-      setPaymentNotice({ state: 'success' });
+      setPaymentConfirmation({ reference: `founder_preview_${Date.now()}`, paidAt: generatedAt });
+      setPaidScreen('payment-success');
+      setPaymentNotice(null);
     } catch (error) {
-      console.error('[GapRadar] Test document generation failed:', error);
+      console.error('[GapRadar] Preview document generation failed:', error);
       setPaymentNotice({
         state: 'error',
-        message: 'Test document generation failed. Please try again; if it continues, share this message with support.',
+        message: 'Preview document generation failed. Please try again; if it continues, share this message with support.',
       });
     } finally {
       setSimulatingPurchase(false);
     }
   };
 
-  // Regenerate the pack from the latest assessment results (e.g. after a retake).
+  // Regenerate the pack from the latest assessment results (e.g. after a
+  // retake). For a real purchase this updates the row's non-protected document
+  // fields; for the founder-test preview it regenerates the in-memory pack.
   const rebuildPack = async () => {
-    if (!paidPack || rebuildingPack) return;
+    if ((!paidPack && !testPack) || rebuildingPack) return;
     setRebuildingPack(true);
     try {
       const input = await loadLatestAssessmentInput();
@@ -3011,18 +3683,130 @@ export default function GapRadar() {
       if (!validatePackDocuments(documents, input)) {
         throw new Error('document_validation_failed');
       }
-      await window.__workspaceDb.from('readiness_packs').update(paidPack.id, {
-        documents: JSON.stringify(documents),
-        overall_score: input.overallScore,
-        generated_at: new Date().toISOString(),
-      });
-      refreshPacks();
+      if (paidPack) {
+        await window.__workspaceDb.from('readiness_packs').update(paidPack.id, {
+          documents: JSON.stringify(documents),
+          overall_score: input.overallScore,
+          generated_at: new Date().toISOString(),
+        });
+        refreshPacks();
+      } else {
+        setTestPack({
+          documents,
+          generatedAt: new Date().toISOString(),
+          overallScore: input.overallScore,
+        });
+      }
     } catch {
       /* keep the previous documents — the founder can retry */
     } finally {
       setRebuildingPack(false);
     }
   };
+
+  // Either provider hook can mark a pack paid before this browser generates
+  // documents — for example when a verified webhook arrives after the buyer
+  // closes the tab. When a paid pack has no documents, build them once.
+  const autoBuildRef = useRef(false);
+  useEffect(() => {
+    if (autoBuildRef.current || packsLoading || !paidPack || rebuildingPack) return;
+    if (packDocuments.length > 0) return;
+    if (paymentNotice && (paymentNotice.state === 'verifying' || paymentNotice.state === 'generating')) return;
+    autoBuildRef.current = true;
+    (async () => {
+      setPaymentNotice({ state: 'generating' });
+      try {
+        const input = await loadLatestAssessmentInput();
+        const documents = await generatePackDocumentsAI(input);
+        if (!validatePackDocuments(documents, input)) {
+          throw new Error('document_validation_failed');
+        }
+        await window.__workspaceDb.from('readiness_packs').update(paidPack.id, {
+          documents: JSON.stringify(documents),
+          overall_score: input.overallScore,
+          generated_at: new Date().toISOString(),
+        });
+        refreshPacks();
+        setPaymentNotice({ state: 'success' });
+      } catch (error) {
+        const assessmentMissing = error instanceof Error && error.message === 'assessment_incomplete';
+        setPaymentNotice({
+          state: 'error',
+          message: assessmentMissing
+            ? 'Your payment is confirmed, but a completed assessment was not found. Complete the assessment, then reload this page to build your documents.'
+            : 'Something went wrong while preparing your documents. Your payment is safe — reload this page to retry.',
+        });
+      }
+    })();
+  }, [packsLoading, paidPack, packDocuments, rebuildingPack, paymentNotice, loadLatestAssessmentInput, refreshPacks]);
+
+  if (paidAccess && paidScreen !== 'gap-radar') {
+    if (paidScreen === 'payment-success' && paymentConfirmation) {
+      return <PaymentSuccessScreen confirmation={paymentConfirmation} onStart={() => setPaidScreen('onboarding')} />;
+    }
+    const navigatePaid = (screen: PaidScreen) => {
+      if (screen === 'profile' && !onboardingProfile) setPaidScreen('onboarding');
+      else setPaidScreen(screen);
+    };
+    if (onboardingLoading || snapshotsLoading) {
+      return <div className="min-h-full flex flex-col items-center justify-center py-16 gap-3"><div className="animate-spin rounded-full h-7 w-7 border-2 border-[var(--space-border-default)] border-t-[var(--space-brand-primary)]" /><p className={`text-sm ${tw.typography.color.tertiary}`}>Loading your fundraising workspace…</p></div>;
+    }
+    return (
+      <PaidPage active={paidScreen} onNavigate={navigatePaid}>
+        {paidScreen === 'onboarding' && (
+          <OnboardingScreen
+            key={`${onboardingProfile?.id || 'new'}-${onboardingProfile?.updated_at || ''}`}
+            initial={profileToAnswers(onboardingProfile)}
+            saving={savingOnboarding}
+            error={onboardingError}
+            onSubmit={saveOnboarding}
+            onCancel={onboardingProfile ? () => setPaidScreen('profile') : undefined}
+          />
+        )}
+        {paidScreen === 'snapshot' && currentSnapshot && <ReadinessSnapshotScreen scores={currentSnapshot} onJourney={() => setPaidScreen('dashboard')} />}
+        {paidScreen === 'dashboard' && <JourneyDashboard profile={onboardingProfile} snapshot={currentSnapshot} documents={packDocuments} onNavigate={navigatePaid} />}
+        {paidScreen === 'documents' && <DocumentVaultScreen documents={packDocuments} generatedAt={paidPack ? paidPack.generated_at : testPack?.generatedAt || null} rebuilding={rebuildingPack} onRebuild={rebuildPack} />}
+        {paidScreen === 'profile' && onboardingProfile && <ProfileScreen profile={onboardingProfile} onEdit={() => setPaidScreen('onboarding')} />}
+      </PaidPage>
+    );
+  }
+
+  // The stage-aware diagnostic is now the primary assessment and report flow.
+  // Paid navigation, payment verification, document generation and the existing
+  // gap board remain in this orchestrator so verified purchases keep their
+  // established fulfillment path.
+  if (view !== 'board') {
+    return (
+      <div className="min-h-full flex flex-col w-full bg-transparent overflow-y-auto">
+        {paidAccess && <PaidNavigation active="gap-radar" onNavigate={(screen) => setPaidScreen(screen)} />}
+        {paymentNotice && (
+          <PaymentNoticeBanner notice={paymentNotice} onDismiss={() => setPaymentNotice(null)} />
+        )}
+        <StageDiagnostic
+          paidAccess={paidAccess}
+          onOpenBoard={() => setView('board')}
+          upgradeSlot={
+            paidPack || testPack ? (
+              <>
+                <DocumentsSection
+                  documents={packDocuments}
+                  generatedAt={paidPack ? paidPack.generated_at : testPack ? testPack.generatedAt : null}
+                  onRebuild={rebuildPack}
+                  rebuilding={rebuildingPack}
+                />
+                <PitchCoachSection />
+              </>
+            ) : (
+              <PaywallCard
+                onSimulateTestPurchase={simulateTestPurchase}
+                simulating={simulatingPurchase}
+              />
+            )
+          }
+        />
+      </div>
+    );
+  }
 
   if (view === 'loading') {
     return (
@@ -3039,7 +3823,7 @@ export default function GapRadar() {
         onStart={startAssessment}
         onViewBoard={() => setView('board')}
         starting={starting}
-        hasExistingGaps={(gaps || []).length > 0}
+        hasExistingGaps={paidAccess && (gaps || []).length > 0}
       />
     );
   }
@@ -3060,20 +3844,21 @@ export default function GapRadar() {
   if (view === 'board') {
     return (
       <div className="min-h-full flex flex-col w-full bg-transparent overflow-y-auto">
+        {paidAccess && <PaidNavigation active="gap-radar" onNavigate={(screen) => setPaidScreen(screen)} />}
         {paymentNotice && (
           <PaymentNoticeBanner notice={paymentNotice} onDismiss={() => setPaymentNotice(null)} />
         )}
         <div className="px-5 py-3 border-b border-[var(--space-border-default)] flex flex-wrap items-center justify-between gap-2">
           <span className={`text-xs ${tw.typography.color.secondary}`}>
-            Take the 5-minute assessment to get your Funding Readiness Score.
+            Your stage-aware report explains which evidence to build before your next funding milestone.
           </span>
           <button
-            onClick={startAssessment}
+            onClick={() => setView('results')}
             className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${tw.button.primary}`}
-            data-testid="button-start-assessment-banner"
+            data-testid="button-return-to-stage-report"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Start assessment
+            Back to report
           </button>
         </div>
         <GapBoard gaps={gaps || []} loading={gapsLoading} error={gapsError} refresh={refreshGaps} />
@@ -3085,6 +3870,7 @@ export default function GapRadar() {
   // Results view: assessment results on top, the live gap board below.
   return (
     <div className="min-h-full flex flex-col w-full bg-transparent overflow-y-auto">
+      {paidAccess && <PaidNavigation active="gap-radar" onNavigate={(screen) => setPaidScreen(screen)} />}
       {paymentNotice && (
         <PaymentNoticeBanner notice={paymentNotice} onDismiss={() => setPaymentNotice(null)} />
       )}
@@ -3093,13 +3879,14 @@ export default function GapRadar() {
           overall={result.overall}
           categoryScores={result.categoryScores}
           topGaps={result.topGaps}
+          hasPaidAccess={paidAccess}
           onRetake={handleRetake}
           upgradeSlot={
-            paidPack ? (
+            paidPack || testPack ? (
               <>
                 <DocumentsSection
                   documents={packDocuments}
-                  generatedAt={paidPack.generated_at}
+                  generatedAt={paidPack ? paidPack.generated_at : testPack ? testPack.generatedAt : null}
                   onRebuild={rebuildPack}
                   rebuilding={rebuildingPack}
                 />
@@ -3115,7 +3902,9 @@ export default function GapRadar() {
         />
       )}
       <ComingSoonSection />
-      <GapBoard gaps={gaps || []} loading={gapsLoading} error={gapsError} refresh={refreshGaps} />
+      {paidAccess && (
+        <GapBoard gaps={gaps || []} loading={gapsLoading} error={gapsError} refresh={refreshGaps} />
+      )}
     </div>
   );
 }

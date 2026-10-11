@@ -11,21 +11,19 @@ import {
   ClipboardList,
   Gauge,
   FileText,
-  Heart,
   Check,
-  Building2,
-  Landmark,
-  Lock,
-  Bot,
   Briefcase,
+  Bot,
   DollarSign,
+  TrendingUp,
+  Building2,
 } from 'lucide-react';
 import { useSpaceRuntime } from '../SpaceRuntimeContext';
 import type { DesktopThemeTokens } from '../types';
 
 // Version marker for auto-upgrade detection
 // Increment this when making breaking changes that stale copies need
-export const EMAIL_GATE_VERSION = 101; // v101: Landing-page shell aligned with legacy landing generation structure
+export const EMAIL_GATE_VERSION = 109; // v109: fix chatbot "trouble connecting" error — use correct /proxy/openai path (was /api/workspaces/.../proxy, which 404’d)
 
 type ParsedResponseBody = { data: unknown; rawText: string };
 
@@ -54,6 +52,55 @@ async function parseResponseBody(response: Response): Promise<ParsedResponseBody
   } catch {
     return { data: null, rawText };
   }
+}
+
+// Bound every auth request so a hung API call can never hold the login
+// modal’s loading state forever (QA replay-bug-msyknsue-nop2). On timeout the
+// fetch rejects with an AbortError, which the callers surface as a retryable
+// error message via their catch/finally blocks.
+const AUTH_REQUEST_TIMEOUT_MS = 20000;
+
+async function fetchWithTimeout(
+  input: RequestInfo,
+  init: RequestInit = {},
+  timeoutMs = AUTH_REQUEST_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof Error && err.name === 'AbortError';
+}
+
+// The OTP space config never changes within a page session, but EmailGate can
+// mount and re-run checkExistingSession() several times per visit — QA
+// replay-bug-msyjgmz9-3gyq counted 5 identical fetches of
+// /api/auth/otp/space/config/{workspaceId}. Cache the in-flight promise at
+// module level so every caller shares ONE network request; a failed fetch
+// clears the cache so transient errors stay retryable.
+const otpSpaceConfigCache = new Map<string, Promise<Record<string, any>>>();
+
+function fetchOtpSpaceConfig(workspaceId: string): Promise<Record<string, any>> {
+  let cached = otpSpaceConfigCache.get(workspaceId);
+  if (!cached) {
+    cached = fetch(`/api/auth/otp/space/config/${workspaceId}`)
+      .then(async (res) => {
+        const data = await res.json();
+        return (data.config || data) as Record<string, any>;
+      })
+      .catch((err) => {
+        otpSpaceConfigCache.delete(workspaceId);
+        throw err;
+      });
+    otpSpaceConfigCache.set(workspaceId, cached);
+  }
+  return cached;
 }
 
 // Pick the most informative error message we can show to the user given
@@ -181,8 +228,20 @@ export default function EmailGate({
   const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [loginMode, setLoginMode] = useState<'assess' | 'login'>('assess');
   const [entered, setEntered] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  // Feature: floating AI chatbot widget (in-memory only; never persisted)
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState<
+    { role: 'user' | 'assistant'; content: string }[]
+  >([]);
+
+  // Feature: cookie consent banner (localStorage-backed)
+  const [cookieConsentVisible, setCookieConsentVisible] = useState(false);
 
   // Get workspaceId from window context
   const workspaceId = (window as any).__WORKSPACE_ID__ || null;
@@ -195,7 +254,7 @@ export default function EmailGate({
   const rawSocialProviders = (window as any).__SOCIAL_PROVIDERS__;
   const socialProviders: string[] = Array.isArray(rawSocialProviders) ? rawSocialProviders : [];
 
-  // Load the workspace's configured display/body fonts at runtime. The static
+  // Load the workspace’s configured display/body fonts at runtime. The static
   // HTML shell (published-bundle.html) only preloads DM Sans, so without this
   // the `fontFamily: headingFontStack` styles below would silently fall back
   // to the system font. Injected once, keyed by font name, safe to no-op if
@@ -244,6 +303,144 @@ export default function EmailGate({
     return () => root.removeEventListener('scroll', onScroll);
   }, [step]);
 
+  // Escape must dismiss the login modal at ALL times — including while a
+  // submission is in flight (QA replay-bug-msyknsue-nop2: users were trapped
+  // when an auth call hung). Any in-flight request keeps running harmlessly
+  // in the background; if it succeeds the session completes as normal.
+  useEffect(() => {
+    if (!loginOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setLoginOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [loginOpen]);
+
+  // Cookie consent: show the banner only if the visitor has not decided yet.
+  // Runs once after mount so SSR/first-paint never flashes the banner.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('foundaros_cookie_consent') === null) {
+        setCookieConsentVisible(true);
+      }
+    } catch {
+      // localStorage unavailable (private mode / sandbox) — stay hidden
+    }
+  }, []);
+
+  // Flutterwave’s inline checkout is available to signed-out visitors and does
+  // not depend on the FoundarOS login flow.
+  useEffect(() => {
+    const scriptSrc = 'https://checkout.flutterwave.com/v3.js';
+    if (document.querySelector(`script[src="${scriptSrc}"]`)) return;
+
+    const script = document.createElement('script');
+    script.src = scriptSrc;
+    script.async = true;
+    document.head.appendChild(script);
+  }, []);
+
+  const handleCookieConsent = (decision: 'accepted' | 'declined') => {
+    try {
+      localStorage.setItem('foundaros_cookie_consent', decision);
+    } catch {}
+    setCookieConsentVisible(false);
+  };
+
+  const handlePreseasonCheckout = () => {
+    if (typeof (window as any).FlutterwaveCheckout !== 'function') {
+      console.error('[EmailGate] Flutterwave checkout is still loading.');
+      return;
+    }
+
+    (window as any).FlutterwaveCheckout({
+      public_key: 'FLWPUBK-9a44fd3b4d219920299765357ae3129a-X',
+      tx_ref: 'preseason-' + Date.now(),
+      amount: 50,
+      currency: 'USD',
+      payment_options: 'card,ussd,account',
+      customer: { email: '', name: '' },
+      customizations: {
+        title: 'FoundarOS Preseason Session',
+        description: '1-on-1 founder session — Preseason special',
+        logo: '',
+      },
+      callback: function (data: unknown) {
+        console.log(data);
+      },
+      onclose: function () {},
+    });
+  };
+
+  // Suggested inquiries shown as tappable chips before the visitor has asked
+  // anything — lowers the activation energy to start a conversation.
+  const chatSuggestions = [
+    'Is my idea fundable?',
+    'What is Gap Radar?',
+    'How long does the assessment take?',
+    'What do I get for $99?',
+  ];
+
+  // Send a message to the FoundarOS assistant via the Audos OpenAI proxy.
+  // Accepts an optional override so suggestion chips can send a preset question.
+  const sendChatMessage = async (overrideText?: string) => {
+    const trimmed = (overrideText ?? chatInput).trim();
+    if (!trimmed || chatLoading) return;
+
+    const nextHistory: { role: 'user' | 'assistant'; content: string }[] = [
+      ...conversationHistory,
+      { role: 'user', content: trimmed },
+    ];
+    setConversationHistory(nextHistory);
+    setChatInput('');
+    setChatLoading(true);
+
+    const systemPrompt =
+      "You are the FoundarOS assistant on the marketing landing page. FoundarOS is an AI platform that helps first-time aspiring entrepreneurs find out if their business idea is fundable — before they quit their day job. The core product is Gap Radar: a 15-minute free fundability assessment that shows exactly where an idea stands and what gaps to fix. Pricing: free assessment always available; paid tier is $99 one-time for deeper coaching and a full readiness report. Target user: someone still in their 9-to-5 job with a side idea they haven’t acted on yet. Keep answers short (2–3 sentences), helpful, and encouraging. If you don’t know something, say so honestly and suggest they take the free assessment.";
+
+    try {
+      const ws = (window as any).__workspaceDb;
+      if (!ws || !ws.token) {
+        throw new Error('workspace-db-unavailable');
+      }
+      const res = await fetch(
+        `/proxy/openai/v1/chat/completions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Workspace-DB-Token': ws.token,
+          },
+          body: JSON.stringify({
+            model: 'gpt-5.6-luna',
+            reasoning_effort: 'none',
+            max_completion_tokens: 300,
+            messages: [{ role: 'system', content: systemPrompt }, ...nextHistory],
+          }),
+        },
+      );
+
+      if (!res.ok) throw new Error(`proxy-${res.status}`);
+      const data = await res.json();
+      const reply: string =
+        data?.choices?.[0]?.message?.content?.trim() ||
+        "Sorry, I couldn’t generate a response just now. Try the free 15-minute assessment to see where your idea stands.";
+      setConversationHistory((prev) => [...prev, { role: 'assistant', content: reply }]);
+    } catch (err) {
+      console.error('[EmailGate] chatbot error:', err);
+      setConversationHistory((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content:
+            "I’m having trouble connecting right now. In the meantime, you can take the free 15-minute Gap Radar assessment to see if your idea is fundable.",
+        },
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   const checkExistingSession = async () => {
     // `?as=visitor` preview: never adopt a stored session — skip straight to the
     // logged-out email form instead of jumping to the empty 'complete' state.
@@ -259,9 +456,7 @@ export default function EmailGate({
         if (effectiveSessionId) {
           if (workspaceId) {
             try {
-              const configRes = await fetch(`/api/auth/otp/space/config/${workspaceId}`);
-              const configData = await configRes.json();
-              const otpConfig = configData.config || configData;
+              const otpConfig = await fetchOtpSpaceConfig(workspaceId);
 
               if (otpConfig.enabled) {
                 setOtpEnabled(true);
@@ -295,9 +490,7 @@ export default function EmailGate({
 
     if (workspaceId) {
       try {
-        const configRes = await fetch(`/api/auth/otp/space/config/${workspaceId}`);
-        const configData = await configRes.json();
-        const otpConfig = configData.config || configData;
+        const otpConfig = await fetchOtpSpaceConfig(workspaceId);
         setOtpEnabled(otpConfig.enabled || false);
       } catch (e) {
         setOtpEnabled(false);
@@ -326,7 +519,7 @@ export default function EmailGate({
         const visitorId = getVisitorId();
         const sessionId = `csess_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-        const registerRes = await fetch(`/api/space/${spaceId}/register`, {
+        const registerRes = await fetchWithTimeout(`/api/space/${spaceId}/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -405,7 +598,7 @@ export default function EmailGate({
           return;
         }
 
-        const response = await fetch('/api/auth/otp/space/send', {
+        const response = await fetchWithTimeout('/api/auth/otp/space/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -439,7 +632,11 @@ export default function EmailGate({
       }
     } catch (err) {
       console.error('[EmailGate] Network error in handleEmailSubmit:', err);
-      setError('Connection error. Please check your internet connection and try again.');
+      setError(
+        isAbortError(err)
+          ? 'The request timed out. Please try again.'
+          : 'Connection error. Please check your internet connection and try again.',
+      );
     } finally {
       setLoading(false);
     }
@@ -616,7 +813,7 @@ export default function EmailGate({
     const visitorId = getVisitorId();
     const sessionId = `csess_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-    const response = await fetch(`/api/space/${spaceId}/register`, {
+    const response = await fetchWithTimeout(`/api/space/${spaceId}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -973,27 +1170,52 @@ export default function EmailGate({
     ? `"${typography.headingFont}", system-ui, -apple-system, sans-serif`
     : bodyFontStack;
 
-  // Load the workspace's configured fonts at runtime. The static HTML shell
-  // (published-bundle.html) only preloads DM Sans, so without this the
-  // fontFamily styles above would silently fall back to the system font.
+  // Load the workspace’s configured fonts at runtime as a FALLBACK. The static
+  // HTML shell preloads the workspace’s own fonts in <head>, so first check
+  // whether an existing Google Fonts stylesheet already covers every family —
+  // injecting a second css2 stylesheet for the same families only re-downloads
+  // identical CSS (QA replay-bug-msyk7o99-752u: 8 hits to the css2 endpoint
+  // instead of 1–2). When we do inject, compare the resolved `href` PROPERTY
+  // rather than getAttribute('href') — the attribute read came back empty on
+  // each run, which defeated the old guard — and skip the assignment when the
+  // value is unchanged so the browser never refetches the stylesheet.
   useEffect(() => {
     const families = Array.from(
       new Set([typography?.headingFont, typography?.bodyFont].filter(Boolean))
     ) as string[];
     if (families.length === 0) return;
     const id = 'eg-dynamic-font-link';
-    const href = `https://fonts.googleapis.com/css2?${families
-      .map((f) => `family=${String(f).replace(/\s+/g, '+')}:wght@400;500;600;700`)
+    const familyParams = families.map(
+      (f) => `family=${String(f).replace(/\s+/g, '+')}`
+    );
+    const href = `https://fonts.googleapis.com/css2?${familyParams
+      .map((p) => `${p}:wght@400;500;600;700`)
       .join('&')}&display=swap`;
+
+    const coveredByExistingLink = Array.from(
+      document.querySelectorAll<HTMLLinkElement>('link[href*="fonts.googleapis.com/css2"]')
+    ).some(
+      (existing) =>
+        existing.id !== id &&
+        familyParams.every(
+          (p) =>
+            existing.href.includes(`${p}:`) ||
+            existing.href.includes(`${p}&`) ||
+            existing.href.endsWith(p)
+        )
+    );
+    if (coveredByExistingLink) return;
+
     let link = document.getElementById(id) as HTMLLinkElement | null;
-    if (link && link.getAttribute('href') === href) return;
     if (!link) {
       link = document.createElement('link');
       link.id = id;
       link.rel = 'stylesheet';
       document.head.appendChild(link);
     }
-    link.href = href;
+    if (link.href !== href) {
+      link.href = href;
+    }
   }, [typography?.headingFont, typography?.bodyFont]);
   // Kickoff stores the manually selected color in palette.primary. Shell accent
   // is derived from palette.highlight and is only a fallback for older spaces.
@@ -1016,7 +1238,7 @@ export default function EmailGate({
   const contrastColor = palette?.contrast || '#ffffff';
   const accentGreen = palette?.accent || '#10B981';
   // Rotating icon-chip treatment used across the dimension cards, step badges,
-  // platform cards, and persona cards — mirrors the pitch deck's varied
+  // platform cards, and persona cards — mirrors the pitch deck’s varied
   // purple/teal/amber/green coding instead of one flat accent everywhere.
   const accentCycle = [
     { bg: colorWithAlpha(primaryColor, 0.14), fg: palette?.secondary || primaryColor },
@@ -1057,7 +1279,7 @@ export default function EmailGate({
     : palette?.text?.onHighlight || onPrimary;
   // Dark, glow-based hero background built from the workspace palette (never
   // hardcoded brand hex): a soft radial bloom of the primary color over the
-  // page's own dark surface, matching the pitch-deck's moody, instrument-panel
+  // page’s own dark surface, matching the pitch-deck’s moody, instrument-panel
   // aesthetic rather than a loud multi-hue gradient.
   const heroGradient = `radial-gradient(1100px 620px at 82% -8%, ${colorWithAlpha(
     primaryColor,
@@ -1084,7 +1306,8 @@ export default function EmailGate({
   const heroHasVideo = false;
   const loginPanelId = 'email-gate-login-panel';
 
-  const openLogin = () => {
+  const openLogin = (mode: 'assess' | 'login') => {
+    setLoginMode(mode);
     setLoginOpen(true);
     setTimeout(() => {
       const input = document.querySelector<HTMLInputElement>('[data-testid="input-email"]');
@@ -1092,94 +1315,148 @@ export default function EmailGate({
     }, 0);
   };
 
+  // Landing copy targets the beachhead persona: a 9-to-5 professional with a
+  // side idea, researching startup funding, unsure what "ready" even means.
   const scoreCategories = [
     {
       title: 'Idea Clarity',
-      desc: 'How clearly defined your problem, solution, and value proposition are.',
+      desc: 'Can you explain the problem, the fix, and why anyone pays — in two sentences? Investors decide in the first two.',
       index: '01 / IDEA',
       barWidth: '82%',
     },
     {
       title: 'Market Validation',
-      desc: "Evidence that real customers want what you're building — and will pay for it.",
+      desc: 'Evidence that real people want this — beyond your friends saying “cool idea”.',
       index: '02 / MARKET',
       barWidth: '58%',
     },
     {
-      title: 'Business Model Strength',
-      desc: 'How realistic your pricing, unit economics, and revenue assumptions are.',
+      title: 'Business Model',
+      desc: 'Whether your pricing and numbers survive contact with someone who reads them for a living.',
       index: '03 / MODEL',
       barWidth: '47%',
     },
     {
-      title: 'Investor & Growth Readiness',
-      desc: 'Whether your documents, traction, and team hold up to investor scrutiny.',
-      index: '04 / GROWTH',
+      title: 'Investor Readiness',
+      desc: 'What you’d need in hand before a funding conversation — and how much of it you have today.',
+      index: '04 / READY',
       barWidth: '65%',
     },
   ];
-  const howItWorks = [
-    { step: '01', title: 'Take the assessment', desc: 'Answer 30 focused questions about your idea, market, and numbers. No prep, no documents required.' },
-    { step: '02', title: 'See your score and gaps', desc: "Get your Startup Readiness Score and an honest breakdown of exactly where to focus — whether that's your business model, market evidence, or financial assumptions." },
-    { step: '03', title: 'Build from your results', desc: 'Upgrade once ($99) to generate your full starter pack: business plan, pitch deck, financial model, grant application assistant, executive summary, and AI pitch coaching — all tailored to your assessment answers.' },
+  const googledWall = [
+    { index: '01 / TOO VAGUE', title: '“Network more. Build traction.”', desc: 'Great. What does that mean for your idea, this week, with a full-time job? Generic advice never comes with a starting point.' },
+    { index: '02 / TOO FAR AHEAD', title: 'Written for funded founders', desc: 'Most guides start at “when you meet investors”. You need to know whether it’s worth booking that meeting at all.' },
+    { index: '03 / NO YARDSTICK', title: 'Nobody defines “ready”', desc: 'Investors screen against real criteria. If you can’t see the checklist, you can’t tell whether you’re 80% there or 8%.' },
   ];
-  const whoWeServe = [
-    { tag: 'Pre-incorporation', title: 'Aspiring entrepreneurs', desc: 'You have an idea and want to turn it into a viable business. Start with an honest read on where it stands before you go all in.' },
-    { tag: '0–18 months', title: 'Early-stage startups', desc: "You've validated the idea and now need the documents to move forward — business plan, pitch deck, financial model. Stop Googling templates and start generating." },
-    { tag: 'Raising now', title: 'Small businesses seeking funding', desc: `You've been operating but now want to raise. ${brandName} scores your readiness, identifies exactly what investors will challenge, and helps you fix it before the conversation.` },
-    { tag: 'Post-investment', title: 'Funded & scaling', desc: "You've raised your first round. Now build the systems that let you actually run the company — SOPs, HR handbook, vendor agreements, KPI dashboards, and board templates.", comingSoon: true },
+  const outputs = [
+    { title: 'Your Readiness Score', desc: 'One number out of 100, benchmarked against what investors expect from someone at your stage — not from a funded founder three rounds ahead of you.' },
+    { title: 'Your gaps, ranked', desc: 'The specific things that would make an investor pass today, in priority order — with why each one matters and how to fix it.' },
+    { title: 'What to do next', desc: 'A plain-English action list you can work through on nights and weekends — before you touch your savings or your notice letter.' },
+  ];
+  // Restored per founder request (Aug 2026): the platform roadmap, persona,
+  // and $99 pricing sections. Copy mirrors the live Gap Radar app — its
+  // Funding Readiness Pack paywall (UNLOCK_PRICE_CENTS = 9900) and its
+  // coming-soon roadmap teaser — so the landing sells what the app ships.
+  const platformModules = [
+    {
+      status: 'live',
+      title: 'Idea Discovery',
+      desc: "\u0044on\u0027t have an idea yet? We help you find one — from who you already are. Answer a short questionnaire, get a personalised Opportunity Profile, and walk away with a concept worth pursuing.",
+      items: [] as string[],
+    },
+    {
+      status: 'live',
+      title: 'Gap Radar',
+      desc: 'Already have an idea? Score its fundability in 15 minutes. Get your Readiness Score, see every gap investors would flag, and get a step-by-step action plan to fix them.',
+      items: [] as string[],
+    },
+    {
+      status: 'soon',
+      title: 'Business Operations',
+      desc: '',
+      items: ['SOPs & policies', 'HR handbook', 'Vendor agreements', 'KPI dashboards'],
+    },
+    {
+      status: 'soon',
+      title: 'AI Coaches',
+      desc: '',
+      items: ['CFO AI', 'Grant Coach', 'Pitch Coach', 'HR Manager'],
+    },
+    {
+      status: 'soon',
+      title: 'Funding Marketplace',
+      desc: '',
+      items: ['Grants & accelerators', 'Angels & VCs', 'Matched by country & stage'],
+    },
+  ];
+  const personas = [
+    {
+      stage: 'Pre-incorporation',
+      title: 'Aspiring entrepreneurs',
+      desc: "You\u0027re sitting on an idea — or you haven\u0027t found one yet. Start with Idea Discovery to turn your experience into a real concept, then use Gap Radar to find out if it\u0027s fundable before you make any big moves.",
+      soon: false,
+    },
+    {
+      stage: '0–18 months',
+      title: 'Early-stage startups',
+      desc: 'You’ve validated the idea and now need the documents to move forward — business plan, pitch deck, financial model. Stop Googling templates and start generating.',
+      soon: false,
+    },
+    {
+      stage: 'Raising now',
+      title: 'Small businesses seeking funding',
+      desc: `You’ve been operating but now want to raise. ${brandName} scores your readiness, identifies exactly what investors will challenge, and helps you fix it before the conversation.`,
+      soon: false,
+    },
+    {
+      stage: 'Post-investment',
+      title: 'Funded & scaling',
+      desc: 'You’ve raised your first round. Now build the systems that let you actually run the company — SOPs, HR handbook, vendor agreements, KPI dashboards, and board templates.',
+      soon: true,
+    },
+  ];
+  const freeFeatures = [
+    'The full 30-question assessment',
+    'Your Readiness Score out of 100',
+    'One surface-level gap you can work on now',
+    'A count of the critical gaps investors will flag',
+  ];
+  const packDocuments = [
+    'Every critical gap, revealed and ranked by priority',
+    'Generated Business Plan',
+    'Editable, presentation-ready Pitch Deck in your brand',
+    '3-year Financial Model',
+    'Grant Application Assistant',
+    'Step-by-step Action Plan',
+    'Interactive AI Pitch Coach — practice with feedback',
+  ];
+  const conciergeFeatures = [
+    'Everything in the Funding Readiness Pack ($99 value)',
+    '45-minute 1:1 session with the founder',
+    'Live review of your assessment answers and gaps',
+    'Personalised action plan discussed on the call',
+    'Email follow-up notes and next steps',
   ];
   const faqs = [
-    { q: 'How long does the assessment take?', a: 'About 10–15 minutes. There are 30 focused questions — no essays, no spreadsheets. You can save your progress and come back if needed.' },
-    { q: 'What happens after I complete the assessment?', a: 'You get your Startup Readiness Score immediately — broken down across four dimensions with your top gaps highlighted. From there you can upgrade once ($99) to generate your full document pack.' },
-    { q: 'What documents do I get with the $99 upgrade?', a: 'You get six deliverables tailored to your assessment answers: a Business Plan, a Pitch Deck (editable PowerPoint in your brand colours), a Financial Model, a Grant Application Assistant, an Executive Summary, and access to the AI Pitch Coach for practice sessions.' },
-    { q: 'Is my information private and secure?', a: 'Yes. Your assessment answers and generated documents are private to your account. We do not share or sell your data. You can delete your account and all associated data at any time from your account settings.' },
-    { q: 'What countries is FoundarOS available in?', a: 'FoundarOS is available globally. The platform is especially designed for founders in Africa and emerging markets — grant matching, currency handling, and funding recommendations are localised where possible.' },
-    { q: "Can I edit the documents after they're generated?", a: "Yes. All documents are delivered as editable files — the Pitch Deck as a PowerPoint file, the Business Plan and other documents in formats you can open and edit in Word, Google Docs, or similar. They're starting points, not locked outputs." },
-    { q: "What's coming next on the platform?", a: 'Business Operations tools (SOPs, HR handbook, procurement policies, vendor agreements, KPI dashboards) and AI Coaches (CFO AI, Grant Coach, CEO Coach, HR Manager, and more) are in development. Sign up to get early access when they launch.' },
-  ];
-  const readinessFree = [
-    '30-question readiness assessment',
-    'Startup Readiness Score with category breakdown',
-    'Top gaps and recommended actions',
-  ];
-  const readinessPaid = [
-    'Business Plan — a generated, investor-ready document',
-    'Pitch Deck — a full PPT-format deck in your brand name and colours, delivered as an editable file so you can add your logo',
-    'Financial Model generation',
-    'Grant Application Assistant',
-    'Action Plan & Executive Summary',
-    'Pitch Coach — AI-powered pitch practice with feedback',
-  ];
-  const comingSoonOps = [
-    'SOPs',
-    'Procurement policies',
-    'HR handbook',
-    'Employee contracts',
-    'Vendor agreements',
-    'Risk Register',
-    'KPI dashboard',
-    'OKRs',
-    'Board meeting templates',
-    'Company policies',
-    'Sales playbooks',
-  ];
-  const comingSoonCoaches = [
-    'CFO AI',
-    'CEO Coach',
-    'Grant Coach',
-    'Operations Manager',
-    'HR Manager',
-    'Procurement Manager',
-    'Marketing Advisor',
-    'Legal Document Assistant',
+    { q: 'Is this a subscription?', a: 'No. FoundarOS Fundraising Readiness is offered as a one-time $99 purchase. There are no recurring charges. Business Operations AI (coming soon) will be a separate optional subscription.' },
+    { q: 'What happens after I pay?', a: 'You’ll receive immediate confirmation and access instructions. You’ll then complete a short founder onboarding process before entering your FoundarOS workspace and beginning your fundraising readiness journey.' },
+    { q: 'Do I need to be an established business?', a: 'No. FoundarOS can support founders at different stages, including idea-stage and early-stage businesses.' },
+    { q: 'Do I need financial or technical expertise?', a: 'No. FoundarOS guides you through the process and helps structure the information you provide.' },
+    { q: 'Is FoundarOS an investor or funding platform?', a: 'No. FoundarOS helps you prepare your business and materials; it does not guarantee investment or funding.' },
+    { q: 'What is ALTANATIVEZ HAVEN LIMITED?', a: 'ALTANATIVEZ HAVEN LIMITED is the legal entity behind FoundarOS. You may see this name on your bank statement or card receipt when paying via Flutterwave.' },
+    { q: 'How long does this take?', a: 'About 10–15 minutes. Thirty focused questions about your idea, your market, and your numbers — no essays, no spreadsheets, no pitch deck required. You can do it on your phone and save your progress if you get pulled away.' },
+    { q: 'Is it actually free?', a: 'Yes. The full assessment, your Readiness Score, and one surface-level gap are free — no credit card. Your results also show how many critical gaps investors will flag without revealing those details. A one-time $99 upgrade unlocks every critical gap, a step-by-step action plan, and personalized founder documents; the optional $249 Founder Concierge package also adds a personal 45-minute 1:1 session with the founder.' },
+    { q: 'Do I need a business plan or pitch deck first?', a: 'No — that’s the point. You answer questions about the idea as it stands today, and the assessment tells you which of those documents you actually need and what has to be true before they’re worth writing.' },
+    { q: 'What if my idea scores badly?', a: 'Then you found out for the cost of 15 minutes instead of your savings. Your free result still gives you a clear score and one practical starting point; unlocking the full report shows every critical weakness, why an investor would care, and the plan to fix it.' },
+    { q: 'Is my idea kept private?', a: 'Yes. Your answers and results are private to your account. We don’t share or sell your data, and you can delete your account and everything in it at any time.' },
   ];
 
   // Presentational icons paired with the content arrays above by index.
   // Kept separate so the copy arrays stay plain for per-workspace rewrites.
   const scoreCategoryIcons = [Lightbulb, Users, Calculator, Rocket];
-  const howItWorksIcons = [ClipboardList, Gauge, FileText];
-  const whoWeServeIcons = [Lightbulb, Rocket, Building2, Landmark];
+  const outputIcons = [Gauge, ClipboardList, FileText];
+  const platformModuleIcons = [Lightbulb, Gauge, Briefcase, Bot, DollarSign];
+  const personaIcons = [Lightbulb, TrendingUp, DollarSign, Building2];
 
   // A monochrome onboarding mark (path marker ".mono.") can be recolored for
   // contrast; any other logo (legacy colored, knockout, dimensional) is shown
@@ -1268,7 +1545,7 @@ export default function EmailGate({
             <Sparkles size={22} strokeWidth={2.4} />
           </div>
           <p className="text-base font-extrabold" style={{ color: textPrimary }}>
-            Start your free assessment
+            Take the free assessment
           </p>
           <p className="mt-1 text-sm" style={{ color: textMuted }}>
             Enter your email — your score and results are saved to it.
@@ -1297,11 +1574,15 @@ export default function EmailGate({
             autoFocus={loginOpen}
             data-testid="input-email"
           />
-          {error && (
-            <p className="mt-2 text-xs" style={{ color: dangerColor }} data-testid="text-error">
-              {error}
-            </p>
-          )}
+          {/* Reserved height: an appearing error must not grow the form and
+              shift the controls below it (same CLS class as the OTP form). */}
+          <div className="mt-2" style={{ minHeight: '16px' }} aria-live="polite">
+            {error && (
+              <p className="text-xs" style={{ color: dangerColor }} data-testid="text-error">
+                {error}
+              </p>
+            )}
+          </div>
         </div>
 
         {gdprEnabled && (
@@ -1345,7 +1626,7 @@ export default function EmailGate({
           }}
           data-testid="button-continue"
         >
-          {loading ? 'Just a moment...' : 'Start my free assessment'}
+          {loading ? 'Just a moment...' : 'Take the free assessment'}
           {!loading && <ArrowRight size={18} strokeWidth={2.6} />}
         </button>
       </form>
@@ -1415,7 +1696,7 @@ export default function EmailGate({
         className="min-h-screen flex flex-col overflow-y-auto"
         style={{ fontFamily: bodyFontStack, background: gateGradient }}
       >
-        <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center px-6 py-12" style={{ outline: 'none' }}>
           <div className="w-full max-w-sm">
             <div className="text-center mb-10">
               <div className="flex justify-center mb-4">
@@ -1462,11 +1743,17 @@ export default function EmailGate({
                   autoFocus
                   data-testid="input-code"
                 />
-                {error && (
-                  <p className="mt-2 text-xs" style={{ color: dangerColor }} data-testid="text-error">
-                    {error}
-                  </p>
-                )}
+                {/* Height is reserved even while empty so an appearing error
+                    cannot grow the form and re-center the flex container
+                    (QA replay-bug-msyjjkya-izko: the submit button and help
+                    text jumped 12px when the 400 error rendered). */}
+                <div className="mt-2" style={{ minHeight: '16px' }} aria-live="polite">
+                  {error && (
+                    <p className="text-xs" style={{ color: dangerColor }} data-testid="text-error">
+                      {error}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <button
@@ -1505,7 +1792,7 @@ export default function EmailGate({
               </button>
             </div>
           </div>
-        </div>
+        </main>
 
         <div className="pb-8 text-center">
           <p className="text-xs" style={{ color: textSubtle }}>
@@ -1535,10 +1822,16 @@ export default function EmailGate({
       className="eg-root h-screen overflow-y-auto"
       style={{ height: '100dvh', WebkitOverflowScrolling: 'touch', fontFamily: bodyFontStack, backgroundColor: pageBackground }}
     >
+      {/* WCAG 2.4.1 Bypass Blocks: visually hidden until focused — first Tab reveals it */}
+      <a href="#main-content" className="eg-skip-link">
+        Skip to main content
+      </a>
       <style>{`
         @keyframes eg-blob { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(14px, -20px) scale(1.08); } }
         .eg-blob { animation: eg-blob 9s ease-in-out infinite; }
         .eg-root { scroll-behavior: smooth; }
+        .eg-skip-link { position: fixed; top: -100px; left: 16px; z-index: 100; padding: 10px 18px; border-radius: 9999px; font-size: 14px; font-weight: 600; text-decoration: none; background-color: ${primaryColor}; color: ${onPrimary || '#ffffff'}; box-shadow: 0 10px 24px rgba(0,0,0,0.3); transition: top 0.15s ease; }
+        .eg-skip-link:focus { top: 16px; outline: 2px solid #ffffff; outline-offset: 2px; }
         .eg-root section[id] { scroll-margin-top: 76px; }
         .eg-root h1, .eg-root h2 { font-family: ${headingFontStack}; }
         .eg-faq summary { list-style: none; }
@@ -1575,17 +1868,31 @@ export default function EmailGate({
                 className="truncate text-xs transition-colors"
                 style={{ color: scrolled ? textMuted : 'rgba(255,255,255,0.75)' }}
               >
-                AI operating system for founders
+                Build a business investors can believe in.
               </p>
             </div>
           </a>
           <div className="hidden items-center gap-6 md:flex">
             <a
-              href="#how-it-works"
+              href="#the-wall"
               className="text-sm font-medium transition-opacity hover:opacity-70"
               style={{ color: scrolled ? textMuted : 'rgba(255,255,255,0.82)' }}
             >
-              How it works
+              The problem
+            </a>
+            <a
+              href="#covers"
+              className="text-sm font-medium transition-opacity hover:opacity-70"
+              style={{ color: scrolled ? textMuted : 'rgba(255,255,255,0.82)' }}
+            >
+              What it covers
+            </a>
+            <a
+              href="#outputs"
+              className="text-sm font-medium transition-opacity hover:opacity-70"
+              style={{ color: scrolled ? textMuted : 'rgba(255,255,255,0.82)' }}
+            >
+              What you get
             </a>
             <a
               href="#platform"
@@ -1595,11 +1902,11 @@ export default function EmailGate({
               Platform
             </a>
             <a
-              href="#who-we-serve"
+              href="#pricing"
               className="text-sm font-medium transition-opacity hover:opacity-70"
               style={{ color: scrolled ? textMuted : 'rgba(255,255,255,0.82)' }}
             >
-              Who we serve
+              Pricing
             </a>
             <a
               href="#faq"
@@ -1609,17 +1916,33 @@ export default function EmailGate({
               FAQ
             </a>
           </div>
-          <button
-            type="button"
-            onClick={openLogin}
-            className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition hover:opacity-90"
-            style={{ backgroundColor: primaryColor, color: onPrimary }}
-          >
-            Start free assessment
-            <ArrowRight size={15} strokeWidth={2.6} />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => openLogin('login')}
+              className="rounded-full border px-3 py-2 text-sm font-semibold transition hover:opacity-80 sm:px-4"
+              style={{
+                borderColor: scrolled ? borderColor : 'rgba(255,255,255,0.45)',
+                backgroundColor: scrolled ? bgLight : 'rgba(255,255,255,0.08)',
+                color: scrolled ? textPrimary : '#ffffff',
+              }}
+            >
+              Log in
+            </button>
+            <button
+              type="button"
+              onClick={() => openLogin('assess')}
+              className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition hover:opacity-90 sm:px-4"
+              style={{ backgroundColor: primaryColor, color: onPrimary }}
+            >
+              Take the free assessment
+              <ArrowRight size={15} strokeWidth={2.6} />
+            </button>
+          </div>
         </div>
       </nav>
+      {/* WCAG 1.3.1: primary-content landmark — <nav> and <footer> stay outside it */}
+      <main id="main-content" tabIndex={-1} style={{ outline: 'none' }}>
       <section
         id="hero"
         className="relative flex min-h-screen min-h-[100svh] items-center overflow-hidden px-6 py-24 sm:py-28"
@@ -1648,13 +1971,13 @@ export default function EmailGate({
           <div className="max-w-3xl space-y-5">
             <p className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.3em] text-white/60">
               <span aria-hidden="true" style={{ width: 16, height: 1, backgroundColor: primaryColor, display: 'inline-block' }} />
-              AI startup operating system
+              Gap Radar — free readiness assessment
             </p>
             <h1
               className="text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl"
               style={{ color: '#ffffff', fontFamily: headingFontStack }}
             >
-              Your{' '}
+              Get Your Business Ready to{' '}
               <span
                 style={{
                   backgroundImage: `linear-gradient(100deg, ${palette?.secondary || '#A78BFA'}, ${primaryColor} 60%)`,
@@ -1663,21 +1986,53 @@ export default function EmailGate({
                   color: 'transparent',
                 }}
               >
-                AI co-founder
+                Raise Capital
               </span>
-              , from first idea to funded business.
             </h1>
             <p
               className="max-w-2xl text-lg leading-8"
               style={{ color: 'rgba(255,255,255,0.78)' }}
             >
-              {brandName} is the AI operating system for every stage of your founder journey. Start with a free readiness assessment — then build your business plan, pitch deck, financial model, grant applications, and more. As you grow, {brandName} grows with you: operations tools, AI coaches, and a funding marketplace, all in one place.
+              FoundarOS gives founders a structured system to assess their business, strengthen their fundraising position and build the documents they need to approach investors with clarity and confidence.
             </p>
+            <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              One-time access — $99 · No subscription · No long-term commitment
+            </p>
+            <button
+              type="button"
+              onClick={() => openLogin('assess')}
+              aria-haspopup="dialog"
+              aria-expanded={loginOpen}
+              className="group flex w-full max-w-2xl items-center justify-between gap-4 rounded-2xl border px-5 py-4 text-left transition hover:scale-[1.01] hover:bg-white/15"
+              style={{
+                borderColor: 'rgba(255,255,255,0.3)',
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                color: '#ffffff',
+              }}
+              data-testid="button-start-idea-discovery"
+            >
+              <span className="flex items-center gap-3">
+                <span
+                  className="flex h-10 w-10 flex-none items-center justify-center rounded-full"
+                  style={{ backgroundColor: colorWithAlpha(primaryColor, 0.28) }}
+                >
+                  <Lightbulb size={20} strokeWidth={2.4} />
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold">No idea yet? Start with Idea Discovery</span>
+                  <span className="mt-0.5 block text-xs font-medium text-white/65">
+                    Turn your experience into a concept worth pursuing.
+                  </span>
+                </span>
+              </span>
+              <ArrowRight size={18} strokeWidth={2.6} className="flex-none transition-transform group-hover:translate-x-1" />
+            </button>
             <div className="flex flex-col items-start gap-4 sm:flex-row">
               <button
                 type="button"
-                onClick={openLogin}
-                aria-controls={loginPanelId}
+                onClick={() => openLogin('assess')}
+                aria-haspopup="dialog"
+                aria-expanded={loginOpen}
                 className="flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition hover:scale-[1.01]"
                 style={{
                   backgroundColor: primaryColor,
@@ -1686,27 +2041,30 @@ export default function EmailGate({
                 }}
                 data-testid="button-open-login"
               >
-                Start the free assessment
+                Start Your Fundraising Readiness Journey
                 <ArrowRight size={18} strokeWidth={2.6} />
               </button>
               <a
-                href="#how-it-works"
+                href="#the-wall"
                 className="rounded-full px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
                 style={{ border: '1px solid rgba(255,255,255,0.35)' }}
               >
-                See how it works
+                Why this beats Googling
               </a>
             </div>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              Free · No credit card · No pitch deck required · Works on your phone
+            </p>
           </div>
 
-          {/* Readiness gauge panel — the signature visual from the pitch deck,
-              reused here so the hero previews what the free assessment produces. */}
+          {/* Readiness gauge panel — a sample of the report the assessment
+              produces, so the hero shows the honest output up front. */}
           <div
             className="relative mx-auto w-full max-w-sm rounded-[22px] p-6 backdrop-blur-sm"
-            style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: `1px solid rgba(255,255,255,0.14)` }}
+            style={{ backgroundColor: 'rgba(12,9,32,0.55)', border: `1px solid rgba(255,255,255,0.14)` }}
           >
-            <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
-              Startup Readiness Score
+            <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/75">
+              Sample report — Readiness Score
             </p>
             <div className="mx-auto mb-1 flex justify-center">
               <svg width="152" height="152" viewBox="0 0 168 168">
@@ -1726,11 +2084,11 @@ export default function EmailGate({
               </svg>
             </div>
             <p className="-mt-[104px] mb-0 text-center text-[44px] font-bold text-white">72</p>
-            <p className="mb-1 mt-9 text-center text-xs text-white/45">/ 100</p>
-            <p className="mb-5 text-center text-sm font-semibold" style={{ color: accentGreen }}>
-              ● Investor Ready
+            <p className="mb-1 mt-9 text-center text-xs text-white/70">/ 100</p>
+            <p className="mb-5 text-center text-sm font-semibold" style={{ color: contrastColor }}>
+              ● Close — 3 gaps between you and “ready”
             </p>
-            <ul className="space-y-2.5 text-sm text-white/70">
+            <ul className="space-y-2.5 text-sm text-white/90">
               <li className="flex items-center gap-2">
                 <span
                   className="flex h-4 w-4 flex-none items-center justify-center rounded-full text-[10px]"
@@ -1738,85 +2096,170 @@ export default function EmailGate({
                 >
                   ✓
                 </span>
-                Business plan generated
+                Idea clarity — strong
               </li>
               <li className="flex items-center gap-2">
                 <span
                   className="flex h-4 w-4 flex-none items-center justify-center rounded-full text-[10px]"
-                  style={{ backgroundColor: 'rgba(52,211,153,0.16)', border: '1px solid rgba(52,211,153,0.5)', color: '#34D399' }}
+                  style={{ backgroundColor: colorWithAlpha(contrastColor, 0.16), border: `1px solid ${colorWithAlpha(contrastColor, 0.5)}`, color: contrastColor }}
                 >
-                  ✓
+                  !
                 </span>
-                Pitch deck generated
+                Market validation — 2 gaps found
               </li>
               <li className="flex items-center gap-2">
                 <span
                   className="flex h-4 w-4 flex-none items-center justify-center rounded-full text-[10px]"
-                  style={{ backgroundColor: 'rgba(52,211,153,0.16)', border: '1px solid rgba(52,211,153,0.5)', color: '#34D399' }}
+                  style={{ backgroundColor: colorWithAlpha(contrastColor, 0.16), border: `1px solid ${colorWithAlpha(contrastColor, 0.5)}`, color: contrastColor }}
                 >
-                  ✓
+                  !
                 </span>
-                Financial model generated
+                Financial assumptions — needs work
               </li>
             </ul>
+            <p className="mt-4 text-center text-xs text-white/40">
+              A sample result. Yours will be this honest too.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="journey" className="px-6 py-16" style={{ backgroundColor: pageBackground }}>
+        <div className="mx-auto max-w-6xl">
+          <div
+            className="rounded-3xl border p-8 sm:p-10"
+            style={{ backgroundColor: panelColor, borderColor }}
+          >
+            <p className="mb-6 text-center text-sm font-semibold uppercase tracking-[0.2em]" style={{ color: textMuted }}>
+              Your Fundraising Readiness Journey — covered in one $99 package
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {['Founder Assessment', 'Business Model', 'Financial Readiness', 'Market Analysis', 'Investor Materials', 'Founder Roadmap'].map((step, i, arr) => (
+                <div key={step} className="flex items-center gap-3">
+                  <span
+                    className="rounded-full border px-4 py-2 text-sm font-medium"
+                    style={{ backgroundColor: bgMedium, borderColor, color: textPrimary }}
+                  >
+                    {step}
+                  </span>
+                  {i < arr.length - 1 && (
+                    <ArrowRight size={16} strokeWidth={2.4} className="flex-shrink-0" style={{ color: primaryColor }} />
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       <section
-        id="how-it-works"
+        id="the-wall"
         className="border-b px-6 py-20"
         style={{ backgroundColor: sectionBackground, borderColor }}
       >
         <div className="max-w-6xl mx-auto">
           <div className="mb-12 max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.3em]" style={{ color: textMuted }}>
-              How it works
+              Sound familiar?
             </p>
             <h2 className="mt-4 text-3xl sm:text-4xl font-semibold mb-3" style={{ color: textPrimary }}>
-              From idea to operating business, in three steps
+              You’ve done the Googling. It hasn’t helped.
             </h2>
             <p className="max-w-2xl text-base leading-7" style={{ color: textMuted }}>
-              No prep needed. Answer 30 questions and {brandName} tells you exactly where you stand — then helps you close every gap.
+              Search “how to get funding for a startup” and you hit the same three walls — none of which answer the one question you actually have: is my idea fundable, and what’s missing?
             </p>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            {howItWorks.map((item, i) => (
+            {googledWall.map((item) => (
               <div
-                key={item.step}
-                className="relative overflow-visible rounded-3xl border p-8"
+                key={item.index}
+                className="rounded-3xl border p-8"
                 style={{ backgroundColor: panelColor, borderColor }}
               >
-                <div
-                  className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-semibold"
-                  style={{ backgroundColor: accentCycle[0].bg, color: accentCycle[0].fg }}
-                >
-                  {item.step}
-                </div>
+                <p className="mb-3 font-mono text-[11px] tracking-wider" style={{ color: textMuted }}>
+                  {item.index}
+                </p>
                 <h3 className="font-semibold mb-2" style={{ color: textPrimary }}>
                   {item.title}
                 </h3>
                 <p className="text-sm leading-7" style={{ color: textMuted }}>
                   {item.desc}
                 </p>
-                {i < howItWorks.length - 1 && (
-                  <span
-                    className="pointer-events-none absolute top-1/2 hidden -translate-y-1/2 text-xl lg:block"
-                    style={{ right: -28, color: textMuted }}
-                    aria-hidden="true"
-                  >
-                    →
-                  </span>
-                )}
               </div>
             ))}
           </div>
         </div>
       </section>
 
+      <section id="deliverables" className="px-6 py-20" style={{ backgroundColor: pageBackground }}>
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em]" style={{ color: textMuted }}>
+              Your $99 Founder Readiness Package
+            </p>
+            <h2 className="mt-4 text-3xl sm:text-4xl font-semibold mb-3" style={{ color: textPrimary }}>
+              Everything You Need to Prepare Your Business for Fundraising
+            </h2>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { n: '01', t: 'Founder Readiness Assessment', d: 'Understand where your business stands today.' },
+              { n: '02', t: 'Business Model Analysis', d: 'Identify weaknesses, assumptions and opportunities.' },
+              { n: '03', t: 'Market & Customer Analysis', d: 'Clarify your target customer, market and competitive position.' },
+              { n: '04', t: 'Financial Readiness', d: 'Work through revenue assumptions, costs, projections and key financial metrics.' },
+              { n: '05', t: 'Investor Readiness', d: 'Identify what investors will expect and where your business is currently strong or weak.' },
+              { n: '06', t: 'Business Documents', d: 'Generate structured founder-ready documents from the information you provide.' },
+              { n: '07', t: 'Founder Action Plan', d: 'Know exactly what to work on next.' },
+            ].map((item) => (
+              <div key={item.n} className="rounded-3xl border p-8" style={{ backgroundColor: panelColor, borderColor }}>
+                <p className="mb-3 font-mono text-sm font-semibold" style={{ color: primaryColor }}>{item.n}</p>
+                <h3 className="font-semibold mb-2" style={{ color: textPrimary }}>{item.t}</h3>
+                <p className="text-sm leading-7" style={{ color: textMuted }}>{item.d}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 rounded-3xl border p-6 sm:p-8" style={{ backgroundColor: accentCycle[0].bg, borderColor: colorWithAlpha(primaryColor, 0.35) }}>
+            <p className="text-base font-medium leading-7" style={{ color: textPrimary }}>
+              All for a one-time $99 payment. No subscription. No recurring charges.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="before-after" className="border-t px-6 py-20" style={{ backgroundColor: sectionBackground, borderColor }}>
+        <div className="mx-auto max-w-6xl">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="rounded-3xl border p-8" style={{ backgroundColor: panelColor, borderColor: colorWithAlpha(contrastColor, 0.35) }}>
+              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em]" style={{ color: contrastColor }}>Before</p>
+              <h3 className="text-xl font-semibold mb-5" style={{ color: textPrimary }}>“I have an idea, but…”</h3>
+              <ul className="space-y-3 text-sm" style={{ color: textMuted }}>
+                {['My business model isn’t clear', 'I don’t know if my numbers make sense', 'I need investor materials', 'I don’t know what investors will ask', 'I don’t know what to work on next'].map((entry) => (
+                  <li key={entry} className="flex items-start gap-2.5">
+                    <span className="mt-0.5 flex-shrink-0 font-bold" style={{ color: contrastColor }}>•</span>
+                    <span>{entry}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-3xl border p-8" style={{ backgroundColor: panelColor, borderColor: colorWithAlpha(accentGreen, 0.4) }}>
+              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em]" style={{ color: accentGreen }}>After</p>
+              <h3 className="text-xl font-semibold mb-5" style={{ color: textPrimary }}>“I know what I’m building and what I need to do next.”</h3>
+              <ul className="space-y-3 text-sm" style={{ color: textMuted }}>
+                {['Clearer business model', 'Structured financial assumptions', 'Market positioning', 'Investor-readiness assessment', 'Business documentation', 'Prioritized action plan'].map((entry) => (
+                  <li key={entry} className="flex items-start gap-2.5">
+                    <Check size={16} strokeWidth={2.8} className="mt-0.5 flex-shrink-0" style={{ color: accentGreen }} />
+                    <span>{entry}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section
-        id="features"
+        id="covers"
         className="px-6 py-20"
         style={{ backgroundColor: pageBackground }}
       >
@@ -1826,31 +2269,37 @@ export default function EmailGate({
               className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold uppercase tracking-[0.3em]"
               style={{ color: textMuted }}
             >
-              The free assessment
+              The straight answer
             </span>
             <h2 className="text-3xl sm:text-4xl font-semibold mb-3" style={{ color: textPrimary }}>
-              Your Startup Readiness Score, across four dimensions
+              One free assessment. The four things investors actually check.
             </h2>
             <p className="max-w-2xl text-base leading-7" style={{ color: textMuted }}>
-              {brandName} scores your startup across four dimensions — so you know exactly where you stand, what to fix, and what to build next.
+              Gap Radar asks 30 focused questions, then scores your idea across the four areas every investor screens before they’ll take a meeting. No prep, no documents — just honest answers about where your idea stands today.
             </p>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {scoreCategories.map((item, i) => {
               const accent = accentCycle[i % accentCycle.length];
+              const CategoryIcon = scoreCategoryIcons[i] ?? Lightbulb;
               return (
                 <div
                   key={item.title}
                   className="rounded-3xl border p-6 shadow-sm transition-transform hover:-translate-y-1"
                   style={{ backgroundColor: panelColor, borderColor }}
                 >
-                  <p
-                    className="mb-3 font-mono text-[11px] tracking-wider"
-                    style={{ color: textMuted }}
-                  >
-                    {item.index}
-                  </p>
+                  <div className="mb-4 flex items-center justify-between">
+                    <span
+                      className="flex h-10 w-10 items-center justify-center rounded-2xl"
+                      style={{ backgroundColor: accent.bg, color: accent.fg }}
+                    >
+                      <CategoryIcon size={20} strokeWidth={2.2} />
+                    </span>
+                    <p className="font-mono text-[11px] tracking-wider" style={{ color: textMuted }}>
+                      {item.index}
+                    </p>
+                  </div>
                   <h3 className="text-xl font-semibold mb-2" style={{ color: textPrimary }}>
                     {item.title}
                   </h3>
@@ -1867,129 +2316,137 @@ export default function EmailGate({
         </div>
       </section>
 
-      <section id="platform" className="border-t px-6 py-20" style={{ backgroundColor: pageBackground, borderColor }}>
+      <section id="outputs" className="border-t px-6 py-20" style={{ backgroundColor: pageBackground, borderColor }}>
         <div className="max-w-6xl mx-auto">
           <div className="mb-12 max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.3em]" style={{ color: textMuted }}>
-              The platform
+              What you walk away with
+            </p>
+            <h2 className="mt-4 text-3xl sm:text-4xl font-semibold mb-3" style={{ color: textPrimary }}>
+              Not a pep talk. A report.
+            </h2>
+            <p className="max-w-2xl text-base leading-7" style={{ color: textMuted }}>
+              Fifteen minutes in, you have three things you didn’t have this morning:
+            </p>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            {outputs.map((item, i) => {
+              const accent = accentCycle[i % accentCycle.length];
+              const OutputIcon = outputIcons[i] ?? FileText;
+              return (
+                <div
+                  key={item.title}
+                  className="rounded-3xl border p-8 shadow-sm"
+                  style={{ backgroundColor: panelColor, borderColor }}
+                >
+                  <div
+                    className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl"
+                    style={{ backgroundColor: accent.bg, color: accent.fg }}
+                  >
+                    <OutputIcon size={22} strokeWidth={2.4} />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: textPrimary }}>
+                    {item.title}
+                  </h3>
+                  <p className="text-sm leading-7" style={{ color: textMuted }}>
+                    {item.desc}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div
+            className="mt-8 rounded-3xl border p-6 sm:p-8"
+            style={{ backgroundColor: accentCycle[0].bg, borderColor: colorWithAlpha(primaryColor, 0.35) }}
+          >
+            <p className="text-base font-medium leading-7" style={{ color: textPrimary }}>
+              And if your idea isn’t ready? The report says so — plainly — and shows you exactly why. That’s the point. Better to hear it from a free assessment tonight than from an investor after you’ve handed in your notice.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="platform" className="px-6 py-20" style={{ backgroundColor: sectionBackground }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-12 max-w-2xl">
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.3em]" style={{ color: palette?.text?.accent || textMuted }}>
+              — The Platform
             </p>
             <h2 className="mt-4 text-3xl sm:text-4xl font-semibold mb-3" style={{ color: textPrimary }}>
               Build, fund, and grow — with AI at every stage
             </h2>
             <p className="max-w-2xl text-base leading-7" style={{ color: textMuted }}>
-              Startup Readiness &amp; Funding Tools are live today. Business Operations and AI Coaches are coming next. {brandName} is built to grow with you — from validating your first idea to running a funded company.
+              Idea Discovery and Gap Radar are live today. Business Operations and AI Coaches are coming next. {brandName} is built to grow with you — from figuring out your idea to running a funded company.
             </p>
           </div>
 
-          <div className="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-3xl border-2 p-6" style={{ backgroundColor: panelColor, borderColor: primaryColor }}>
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
-                style={{ backgroundColor: accentCycle[3].bg, color: accentCycle[3].fg }}
-              >
-                <Sparkles size={13} strokeWidth={2.6} />
-                Live now
-              </span>
-              <h3 className="mt-4 text-lg font-semibold" style={{ color: textPrimary }}>
-                Startup Readiness &amp; Funding Tools
-              </h3>
-              <p className="mt-1 text-sm leading-6" style={{ color: textMuted }}>
-                Know exactly where your startup stands — then generate the documents that move it forward.
-              </p>
-            </div>
-
-            <div className="rounded-3xl border p-6" style={{ backgroundColor: panelColor, borderColor }}>
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
-                style={{ backgroundColor: bgMedium, color: textMuted }}
-              >
-                <Lock size={12} strokeWidth={2.6} />
-                Coming soon
-              </span>
-              <div className="mt-4 flex items-center gap-2">
-                <Briefcase size={20} strokeWidth={2.2} style={{ color: accentCycle[1].fg }} />
-                <h3 className="text-lg font-semibold" style={{ color: textPrimary }}>
-                  Business Operations
-                </h3>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {['SOPs & policies', 'HR handbook', 'Vendor agreements', 'KPI dashboards'].map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full border px-3 py-1 text-xs font-medium"
-                    style={{ borderColor, color: textMuted, backgroundColor: sectionBackground }}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {platformModules.map((item, i) => {
+              const accent = accentCycle[i % accentCycle.length];
+              const ModuleIcon = platformModuleIcons[i] ?? Gauge;
+              return (
+                <div
+                  key={item.title}
+                  className="rounded-3xl border p-6"
+                  style={{ backgroundColor: panelColor, borderColor: colorWithAlpha(accent.fg, 0.45) }}
+                >
+                  {item.status === 'live' ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em]"
+                      style={{
+                        borderColor: colorWithAlpha(accentGreen, 0.5),
+                        backgroundColor: colorWithAlpha(accentGreen, 0.12),
+                        color: accentGreen,
+                      }}
+                    >
+                      ● Live
+                    </span>
+                  ) : (
+                    <span
+                      className="inline-flex items-center rounded-full border px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em]"
+                      style={{ borderColor, color: textMuted }}
+                    >
+                      Coming soon
+                    </span>
+                  )}
+                  <div
+                    className="mt-4 mb-4 flex h-10 w-10 items-center justify-center rounded-xl"
+                    style={{ backgroundColor: accent.bg, color: accent.fg }}
                   >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-3xl border p-6" style={{ backgroundColor: panelColor, borderColor }}>
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
-                style={{ backgroundColor: bgMedium, color: textMuted }}
-              >
-                <Lock size={12} strokeWidth={2.6} />
-                Coming soon
-              </span>
-              <div className="mt-4 flex items-center gap-2">
-                <Bot size={20} strokeWidth={2.2} style={{ color: accentCycle[2].fg }} />
-                <h3 className="text-lg font-semibold" style={{ color: textPrimary }}>
-                  AI Coaches
-                </h3>
-              </div>
-              <p className="mt-1 text-sm leading-6" style={{ color: textMuted }}>
-                Specialist AI agents on call for every role you can’t hire yet:
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {['CFO AI', 'Grant Coach', 'Pitch Coach', 'HR Manager'].map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full border px-3 py-1 text-xs font-medium"
-                    style={{ borderColor, color: textMuted, backgroundColor: sectionBackground }}
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-3xl border p-6" style={{ backgroundColor: panelColor, borderColor }}>
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
-                style={{ backgroundColor: bgMedium, color: textMuted }}
-              >
-                <Lock size={12} strokeWidth={2.6} />
-                Coming soon
-              </span>
-              <div className="mt-4 flex items-center gap-2">
-                <DollarSign size={20} strokeWidth={2.2} style={{ color: accentCycle[3].fg }} />
-                <h3 className="text-lg font-semibold" style={{ color: textPrimary }}>
-                  Funding Marketplace
-                </h3>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {['Grants & accelerators', 'Angels & VCs', 'Matched by country & stage'].map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full border px-3 py-1 text-xs font-medium"
-                    style={{ borderColor, color: textMuted, backgroundColor: sectionBackground }}
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
+                    <ModuleIcon size={20} strokeWidth={2.2} />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: textPrimary }}>
+                    {item.title}
+                  </h3>
+                  {item.desc && (
+                    <p className="text-sm leading-6" style={{ color: textMuted }}>
+                      {item.desc}
+                    </p>
+                  )}
+                  {item.items.length > 0 && (
+                    <ul className="space-y-2 text-sm" style={{ color: textMuted }}>
+                      {item.items.map((entry) => (
+                        <li key={entry} className="flex items-start gap-2">
+                          <ArrowRight size={14} strokeWidth={2.4} className="mt-1 flex-shrink-0" style={{ color: accent.fg }} />
+                          <span>{entry}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <section id="who-we-serve" className="border-y px-6 py-20" style={{ backgroundColor: sectionBackground, borderColor }}>
+      <section id="who-we-serve" className="px-6 py-20" style={{ backgroundColor: pageBackground }}>
         <div className="max-w-6xl mx-auto">
           <div className="mb-12 max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em]" style={{ color: textMuted }}>
-              Who we serve
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.3em]" style={{ color: palette?.text?.accent || textMuted }}>
+              — Who We Serve
             </p>
             <h2 className="mt-4 text-3xl sm:text-4xl font-semibold mb-3" style={{ color: textPrimary }}>
               Built for founders at every stage
@@ -1998,41 +2455,45 @@ export default function EmailGate({
               From your first idea to your first team hire — {brandName} has tools for every stage of the journey.
             </p>
           </div>
+
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {whoWeServe.map((item, i) => {
-              const WhoIcon = whoWeServeIcons[i] ?? Heart;
+            {personas.map((item, i) => {
               const accent = accentCycle[i % accentCycle.length];
+              const PersonaIcon = personaIcons[i] ?? Lightbulb;
               return (
                 <div
                   key={item.title}
-                  className="relative overflow-hidden rounded-3xl border p-6 shadow-sm"
-                  style={{ backgroundColor: panelColor, borderColor }}
+                  className="rounded-3xl border p-8"
+                  style={{
+                    backgroundColor: panelColor,
+                    borderColor,
+                    borderStyle: item.soon ? 'dashed' : 'solid',
+                  }}
                 >
-                  <WhoIcon size={64} strokeWidth={1.5} className="pointer-events-none absolute -right-2 -top-2 opacity-10" style={{ color: accent.fg }} />
                   <div
-                    className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl"
+                    className="mb-4 flex h-10 w-10 items-center justify-center rounded-full"
                     style={{ backgroundColor: accent.bg, color: accent.fg }}
                   >
-                    <WhoIcon size={22} strokeWidth={2.4} />
+                    <PersonaIcon size={18} strokeWidth={2.2} />
                   </div>
-                  <p
-                    className="mb-1 font-mono text-[10.5px] font-medium uppercase tracking-wider"
-                    style={{ color: textMuted }}
-                  >
-                    {item.tag}
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] mb-1" style={{ color: textSubtle }}>
+                    {item.stage}
                   </p>
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: textPrimary }}>
+                  <h3 className="text-lg font-semibold mb-3" style={{ color: textPrimary }}>
                     {item.title}
                   </h3>
                   <p className="text-sm leading-7" style={{ color: textMuted }}>
                     {item.desc}
                   </p>
-                  {(item as { comingSoon?: boolean }).comingSoon && (
+                  {item.soon && (
                     <span
-                      className="mt-4 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider"
-                      style={{ borderColor, color: textMuted, backgroundColor: sectionBackground }}
+                      className="mt-4 inline-flex items-center rounded-full border px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em]"
+                      style={{
+                        borderColor: colorWithAlpha(contrastColor, 0.5),
+                        backgroundColor: colorWithAlpha(contrastColor, 0.12),
+                        color: contrastColor,
+                      }}
                     >
-                      <Lock size={11} strokeWidth={2.6} />
                       Coming soon
                     </span>
                   )}
@@ -2043,52 +2504,295 @@ export default function EmailGate({
         </div>
       </section>
 
-      <section className="px-6 py-20" style={{ backgroundColor: pageBackground }}>
+      <section id="trust" className="px-6 py-20" style={{ backgroundColor: sectionBackground }}>
+        <div className="mx-auto max-w-4xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em]" style={{ color: textMuted }}>
+            Secure Payment
+          </p>
+          <h2 className="mt-4 text-3xl sm:text-4xl font-semibold mb-3" style={{ color: textPrimary }}>
+            Secure checkout powered by Flutterwave
+          </h2>
+          <p className="mx-auto max-w-2xl text-base leading-7" style={{ color: textMuted }}>
+            Your payment is processed securely through Flutterwave. FoundarOS does not receive or store your card details.
+          </p>
+          <div className="mx-auto mt-6 max-w-2xl rounded-3xl border p-6" style={{ backgroundColor: panelColor, borderColor }}>
+            <p className="text-sm leading-7" style={{ color: textMuted }}>
+              Payments are processed by <span style={{ color: textPrimary, fontWeight: 600 }}>ALTANATIVEZ HAVEN LIMITED</span>, the entity behind FoundarOS. You may see this name on your bank statement or card receipt.
+            </p>
+          </div>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            {['Secure payment', 'International cards accepted', 'USD payment', 'Instant confirmation'].map((badge) => (
+              <span key={badge} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium" style={{ backgroundColor: panelColor, borderColor, color: textPrimary }}>
+                <Check size={15} strokeWidth={2.8} style={{ color: accentGreen }} />
+                {badge}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="border-t px-6 py-20" style={{ backgroundColor: pageBackground, borderColor }}>
         <div className="max-w-6xl mx-auto">
           <div className="mb-12 max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em]" style={{ color: textMuted }}>
-              What founders say
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.3em]" style={{ color: palette?.text?.accent || textMuted }}>
+              — Pricing
             </p>
-            <h2 className="mt-4 text-3xl sm:text-4xl font-semibold" style={{ color: textPrimary }}>
-              Real founders. Real results.
+            <h2 className="mt-4 text-3xl sm:text-4xl font-semibold mb-3" style={{ color: textPrimary }}>
+              Start free. Unlock the full pack when you’re ready.
             </h2>
+            <p className="max-w-2xl text-base leading-7" style={{ color: textMuted }}>
+              The assessment, your Readiness Score, and one surface-level gap are free. One $99 payment — no subscription — reveals every critical gap and gives you a step-by-step plan to fix them before you pitch, with personalized founder documents included.
+            </p>
           </div>
+
           <div className="grid gap-6 lg:grid-cols-2">
-            <div
-              className="relative rounded-3xl border p-8"
-              style={{ backgroundColor: panelColor, borderColor }}
-            >
-              <span
-                className="absolute right-6 top-6 rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-wider"
-                style={{ borderColor, color: textMuted }}
+            <div className="rounded-3xl border p-8" style={{ backgroundColor: panelColor, borderColor }}>
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: textMuted }}>
+                Free assessment
+              </p>
+              <div className="mt-3 mb-5 flex items-baseline gap-2">
+                <span className="text-4xl font-bold" style={{ color: textPrimary }}>$0</span>
+                <span className="text-sm" style={{ color: textSubtle }}>no credit card</span>
+              </div>
+              <ul className="space-y-3 text-sm" style={{ color: textMuted }}>
+                {freeFeatures.map((entry) => (
+                  <li key={entry} className="flex items-start gap-2.5">
+                    <Check size={16} strokeWidth={2.8} className="mt-0.5 flex-shrink-0" style={{ color: accentGreen }} />
+                    <span>{entry}</span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={() => openLogin('assess')}
+                className="mt-7 flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition hover:opacity-90"
+                style={{ border: `1px solid ${colorWithAlpha(primaryColor, 0.6)}`, color: textPrimary, backgroundColor: 'transparent' }}
               >
-                Preview
-              </span>
-              <blockquote
-                className="max-w-[90%] text-lg font-medium leading-relaxed"
-                style={{ color: textPrimary, fontFamily: headingFontStack }}
-              >
-                "I got my Startup Readiness Score in 12 minutes and finally understood exactly why I kept getting rejected by grant reviewers. The gap report was more useful than the pitch coach I paid $500 for."
-              </blockquote>
-              <cite className="mt-5 block text-sm not-italic" style={{ color: textMuted }}>
-                — First Name, Business Type, City, Country
-              </cite>
+                Take the free assessment
+                <ArrowRight size={16} strokeWidth={2.6} />
+              </button>
             </div>
+
             <div
-              className="flex flex-col justify-center rounded-3xl border p-8"
+              className="rounded-3xl border p-8"
               style={{
-                backgroundColor: accentCycle[0].bg,
-                borderColor: colorWithAlpha(primaryColor, 0.35),
+                backgroundColor: panelColor,
+                borderColor: colorWithAlpha(primaryColor, 0.6),
+                boxShadow: `0 24px 48px ${colorWithAlpha(primaryColor, 0.18)}`,
               }}
             >
-              <p className="text-5xl font-bold" style={{ color: textPrimary, fontFamily: headingFontStack }}>
-                427
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: palette?.text?.accent || textMuted }}>
+                  FoundarOS Fundraising Readiness
+                </p>
+                <span
+                  className="inline-flex items-center rounded-full border px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em]"
+                  style={{
+                    borderColor: colorWithAlpha(primaryColor, 0.5),
+                    backgroundColor: colorWithAlpha(primaryColor, 0.12),
+                    color: palette?.text?.accent || textPrimary,
+                  }}
+                >
+                  One-time
+                </span>
+              </div>
+              <div className="mt-3 mb-2 flex items-baseline gap-2">
+                <span className="text-4xl font-bold" style={{ color: textPrimary }}>$99</span>
+                <span className="text-sm" style={{ color: textSubtle }}>once — no subscription</span>
+              </div>
+              <p className="mb-5 text-sm leading-6" style={{ color: textMuted }}>
+                Unlock your critical gaps, action plan, and personalized founder tools:
               </p>
-              <p className="mt-2 text-sm" style={{ color: textMuted }}>
-                founders have taken the assessment this month
+              <ul className="space-y-3 text-sm" style={{ color: textMuted }}>
+                {packDocuments.map((entry) => (
+                  <li key={entry} className="flex items-start gap-2.5">
+                    <Check size={16} strokeWidth={2.8} className="mt-0.5 flex-shrink-0" style={{ color: palette?.text?.accent || primaryColor }} />
+                    <span>{entry}</span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={() => openLogin('assess')}
+                className="mt-7 flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition hover:scale-[1.01]"
+                style={{ backgroundColor: primaryColor, color: onPrimary, boxShadow: `0 16px 32px ${colorWithAlpha(primaryColor, 0.4)}` }}
+              >
+                Start with the free assessment
+                <ArrowRight size={16} strokeWidth={2.6} />
+              </button>
+              <p className="mt-3 text-center text-xs" style={{ color: textSubtle }}>
+                Unlock from your results screen after you’ve seen your free score and gap preview.
               </p>
-              <p className="mt-4 font-mono text-xs" style={{ color: textSubtle }}>
-                Updated weekly — placeholder until beta data lands
+              <p className="mt-2 text-center text-xs" style={{ color: textSubtle }}>
+                Business Operations AI is a separate optional service and is not included in this purchase.
+              </p>
+            </div>
+          </div>
+
+          {/* Founder Concierge — full-width premium tier */}
+          <div
+            className="mt-6 rounded-3xl border p-8"
+            style={{
+              backgroundColor: panelColor,
+              borderColor: colorWithAlpha(primaryColor, 0.55),
+              boxShadow: `0 24px 48px ${colorWithAlpha(primaryColor, 0.12)}`,
+            }}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-8">
+              <div className="flex-1 max-w-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: palette?.text?.accent || textMuted }}>
+                    Founder Concierge
+                  </p>
+                  <span
+                    className="inline-flex items-center rounded-full border px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em]"
+                    style={{
+                      borderColor: colorWithAlpha(primaryColor, 0.5),
+                      backgroundColor: colorWithAlpha(primaryColor, 0.12),
+                      color: palette?.text?.accent || textPrimary,
+                    }}
+                  >
+                    Limited spots
+                  </span>
+                </div>
+                <h3 className="text-2xl font-semibold mb-2" style={{ color: textPrimary }}>
+                  Work through your results with the founder — personally.
+                </h3>
+                <p className="text-sm leading-6 mb-5" style={{ color: textMuted }}>
+                  Take the full assessment and get your Funding Readiness Pack — then spend 45 minutes with me, live, going through exactly what your gaps mean and what to do next. You leave with a clear, personalised path forward, not just a score.
+                </p>
+                <ul className="space-y-3 text-sm" style={{ color: textMuted }}>
+                  {conciergeFeatures.map((entry) => (
+                    <li key={entry} className="flex items-start gap-2.5">
+                      <Check size={16} strokeWidth={2.8} className="mt-0.5 flex-shrink-0" style={{ color: palette?.text?.accent || primaryColor }} />
+                      <span>{entry}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="flex flex-col sm:items-end gap-5 sm:min-w-[200px]">
+                <div>
+                  <div className="flex items-baseline gap-2 sm:justify-end">
+                    <span className="text-4xl font-bold" style={{ color: textPrimary }}>$249</span>
+                    <span className="text-sm" style={{ color: textSubtle }}>one-time</span>
+                  </div>
+                  <p className="mt-1 text-xs text-right" style={{ color: textSubtle }}>Includes the $99 Readiness Pack</p>
+                </div>
+                <a
+                  href="mailto:hello@foundaros.com?subject=Concierge%20Session%20Request"
+                  className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition hover:scale-[1.01]"
+                  style={{ backgroundColor: primaryColor, color: onPrimary, boxShadow: `0 16px 32px ${colorWithAlpha(primaryColor, 0.4)}` }}
+                >
+                  Apply for a spot
+                  <ArrowRight size={16} strokeWidth={2.6} />
+                </a>
+                <p className="text-xs text-center sm:text-right" style={{ color: textSubtle }}>Reply within 24 hours</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="business-ops" className="border-t px-6 py-20" style={{ backgroundColor: pageBackground, borderColor }}>
+        <div className="mx-auto max-w-4xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em]" style={{ color: palette?.text?.accent || textMuted }}>
+            FoundarOS Business Operations AI — Coming Soon
+          </p>
+          <h2 className="mt-4 text-3xl sm:text-4xl font-semibold mb-3" style={{ color: textPrimary }}>
+            And we’re building what’s next.
+          </h2>
+          <p className="mx-auto max-w-2xl text-base leading-7" style={{ color: textMuted }}>
+            Getting investment is only one part of the founder journey. FoundarOS Business Operations AI is being developed to help founders manage and grow their businesses after the fundraising stage.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            {['Finance', 'Operations', 'Procurement', 'Sales', 'Strategy', 'HR', 'Business Performance', 'Decision Support'].map((area) => (
+              <span key={area} className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-medium" style={{ backgroundColor: panelColor, borderColor, color: textPrimary }}>
+                {area}
+              </span>
+            ))}
+          </div>
+          <p className="mx-auto mt-8 max-w-2xl text-sm leading-7" style={{ color: textSubtle }}>
+            FoundarOS Business Operations AI is a separate optional subscription service. It is NOT included in the $99 Fundraising Readiness purchase.
+          </p>
+          <div className="mt-8 flex justify-center">
+            <button
+              type="button"
+              onClick={() => openLogin('assess')}
+              className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition hover:scale-[1.01]"
+              style={{ backgroundColor: primaryColor, color: onPrimary, boxShadow: `0 16px 32px ${colorWithAlpha(primaryColor, 0.4)}` }}
+            >
+              Join the Waitlist
+              <ArrowRight size={16} strokeWidth={2.6} />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="px-6 py-16 sm:py-20" style={{ backgroundColor: pageBackground }}>
+        <div
+          className="mx-auto max-w-6xl overflow-hidden rounded-[2rem] border p-6 sm:p-10 lg:p-12"
+          style={{
+            background: `linear-gradient(135deg, ${colorWithAlpha('#f59e0b', 0.2)} 0%, ${colorWithAlpha('#f97316', 0.14)} 48%, ${panelColor} 100%)`,
+            borderColor: colorWithAlpha('#f59e0b', 0.58),
+            boxShadow: `0 28px 70px ${colorWithAlpha(primaryColor, 0.22)}`,
+          }}
+        >
+          <div className="grid items-center gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:gap-12">
+            <div>
+              <div className="mb-5 flex flex-wrap items-center gap-3">
+                <span
+                  className="inline-flex items-center rounded-full border px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em]"
+                  style={{
+                    backgroundColor: colorWithAlpha('#f59e0b', 0.18),
+                    borderColor: colorWithAlpha('#f59e0b', 0.65),
+                    color: textPrimary,
+                  }}
+                >
+                  Limited time
+                </span>
+                <span
+                  className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold"
+                  style={{ backgroundColor: panelColor, borderColor, color: textPrimary }}
+                >
+                  2 spots remaining
+                </span>
+              </div>
+              <h2 className="max-w-3xl text-3xl font-semibold leading-tight sm:text-4xl" style={{ color: textPrimary }}>
+                Work with the founder, 1-on-1 — at a special price.
+              </h2>
+              <p className="mt-4 text-lg font-semibold leading-7" style={{ color: textPrimary }}>
+                2 spots only at $50 each. Offer closes 5 October 2026.
+              </p>
+              <p className="mt-4 max-w-3xl text-sm leading-7 sm:text-base" style={{ color: textMuted }}>
+                Skip the queue price. For Preseason only, two founders get a personalised session — Gap Radar walkthrough, your specific gaps, a clear next step — at less than half the normal rate. Once both spots are gone, this price is gone.
+              </p>
+            </div>
+
+            <div
+              className="rounded-3xl border p-5 sm:p-6"
+              style={{ backgroundColor: panelColor, borderColor }}
+            >
+              <p className="text-sm font-semibold" style={{ color: textPrimary }}>
+                Preseason founder session
+              </p>
+              <p className="mt-2 text-sm leading-6" style={{ color: textMuted }}>
+                Secure your 1-on-1 session directly through Flutterwave.
+              </p>
+              <button
+                type="button"
+                onClick={handlePreseasonCheckout}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition hover:scale-[1.01] hover:opacity-95"
+                style={{
+                  backgroundColor: primaryColor,
+                  color: onPrimary || '#ffffff',
+                  boxShadow: `0 16px 34px ${colorWithAlpha(primaryColor, 0.38)}`,
+                }}
+              >
+                Claim Your Spot — $50
+                <ArrowRight size={18} strokeWidth={2.6} />
+              </button>
+              <p className="mt-3 text-center text-xs font-medium" style={{ color: textMuted }}>
+                Offer ends 5 Oct 2026
               </p>
             </div>
           </div>
@@ -2102,7 +2806,7 @@ export default function EmailGate({
               FAQ
             </p>
             <h2 className="mt-4 text-3xl sm:text-4xl font-semibold" style={{ color: textPrimary }}>
-              Questions founders actually ask
+              Fair questions, straight answers
             </h2>
           </div>
           <div className="space-y-3">
@@ -2144,23 +2848,24 @@ export default function EmailGate({
               <BrandMark size={48} blockColor="#ffffff" />
             </div>
             <h2 className="text-3xl sm:text-4xl font-semibold mb-4">
-              Every founder starts somewhere. Start smart.
+              Stop guessing. Find out tonight.
             </h2>
             <p className="mx-auto mb-8 max-w-2xl leading-7 opacity-85">
-              The free Startup Readiness assessment takes 10–15 minutes. Get your score, see your gaps, and know exactly what to build next. No credit card required.
+              Fifteen minutes, free, on your phone. You’ll know exactly where your idea stands and what to fix — before you bet your savings or your notice period on it.
             </p>
             <button
               type="button"
-              onClick={openLogin}
+              onClick={() => openLogin('assess')}
               className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition hover:scale-[1.01]"
               style={{ backgroundColor: '#ffffff', color: '#0A0B14', boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }}
             >
-              Start the free assessment
+              Take the free assessment
               <ArrowRight size={18} strokeWidth={2.6} />
             </button>
           </div>
         </div>
       </section>
+      </main>
 
       <footer className="px-6 py-16" style={{ backgroundColor: palette?.surfaces?.pageAlt || pageBackground || '#05060B', color: 'rgba(255,255,255,0.85)' }}>
         <div className="max-w-6xl mx-auto flex flex-col gap-12 md:flex-row md:justify-between">
@@ -2177,19 +2882,20 @@ export default function EmailGate({
           </div>
           <div className="flex flex-wrap gap-x-16 gap-y-8">
             <div>
-              <p className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.1em]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.1em]" style={{ color: 'rgba(255,255,255,0.65)' }}>
                 Product
               </p>
               <nav className="flex flex-col gap-2.5 text-sm">
-                <a href="#how-it-works" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>How it works</a>
+                <a href="#the-wall" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>The problem</a>
+                <a href="#covers" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>What it covers</a>
+                <a href="#outputs" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>What you get</a>
                 <a href="#platform" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Platform</a>
-                <a href="#who-we-serve" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Who we serve</a>
+                <a href="#pricing" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Pricing</a>
                 <a href="#faq" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>FAQ</a>
-                <a href="#platform" className="transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.65)' }}>Pricing</a>
               </nav>
             </div>
             <div>
-              <p className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.1em]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.1em]" style={{ color: 'rgba(255,255,255,0.65)' }}>
                 Company
               </p>
               <nav className="flex flex-col gap-2.5 text-sm">
@@ -2201,7 +2907,7 @@ export default function EmailGate({
         </div>
         <div
           className="max-w-6xl mx-auto mt-12 flex flex-col gap-2 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between"
-          style={{ borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' }}
+          style={{ borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)' }}
         >
           <span>© {new Date().getFullYear()} {brandName}. All rights reserved.</span>
           <span>Built for founders in Africa &amp; beyond.</span>
@@ -2218,7 +2924,8 @@ export default function EmailGate({
           aria-modal="true"
           aria-labelledby="email-gate-login-title"
           onClick={(event) => {
-            if (event.target === event.currentTarget && !loading) {
+            // Backdrop dismissal stays enabled even mid-submission — never trap the user
+            if (event.target === event.currentTarget) {
               setLoginOpen(false);
             }
           }}
@@ -2230,7 +2937,6 @@ export default function EmailGate({
             <button
               type="button"
               onClick={() => setLoginOpen(false)}
-              disabled={loading}
               aria-label="Close login"
               className="absolute right-3 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:opacity-80"
               style={{ backgroundColor: bgLight, color: textPrimary }}
@@ -2239,15 +2945,297 @@ export default function EmailGate({
             </button>
             <div className="p-6 sm:p-8">
               <h2 id="email-gate-login-title" className="text-2xl font-extrabold mb-1" style={{ color: textPrimary }}>
-                Welcome to {brandName}
+                {loginMode === 'login' ? 'Welcome back' : 'Let’s find out where you stand'}
               </h2>
               <p className="text-sm mb-5" style={{ color: textMuted }}>
-                Enter your email to start your free assessment. Already taken it? Same door — you’ll pick up right where you left off.
+                {loginMode === 'login'
+                  ? 'Log in to pick up right where you left off.'
+                  : 'Enter your email to take the free assessment — your score and results are saved to it. Already taken it? Same door: you’ll pick up right where you left off.'}
               </p>
               <LoginPanel compact />
             </div>
           </div>
         </div>
+      )}
+
+      {/* Feature: floating AI chatbot widget (hidden while the login modal is open) */}
+      {!loginOpen && (
+        <>
+          <style>{`
+            @keyframes eg-chat-pop { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+            @keyframes eg-typing { 0%, 60%, 100% { opacity: 0.25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+            .eg-chat-panel { animation: eg-chat-pop 0.26s ease; }
+            .eg-typing-dot { display: inline-block; width: 6px; height: 6px; border-radius: 9999px; background: ${textMuted}; margin: 0 2px; animation: eg-typing 1.2s infinite ease-in-out; }
+            .eg-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+            .eg-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+            @keyframes eg-fab-ring { 0% { transform: scale(0.85); opacity: 0.55; } 70% { transform: scale(1.5); opacity: 0; } 100% { transform: scale(1.5); opacity: 0; } }
+            @keyframes eg-fab-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+            @keyframes eg-sparkle-twinkle { 0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; } 50% { transform: scale(1.25) rotate(18deg); opacity: 0.75; } }
+            .eg-fab { animation: eg-fab-float 3.2s ease-in-out infinite; }
+            .eg-fab:hover { animation-play-state: paused; }
+            .eg-fab-ring { animation: eg-fab-ring 2.4s ease-out infinite; }
+            .eg-fab-sparkle { animation: eg-sparkle-twinkle 2.6s ease-in-out infinite; }
+            @media (max-width: 639px) {
+              .eg-chat-panel { position: fixed !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; max-width: 100% !important; border-radius: 18px 18px 0 0 !important; }
+            }
+          `}</style>
+
+          {chatOpen && (
+            <div
+              className="eg-chat-panel fixed flex flex-col overflow-hidden"
+              style={{
+                bottom: 92,
+                right: 24,
+                width: 300,
+                maxHeight: 440,
+                height: 440,
+                zIndex: 45,
+                borderRadius: 18,
+                backgroundColor: panelStrongColor,
+                border: `1px solid ${borderColor}`,
+                boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
+                fontFamily: bodyFontStack,
+              }}
+              role="dialog"
+              aria-label="FoundarOS assistant"
+            >
+              {/* Header */}
+              <div
+                className="flex items-center justify-between px-4 py-3"
+                style={{ borderBottom: `1px solid ${borderColor}` }}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className="flex h-7 w-7 items-center justify-center rounded-full"
+                    style={{ backgroundColor: colorWithAlpha(primaryColor, 0.18), color: primaryColor }}
+                  >
+                    <Bot size={16} strokeWidth={2.4} />
+                  </span>
+                  <span className="text-sm font-bold" style={{ color: textPrimary }}>
+                    Ask FoundarOS
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setChatOpen(false)}
+                  aria-label="Close chat"
+                  className="flex h-7 w-7 items-center justify-center rounded-full transition-opacity hover:opacity-70"
+                  style={{ color: textMuted }}
+                >
+                  <X size={16} strokeWidth={2.6} />
+                </button>
+              </div>
+
+              {/* Message list */}
+              <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+                <div
+                  className="max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed"
+                  style={{ backgroundColor: bgMedium, color: textPrimary }}
+                >
+                  Hi! I&apos;m the FoundarOS assistant. Ask me anything about your fundability
+                  assessment, pricing, or what to expect.
+                </div>
+                {conversationHistory.length === 0 && !chatLoading && (
+                  <div className="pt-1">
+                    <div
+                      className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide"
+                      style={{ color: textMuted }}
+                    >
+                      Try asking
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {chatSuggestions.map((q) => (
+                        <button
+                          key={q}
+                          type="button"
+                          onClick={() => sendChatMessage(q)}
+                          className="rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors"
+                          style={{
+                            backgroundColor: colorWithAlpha(primaryColor, 0.12),
+                            color: primaryColor,
+                            border: `1px solid ${colorWithAlpha(primaryColor, 0.35)}`,
+                          }}
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {conversationHistory.map((msg, i) => (
+                  <div
+                    key={i}
+                    className="flex"
+                    style={{ justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}
+                  >
+                    <div
+                      className="max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap"
+                      style={
+                        msg.role === 'user'
+                          ? { backgroundColor: primaryColor, color: onPrimary || '#ffffff' }
+                          : { backgroundColor: bgMedium, color: textPrimary }
+                      }
+                    >
+                      {msg.content}
+                    </div>
+                  </div>
+                ))}
+                {chatLoading && (
+                  <div className="flex" style={{ justifyContent: 'flex-start' }}>
+                    <div
+                      className="rounded-2xl px-3 py-2"
+                      style={{ backgroundColor: bgMedium }}
+                      aria-label="Assistant is typing"
+                    >
+                      <span className="eg-typing-dot" />
+                      <span className="eg-typing-dot" />
+                      <span className="eg-typing-dot" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Input */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  sendChatMessage();
+                }}
+                className="flex items-center gap-2 px-3 py-3"
+                style={{ borderTop: `1px solid ${borderColor}` }}
+              >
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Type your question…"
+                  aria-label="Message"
+                  className="flex-1 rounded-full px-3 py-2 text-xs outline-none"
+                  style={{
+                    backgroundColor: bgMedium,
+                    color: textPrimary,
+                    border: `1px solid ${borderColor}`,
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={chatLoading || !chatInput.trim()}
+                  aria-label="Send message"
+                  className="flex h-9 w-9 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
+                  style={{ backgroundColor: primaryColor, color: onPrimary || '#ffffff' }}
+                >
+                  <ArrowRight size={16} strokeWidth={2.6} />
+                </button>
+              </form>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setChatOpen((v) => !v)}
+            aria-label={chatOpen ? 'Close assistant' : 'Open assistant'}
+            aria-expanded={chatOpen}
+            className={`eg-fab fixed flex items-center justify-center rounded-full transition-transform hover:scale-110${
+              chatOpen ? ' !animate-none' : ''
+            }`}
+            style={{
+              bottom: 24,
+              right: 24,
+              width: 60,
+              height: 60,
+              zIndex: 45,
+              color: onPrimary || '#ffffff',
+              background: `linear-gradient(145deg, ${colorWithAlpha(
+                primaryColor,
+                0.95,
+              )} 0%, ${primaryColor} 45%, ${colorWithAlpha('#6366f1', 0.95)} 100%)`,
+              border: `1px solid ${colorWithAlpha('#ffffff', 0.25)}`,
+              boxShadow: `0 14px 34px ${colorWithAlpha(primaryColor, 0.55)}`,
+            }}
+          >
+            {/* Pulsing attention ring (only while closed) */}
+            {!chatOpen && (
+              <span
+                className="eg-fab-ring pointer-events-none absolute inset-0 rounded-full"
+                style={{ border: `2px solid ${colorWithAlpha(primaryColor, 0.6)}` }}
+                aria-hidden="true"
+              />
+            )}
+            {chatOpen ? (
+              <X size={24} strokeWidth={2.6} />
+            ) : (
+              <span className="relative flex items-center justify-center">
+                <Bot size={26} strokeWidth={2.2} />
+                <Sparkles
+                  size={13}
+                  strokeWidth={2.6}
+                  className="eg-fab-sparkle absolute"
+                  style={{ top: -8, right: -9, color: '#fde047' }}
+                  aria-hidden="true"
+                />
+              </span>
+            )}
+          </button>
+        </>
+      )}
+
+      {/* Feature: cookie consent banner */}
+      {cookieConsentVisible && (
+        <>
+          <style>{`
+            @keyframes eg-cookie-up { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
+            .eg-cookie-banner { animation: eg-cookie-up 0.4s ease; }
+          `}</style>
+          <div
+            className="eg-cookie-banner fixed inset-x-0 bottom-0"
+            style={{
+              zIndex: 50,
+              backgroundColor: panelStrongColor,
+              borderTop: `1px solid ${borderColor}`,
+              boxShadow: '0 -12px 40px rgba(0,0,0,0.4)',
+              fontFamily: bodyFontStack,
+            }}
+            role="region"
+            aria-label="Cookie consent"
+          >
+            <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm">
+                <p className="font-bold" style={{ color: textPrimary }}>
+                  We use cookies
+                </p>
+                <p className="mt-1 leading-relaxed" style={{ color: textMuted }}>
+                  We use cookies to improve your experience, understand how visitors use our site,
+                  and personalise your journey. You can accept all or decline non-essential cookies.{' '}
+                  <a
+                    href="#privacy"
+                    className="underline underline-offset-2"
+                    style={{ color: primaryColor }}
+                  >
+                    Privacy Policy
+                  </a>
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleCookieConsent('declined')}
+                  className="rounded-full px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: 'transparent', color: textPrimary, border: `1px solid ${borderColor}` }}
+                >
+                  Decline
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCookieConsent('accepted')}
+                  className="rounded-full px-5 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: primaryColor, color: onPrimary || '#ffffff' }}
+                >
+                  Accept All
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </>
   );

@@ -7,13 +7,11 @@ interface SettingsProps {
   spaceId: string;
 }
 
-// STRIPE TEST MODE — keep in sync with STRIPE_TEST_MODE in
-// apps/GapRadar/App.tsx. The platform payments API (/api/payments/*) runs
-// LIVE Stripe keys server-side (no keys exist in this codebase to swap), so
-// while this is true the subscribe button is disabled instead of opening a
-// live-mode checkout that would charge a real card.
-// TODO(founder): set to false before selling for real.
-const STRIPE_TEST_MODE = true;
+// LIVE/TEST SUBSCRIPTION CHECKOUT FLAG: keep false in production.
+// The platform payments API (/api/payments/*) uses the workspace Wallet's live
+// Stripe credentials server-side; setting this to true disables checkout for
+// controlled testing only.
+const STRIPE_TEST_MODE = false;
 
 interface SubscriptionStatus {
   status: 'not_registered' | 'registered' | 'trial' | 'trialing' | 'trial_expired' | 'active' | 'canceled' | 'past_due';

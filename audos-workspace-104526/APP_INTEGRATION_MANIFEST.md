@@ -516,6 +516,18 @@ POST /api/render/remotion
 **Category:** Backend / Server Logic
 Define server-side handler functions that receive HTTP requests at unique URLs per workspace.
 
+**Execute URLs & reacting to events:** A hook is publicly executable at both
+`/api/workspaces/:workspaceId/hooks/:hookName/execute` and the canonical alias
+`/api/hooks/execute/:workspaceRef/:hookName` (customer chat tools must use the
+alias form `/api/hooks/execute/workspace-{configId}/{hookName}`). The `secret`
+is optional — a secret-less hook's execute URL is open. `respond()` JSON
+responses carry an appended `_meta` execution block; `respondRaw()` responses
+intentionally omit the wrapper. There is no event→hook subscription: react to
+workspace analytics events with a scheduled hook that polls
+`GET /api/crm/events` (`{ success, data, count }` envelope, at-least-once with
+an idempotent side effect — see the "Reacting to Workspace Events" section of
+`integrations/server-functions/docs.md`).
+
 | Endpoint | Purpose |
 |----------|--------|
 | `GET /api/workspaces/665201/hooks` |  |
@@ -530,6 +542,52 @@ GET /api/workspaces/665201/hooks       ✅ works
 GET /api/workspaces/workspace-665201/hooks  ✅ works
 GET /api/workspaces/8a8181a4-.../hooks ✅ works
 ```
+
+#### Secrets proxy request bodies, Content-Type, and failures
+
+Only one of `json`, `body`, or `form` may be supplied. `GET` and `HEAD` requests
+cannot carry any of them.
+
+| Field | Accepted shape | What the proxy sends | Content-Type applied for you |
+|---|---|---|---|
+| `json` | Any JSON value: object, array, string, number, boolean, or `null` | The proxy runs `JSON.stringify` after replacing secret placeholders. Pass the value itself — do not pre-stringify an object. | `application/json` |
+| `body` | A raw string | UTF-8 bytes exactly as supplied after placeholder replacement | `text/plain; charset=utf-8` |
+| `form` | An object whose keys and values are strings | URL-encoded by default; set `formEncoding: "multipart"` for text-only multipart fields | `application/x-www-form-urlencoded`, or `multipart/form-data` with the generated boundary |
+
+Yes: when you use `json`, the proxy sets `Content-Type: application/json` for
+you. The same automatic default applies to raw and form bodies as shown above.
+If you provide a `Content-Type` header yourself it wins; otherwise the optional
+top-level `contentType` override wins over the automatic default. A request with
+no body gets no automatic Content-Type.
+
+##### Failure codes
+
+**Permanent or transient?** Permanent means do not retry the same unchanged
+request — fix the request/configuration or take the fallback path. Transient
+means retry later with backoff (and still take the fallback path if retries are
+exhausted). An upstream HTTP 4xx/5xx is not one of these proxy failures: the
+proxy call succeeds and returns that upstream status in `status`.
+
+| `code` | HTTP status | Class | Meaning and action |
+|---|---:|---|---|
+| `invalid_request` | 400 | Permanent | The request shape is invalid (including unknown fields, conflicting body fields, or a body on GET/HEAD). Fix it. |
+| `unknown_secret` | 400 | Permanent | A referenced secret is missing or disabled. Configure/enable it or use the fallback. |
+| `no_allowed_hosts` | 400 | Permanent | A referenced secret has no host allow-list. Configure the key before trying again. |
+| `invalid_url` | 400 | Permanent | The substituted target URL is invalid. Fix the URL. |
+| `https_required` | 400 | Permanent | The target is not HTTPS. Use an HTTPS endpoint. |
+| `blocked_host` | 403 | Permanent | The target host or resolved IP is blocked by the proxy's SSRF policy. Choose a public third-party endpoint. |
+| `host_not_allowed` | 403 | Permanent | At least one referenced secret does not allow the target host. Fix that key's allow-list. |
+| `request_too_large` | 413 | Permanent | The built request body exceeds the proxy limit. Reduce or split it. |
+| `rate_limited` | 429 | Transient | The workspace used its per-minute allowance. Retry later with backoff. |
+| `concurrency_limited` | 429 | Transient | Too many proxy calls are active for the workspace. Retry after another call finishes. |
+| `signer_error` | 500 | Transient | The platform request signer failed. Retry later; use the fallback if it repeats. |
+| `proxy_error` | 500 | Transient | An unexpected internal proxy failure occurred. Retry once later, then use the fallback and report it if it repeats. |
+| `bad_redirect` | 502 | Permanent | The upstream returned an invalid redirect location. Use a correct final URL or another endpoint. |
+| `cross_host_redirect` | 502 | Permanent | The upstream tried to redirect secret-bearing headers to another host. Call an allowed final host directly. |
+| `too_many_redirects` | 502 | Permanent | The upstream redirect chain exceeds the proxy limit. Use the final URL or another endpoint. |
+| `response_too_large` | 502 | Permanent | The raw upstream response exceeds the proxy limit. Ask for less data or use another transfer path. |
+| `upstream_error` | 502 | Transient | DNS, connection, TLS, timeout, or another upstream transport failure occurred. Retry later with backoff. |
+
 
 ---
 
@@ -626,7 +684,12 @@ GET /api/stock-photos?query=...&perPage=10&orientation=landscape
 
 ### stripe-payments
 **Category:** General
-Accept payments and subscriptions in your Space. Payments work out of the box using the platform's Stripe account, with an optional upgrade to your own Stripe Connect account.
+Accept payments and subscriptions in your Space. Payments work out of the box using the platform's Stripe account, with an optional upgrade to your own Stripe Connect account. A workspace may instead be connected to **Flutterwave** — the same endpoints serve both.
+
+> ⚠️ **Read `integrations/stripe-payments/docs.md` before wiring a paid tier.** Three things are easy to get wrong:
+> 1. `GET /api/payments/status/:sessionId` **requires** the `X-App-Id` header. Without it: `400 {"error":"Missing X-App-Id header","code":"missing_app_id"}`.
+> 2. `currency` does **not** default to `'usd'`. When omitted, `amount` is read as minor units of the **workspace** currency (`currency` in `data/payment-config.json`) — on an NGN workspace `amount: 9900` renders as ₦99, not $99. Always pass `currency` explicitly for a fixed-currency price.
+> 3. Check `provider` in `data/payment-config.json` (`'stripe'` or `'flutterwave'`) instead of assuming Stripe. Flutterwave returns a `checkout.flutterwave.com` link with an `audos_chk_...` sessionId, appends `status` / `tx_ref` / `transaction_id` to the return URL (`status=cancelled` on abandon), and there is no per-request provider override.
 
 | Endpoint | Purpose |
 |----------|--------|

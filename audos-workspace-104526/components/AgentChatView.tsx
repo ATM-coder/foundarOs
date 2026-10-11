@@ -28,9 +28,8 @@ import {
   File,
   XCircle,
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import { lazy, Suspense, useEffect } from 'react';
 import type { Components } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { getFriendlyTerm, getToolColor } from '../lib/friendly-terms';
 import { tw } from '../lib/colors';
 import type { AgentChatRuntime } from './useAgentChatRuntime';
@@ -261,6 +260,64 @@ const markdownComponents: Components = {
   },
 };
 
+// PERFORMANCE (QA task: serial esm.sh waterfall / LCP / FCP):
+// react-markdown and remark-gfm are only needed to render chat messages, but
+// importing them statically put them — and remark-gfm's ~60 transitive
+// micromark/mdast sub-modules, fetched one-by-one from esm.sh — on the
+// critical path of EVERY page load, including the public landing gate.
+// Loading them on demand leaves only react, react-dom and lucide-react on
+// the first-paint path.
+type MarkdownModules = [{ default: any }, { default: any }];
+
+let markdownModulesPromise: Promise<MarkdownModules> | null = null;
+
+const loadMarkdownModules = (): Promise<MarkdownModules> => {
+  if (!markdownModulesPromise) {
+    markdownModulesPromise = Promise.all([
+      import('react-markdown'),
+      // The bare 'remark-gfm' importmap entry is unbundled, so even a lazy
+      // load would fan out into dozens of serial CDN sub-requests. The
+      // ?bundle URL collapses it into a single fetch; if that URL is ever
+      // unreachable we fall back to the importmap entry.
+      import('https://esm.sh/remark-gfm@4.0.0?bundle').catch(() => import('remark-gfm')),
+    ]) as unknown as Promise<MarkdownModules>;
+  }
+  return markdownModulesPromise;
+};
+
+const LazyMarkdownRenderer = lazy(async () => {
+  const [reactMarkdownModule, remarkGfmModule] = await loadMarkdownModules();
+  const ReactMarkdown = reactMarkdownModule.default;
+  const remarkGfm = remarkGfmModule.default;
+  const MarkdownRenderer = ({ children }: { children: string }) => (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={markdownComponents}
+      urlTransform={markdownUrlTransform}
+    >
+      {children}
+    </ReactMarkdown>
+  );
+  return { default: MarkdownRenderer };
+});
+
+// While the modules stream in, show the raw text with preserved line breaks
+// so the message is readable immediately and nothing jumps when the real
+// renderer takes over.
+function Markdown({ children }: { children: string }) {
+  return (
+    <Suspense
+      fallback={
+        <p className="my-2 text-base" style={{ whiteSpace: 'pre-wrap' }}>
+          {children}
+        </p>
+      }
+    >
+      <LazyMarkdownRenderer>{children}</LazyMarkdownRenderer>
+    </Suspense>
+  );
+}
+
 export default function AgentChatView({ runtime }: AgentChatViewProps) {
   const {
     messages,
@@ -301,6 +358,14 @@ export default function AgentChatView({ runtime }: AgentChatViewProps) {
     starterPrompts,
     shortcutPrefix,
   } = runtime;
+
+  // Warm the markdown modules in the background as soon as the chat surface
+  // mounts, so the renderer is usually ready before the first assistant
+  // message needs it. The landing gate never mounts this component, so its
+  // first paint stays unaffected.
+  useEffect(() => {
+    void loadMarkdownModules();
+  }, []);
 
   const hasUserMessages = messages.some((message) => message.role === 'user');
   const shouldShowBeaconIntake = isBeaconSpace && !!beaconIntake && !hasUserMessages;
@@ -493,7 +558,7 @@ export default function AgentChatView({ runtime }: AgentChatViewProps) {
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--space-surface-accent-soft)] shadow-sm">
                 <Bot className="h-6 w-6 text-[var(--space-text-brand)]" />
               </div>
-              <h1 className="text-2xl font-semibold text-[var(--space-text-primary)]">How can I help?</h1>
+              <h1 className="text-2xl font-semibold text-[var(--space-text-primary)]">What do you need to prove next?</h1>
               {homeWelcomeText && (
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--space-text-secondary)]">{homeWelcomeText}</p>
               )}
@@ -617,7 +682,7 @@ export default function AgentChatView({ runtime }: AgentChatViewProps) {
             ) : (
               <div className="text-center text-[var(--space-text-secondary)]">
                 <Bot className="w-12 h-12 mx-auto mb-3 text-[var(--space-text-muted)]" />
-                <p className="text-sm">Ask me anything to get started</p>
+                <p className="text-sm">Start with where your venture is today — idea, validation, early traction, or fundraising.</p>
                 {starterPrompts.length > 0 && (
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
                     {starterPrompts.map((prompt) => (
@@ -678,13 +743,9 @@ export default function AgentChatView({ runtime }: AgentChatViewProps) {
                       msg.role === 'user' ? 'text-base' : 'text-base'
                     }`}
                   >
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={markdownComponents}
-                      urlTransform={markdownUrlTransform}
-                    >
+                    <Markdown>
                       {typeof msg.content === 'string' ? msg.content : ''}
-                    </ReactMarkdown>
+                    </Markdown>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -692,13 +753,7 @@ export default function AgentChatView({ runtime }: AgentChatViewProps) {
                       <div key={chunkIdx}>
                         {chunk.type === 'text' && chunk.text && (
                           <div className="prose prose-base max-w-none text-base">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              components={markdownComponents}
-                              urlTransform={markdownUrlTransform}
-                            >
-                              {chunk.text}
-                            </ReactMarkdown>
+                            <Markdown>{chunk.text}</Markdown>
                           </div>
                         )}
                         {chunk.type === 'tool_use' && (
@@ -772,13 +827,7 @@ export default function AgentChatView({ runtime }: AgentChatViewProps) {
           >
             <p className="text-sm font-medium mb-1">{agentLabel}</p>
             <div className="prose prose-base max-w-none text-base">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={markdownComponents}
-                urlTransform={markdownUrlTransform}
-              >
-                {streamingContent}
-              </ReactMarkdown>
+              <Markdown>{streamingContent}</Markdown>
               {isStreaming && (
                 <span className="inline-block w-0.5 h-4 ml-1 bg-[var(--space-text-primary)] animate-pulse" />
               )}

@@ -1,0 +1,138 @@
+{
+  "version": "2.0",
+  "positioning": "FoundarOS doesn't simply ask, 'Are you fundable?' It helps you understand what evidence your venture has today, what is missing, and what you need to prove next.",
+  "stages": [
+    {
+      "id": "idea",
+      "letter": "A",
+      "name": "IDEA STAGE",
+      "description": "I have an idea I'm exploring. I may still be working a 9–5 and haven't launched yet.",
+      "scoreName": "Idea Fundability Score",
+      "journey": "From Idea → Evidence → Fundability",
+      "recommendedStatus": "BUILD EVIDENCE FIRST",
+      "nextMilestone": "Move from idea → validated concept",
+      "focusMessage": "Your biggest priority is not preparing a pitch deck. It is proving that your target customer experiences the problem strongly enough to seek a solution.",
+      "radarLabels": ["Problem", "Customer", "Solution", "Market", "Validation", "Business Model", "Founder Advantage", "Funding Path"],
+      "notYetApplicable": ["Traction", "Monthly revenue", "Customer retention", "CAC / LTV", "EBITDA", "Financial projections", "Pitch deck"],
+      "dimensions": [
+        {"id":"problem_strength","label":"Problem Strength","weight":20,"why":"A fundable case starts with a specific, costly or urgent problem experienced by a clearly identifiable customer.","strengthen":["Interview people who experience the problem","Capture repeated pain points in their own words","Document how often the problem occurs"],"proof":"Five independent customer interviews that describe the same painful problem without prompting."},
+        {"id":"customer_definition","label":"Customer Definition","weight":15,"why":"A narrow first customer makes discovery, testing and early distribution practical.","strengthen":["Choose one beachhead customer","Describe their situation, behaviour and access point","List where you can reach them this month"],"proof":"A one-page ideal-customer profile validated in three conversations."},
+        {"id":"solution_clarity","label":"Solution Clarity","weight":10,"why":"A clear solution hypothesis lets you test value before spending heavily on a full product.","strengthen":["Write a one-sentence value proposition","Create a sketch, demo or concierge test","Ask customers to compare it with their current alternative"],"proof":"A simple concept or prototype that target customers can react to."},
+        {"id":"market_potential","label":"Market Potential","weight":15,"why":"Early market research shows whether the problem is common enough and valuable enough to support a venture.","strengthen":["Estimate the reachable market bottom-up","Map direct and status-quo alternatives","Identify a credible first niche"],"proof":"A sourced bottom-up estimate for the first reachable market segment."},
+        {"id":"validation_evidence","label":"Validation Evidence","weight":15,"why":"At idea stage, learning evidence matters more than revenue or a finished product.","strengthen":["Run problem interviews","Track patterns rather than compliments","Ask for a meaningful commitment"],"proof":"A repeated problem pattern plus one concrete demand signal such as a follow-up, pilot interest or LOI."},
+        {"id":"business_model_potential","label":"Business Model Potential","weight":10,"why":"You do not need a finished model yet, but you should have a testable view of who pays and why.","strengthen":["Name the likely payer","Test a real price range","Compare two simple revenue-model options"],"proof":"A target customer reacts to a specific offer and price rather than a hypothetical free solution."},
+        {"id":"founder_advantage","label":"Founder Advantage","weight":10,"why":"Relevant insight, access or lived experience can reduce the risk of discovering and serving the right customer.","strengthen":["Write your founder-market-fit story","Identify your unique access or expertise","Name the capability you still need"],"proof":"A concrete example of insight or access that another founder would find difficult to replicate."},
+        {"id":"funding_pathway","label":"Funding Pathway","weight":5,"why":"The right next funding source depends on stage; many ideas should build evidence before seeking institutional capital.","strengthen":["Define the next evidence milestone","Estimate only what that milestone costs","Compare bootstrapping, grants, customers and equity"],"proof":"A milestone-based funding path that explains what evidence will be created before a larger raise."}
+      ],
+      "questions": [
+        {"id":"idea_problem","dimension":"problem_strength","type":"text","prompt":"Who has the problem, and what makes it painful or urgent for them?","help":"Describe one specific person or organisation and the consequence of the problem."},
+        {"id":"idea_customer","dimension":"customer_definition","type":"text","prompt":"Who is the first customer you want to understand deeply?","help":"Be narrower than “everyone” — include their role, situation and context."},
+        {"id":"idea_solution","dimension":"solution_clarity","type":"text","prompt":"How do they solve it today, and what would your solution change?","help":"Include workarounds, competitors and doing nothing."},
+        {"id":"idea_market","dimension":"market_potential","type":"choice","prompt":"What have you done to understand the size and shape of this opportunity?","options":[{"label":"I have a sourced, bottom-up estimate for a reachable first market","score":3},{"label":"I have researched the market and can explain a credible niche","score":2},{"label":"I have seen broad market figures but not tested my assumptions","score":1},{"label":"I have not researched the market yet","score":0}]},
+        {"id":"idea_evidence","dimension":"validation_evidence","type":"text","prompt":"What evidence have you collected that this problem is real and recurring?","help":"Customer quotes, observed behaviour and commitments are stronger than encouragement."},
+        {"id":"idea_model","dimension":"business_model_potential","type":"text","prompt":"Why do you believe they would pay, and what offer could you test first?","help":"You do not need revenue yet. State the value created and a testable offer."},
+        {"id":"idea_advantage","dimension":"founder_advantage","type":"text","prompt":"What makes you uniquely positioned to solve it?","help":"Consider lived experience, expertise, trust, distribution or unusual access."},
+        {"id":"idea_path","dimension":"funding_pathway","type":"text","prompt":"What access do you have to potential customers, and what proof could you build before seeking funding?","help":"Name real communities, relationships or channels and one milestone."}
+      ]
+    },
+    {
+      "id": "validation",
+      "letter": "B",
+      "name": "VALIDATION STAGE",
+      "description": "I've started testing my idea, speaking to potential customers or developing an early prototype/MVP.",
+      "scoreName": "Validation Fundability Score",
+      "journey": "From Assumptions → Tests → Evidence",
+      "recommendedStatus": "VALIDATE THEN EXPLORE FUNDING",
+      "nextMilestone": "Move from early tests → repeatable demand evidence",
+      "focusMessage": "Your priority is turning encouraging feedback into observable behaviour: product use, pilots, commitments and willingness to pay.",
+      "radarLabels": ["Problem", "Customer", "Solution Validation", "Market Validation", "Business Model", "Evidence", "Founder Advantage", "Funding Path"],
+      "notYetApplicable": ["EBITDA", "Institutional due diligence"],
+      "dimensions": [
+        {"id":"problem_strength","label":"Problem Strength","weight":15,"why":"Strong validation begins with evidence that the problem is frequent, painful and prioritised.","strengthen":["Separate compliments from problem evidence","Quantify frequency and impact","Compare urgent and non-urgent segments"],"proof":"Interview notes showing a repeated high-priority problem across a defined segment."},
+        {"id":"customer_definition","label":"Customer Definition","weight":10,"why":"A precise segment makes your test results interpretable and repeatable.","strengthen":["Narrow the beachhead segment","Document buying roles","Test one acquisition channel"],"proof":"A consistent profile across the people who engage most strongly with the test."},
+        {"id":"solution_validation","label":"Solution Validation","weight":15,"why":"Solution evidence shows that customers can understand, use and value what you are building.","strengthen":["Test the smallest usable version","Observe behaviour rather than asking hypotheticals","Track the same success measure across tests"],"proof":"Target users complete a meaningful task with the prototype and ask to continue."},
+        {"id":"market_validation","label":"Market Validation","weight":15,"why":"Market validation tests whether demand exists beyond a small friendly circle.","strengthen":["Recruit outside friends and family","Test channel response","Map alternatives and switching barriers"],"proof":"Qualified prospects from a repeatable channel take the next step without personal favours."},
+        {"id":"business_model","label":"Business Model","weight":10,"why":"A testable price and payer hypothesis converts interest into commercial learning.","strengthen":["Make a priced offer","Identify buyer versus user","Record objections and conversion"],"proof":"A real buyer accepts a price, paid pilot, deposit, pre-order or commercial conversation."},
+        {"id":"early_evidence","label":"Early Traction/Evidence","weight":15,"why":"Early traction is any meaningful behaviour that reduces uncertainty, not only revenue.","strengthen":["Define one leading metric","Track cohorts of testers","Ask for commitments"],"proof":"A growing set of users, pilots, LOIs, pre-orders or repeat engagements tied to the same use case."},
+        {"id":"founder_advantage","label":"Founder Advantage","weight":10,"why":"The team must show the insight and learning speed to turn tests into a venture.","strengthen":["Connect founder insight to test choices","Track learning velocity","Fill critical skill gaps"],"proof":"A concrete founder advantage has enabled faster access, insight or execution."},
+        {"id":"funding_pathway","label":"Funding Pathway","weight":10,"why":"Validation-stage capital should buy specific evidence, not simply more activity.","strengthen":["Name the next proof milestone","Cost the experiment plan","Match funding sources to stage"],"proof":"A milestone budget showing exactly which assumptions will be proven with the capital."}
+      ],
+      "questions": [
+        {"id":"val_problem","dimension":"problem_strength","type":"text","prompt":"What have customer conversations taught you about the frequency, urgency and cost of the problem?","help":"Share repeated patterns, not isolated praise."},
+        {"id":"val_customer","dimension":"customer_definition","type":"text","prompt":"Which customer segment responds most strongly, and how has your definition changed through testing?","help":"Name the segment and the evidence behind your focus."},
+        {"id":"val_solution","dimension":"solution_validation","type":"choice","prompt":"What happens when target customers use or see your MVP, prototype or service test?","options":[{"label":"They complete a meaningful task, return or ask to continue","score":3},{"label":"Several have tested it and given specific improvement feedback","score":2},{"label":"People say they like the concept, but use is limited","score":1},{"label":"I have not put a testable version in front of customers","score":0}]},
+        {"id":"val_market","dimension":"market_validation","type":"text","prompt":"What evidence suggests demand exists beyond friends, family or your immediate network?","help":"Include channel tests, inbound interest or independent prospects."},
+        {"id":"val_model","dimension":"business_model","type":"choice","prompt":"What have you learned about willingness to pay?","options":[{"label":"A target buyer has paid, placed a deposit or accepted a priced pilot","score":3},{"label":"Buyers have discussed a specific price and buying process","score":2},{"label":"I have asked hypothetically but not made a real offer","score":1},{"label":"I have not tested price or who pays","score":0}]},
+        {"id":"val_evidence","dimension":"early_evidence","type":"text","prompt":"What is your strongest early traction or evidence signal today?","help":"Examples: active testers, repeat use, pilots, LOIs, pre-orders or referrals."},
+        {"id":"val_advantage","dimension":"founder_advantage","type":"text","prompt":"How has your experience, access or team helped you learn or execute faster?","help":"Use one concrete example."},
+        {"id":"val_path","dimension":"funding_pathway","type":"text","prompt":"What next milestone would funding help you prove, and what would it cost?","help":"Tie capital to an evidence milestone, not a list of activities."}
+      ]
+    },
+    {
+      "id": "early_venture",
+      "letter": "C",
+      "name": "EARLY VENTURE",
+      "description": "I have launched and have some users, customers, pilots, revenue or other early traction.",
+      "scoreName": "Venture Fundability Score",
+      "journey": "From Early Traction → Repeatability → Readiness",
+      "recommendedStatus": "BEGIN FUNDING PREPARATION",
+      "nextMilestone": "Move from early traction → repeatable growth evidence",
+      "focusMessage": "Your priority is showing that early demand can become repeatable: acquisition, retention, revenue quality and a credible financial model.",
+      "radarLabels": ["Problem & Solution", "Market Validation", "Business Model", "Traction", "Customer Evidence", "Financial Readiness", "Team", "Funding Readiness"],
+      "notYetApplicable": [],
+      "dimensions": [
+        {"id":"problem_solution","label":"Problem & Solution","weight":10,"why":"A launched venture still needs a clear problem-solution narrative grounded in actual customer behaviour.","strengthen":["Connect outcomes to the core problem","Document product learning","Clarify differentiation"],"proof":"Customers consistently use the product for the intended high-value outcome."},
+        {"id":"market_validation","label":"Market Validation","weight":15,"why":"Market evidence shows that demand extends across a coherent segment and reachable channels.","strengthen":["Segment traction data","Measure channel conversion","Map competition and switching"],"proof":"Qualified demand repeats across customers who share the same profile."},
+        {"id":"business_model","label":"Business Model","weight":15,"why":"A fundable business model connects pricing, delivery cost and repeatable customer value.","strengthen":["Validate pricing","Track gross margin","Clarify recurring versus one-off revenue"],"proof":"Customers pay a consistent price that supports a credible margin."},
+        {"id":"traction_evidence","label":"Traction & Evidence","weight":20,"why":"Funders look for momentum supported by a consistent metric, not a collection of vanity numbers.","strengthen":["Choose a north-star traction metric","Show month-by-month movement","Explain anomalies honestly"],"proof":"Three or more periods of improving traction in the metric that matters to the model."},
+        {"id":"customer_revenue","label":"Customer/Revenue Evidence","weight":10,"why":"Customer quality, retention and revenue evidence show whether initial demand is durable.","strengthen":["Track retention and churn","Separate pilots from recurring customers","Capture customer outcomes"],"proof":"Cohort or repeat-purchase evidence showing customers continue receiving value."},
+        {"id":"financial_readiness","label":"Financial Readiness","weight":10,"why":"A simple, assumption-led model helps funders understand runway, unit economics and capital needs.","strengthen":["Build a 24-month model","Track burn and runway","Calculate initial unit economics"],"proof":"An updated model reconciled to actual revenue and costs with visible assumptions."},
+        {"id":"team_readiness","label":"Founder/Team Readiness","weight":10,"why":"The team must cover the capabilities required to deliver the next stage of growth.","strengthen":["Define ownership and gaps","Show execution cadence","Add targeted advisors or hires"],"proof":"A clear team plan tied to the next 12 months of execution."},
+        {"id":"funding_readiness","label":"Funding Readiness","weight":10,"why":"A strong raise links a defined ask to measurable milestones and a coherent evidence-backed story.","strengthen":["Define the ask and runway","Tie use of funds to milestones","Prepare the core narrative and data room"],"proof":"A milestone-based ask supported by a model, traction data and clear use of funds."}
+      ],
+      "questions": [
+        {"id":"venture_problem","dimension":"problem_solution","type":"text","prompt":"What customer outcome proves your launched solution addresses the intended problem?","help":"Use observed behaviour or results, not only your product description."},
+        {"id":"venture_market","dimension":"market_validation","type":"text","prompt":"Which customer segment and acquisition channel are producing the strongest signal?","help":"Include conversion or pipeline evidence where available."},
+        {"id":"venture_model","dimension":"business_model","type":"text","prompt":"How do you make money today, and what have you learned about price and delivery cost?","help":"State actual pricing and cost evidence where possible."},
+        {"id":"venture_traction","dimension":"traction_evidence","type":"choice","prompt":"How consistently is your primary traction metric moving?","options":[{"label":"We have several periods of measurable growth in a defined metric","score":3},{"label":"Traction is real but uneven or based on a short period","score":2},{"label":"We have isolated users, pilots or revenue without a trend yet","score":1},{"label":"We have launched but have little measurable engagement","score":0}]},
+        {"id":"venture_customer","dimension":"customer_revenue","type":"text","prompt":"What do retention, repeat use, revenue or customer outcomes show?","help":"Use cohorts, repeat purchases, renewals, churn or specific outcomes."},
+        {"id":"venture_finance","dimension":"financial_readiness","type":"choice","prompt":"How current and evidence-based is your financial model?","options":[{"label":"It is updated with actuals, assumptions, runway and unit economics","score":3},{"label":"We have a working model with some actual data","score":2},{"label":"We have a rough budget but limited forecasting","score":1},{"label":"We do not yet have a usable financial model","score":0}]},
+        {"id":"venture_team","dimension":"team_readiness","type":"text","prompt":"What can the current team execute well, and which capability gap matters most next?","help":"Connect the gap to the next milestone."},
+        {"id":"venture_funding","dimension":"funding_readiness","type":"text","prompt":"What are you raising, what will it fund, and which measurable milestones should it unlock?","help":"Include amount or range, runway and milestone outcomes."}
+      ]
+    },
+    {
+      "id": "operating_fundraising",
+      "letter": "D",
+      "name": "OPERATING & FUNDRAISING",
+      "description": "My business is operating and I am actively preparing to raise funding or apply for funding.",
+      "scoreName": "Funding Readiness Score",
+      "journey": "From Traction → Readiness → Funding",
+      "recommendedStatus": "ACTIVELY PREPARE FOR FUNDING",
+      "nextMilestone": "Move from operating evidence → investor or grant readiness",
+      "focusMessage": "Your priority is converting operating evidence into a precise funding case: growth metrics, financial model, ask, use of funds and diligence-ready documentation.",
+      "radarLabels": ["Market", "Business Model", "Traction", "Growth", "Financials", "Funding Ask", "Team", "Documentation"],
+      "notYetApplicable": [],
+      "dimensions": [
+        {"id":"problem_solution","label":"Problem & Solution","weight":10,"why":"A concise problem-solution narrative keeps the funding case grounded in customer value.","strengthen":["Quantify customer outcomes","Clarify product differentiation","Connect roadmap to customer demand"],"proof":"Consistent customer outcomes that demonstrate material value."},
+        {"id":"market_position","label":"Market & Competitive Position","weight":10,"why":"Funders need to understand market scale, positioning and the venture's defensible wedge.","strengthen":["Update market sizing","Track win/loss reasons","Evidence your differentiation"],"proof":"A sourced market model and customer-backed competitive positioning."},
+        {"id":"business_model","label":"Business Model","weight":15,"why":"A scalable model demonstrates how growth can translate into sustainable economics.","strengthen":["Validate revenue quality","Improve margin visibility","Show repeatability by segment"],"proof":"Reliable revenue and margin data showing how the model behaves as volume grows."},
+        {"id":"traction_growth","label":"Traction & Growth Evidence","weight":20,"why":"Meaningful growth evidence is central to a credible funding case.","strengthen":["Present consistent KPI history","Explain retention and pipeline","Connect growth drivers to forecast"],"proof":"A clean monthly KPI history with repeatable drivers and honest commentary."},
+        {"id":"financial_readiness","label":"Financial Readiness","weight":15,"why":"A diligence-ready financial model connects historical performance, assumptions, runway and scenarios.","strengthen":["Reconcile historicals","Build base and downside cases","Document assumptions and runway"],"proof":"A three-year model tied to actuals with clear cash, runway and scenario logic."},
+        {"id":"funding_ask","label":"Funding Ask & Use of Funds","weight":10,"why":"A precise ask shows what capital buys, over what period, and how value will increase.","strengthen":["Set amount and instrument","Tie spending to milestones","Define the next financing inflection point"],"proof":"A board-ready use-of-funds plan linked to milestone, runway and hiring assumptions."},
+        {"id":"team_execution","label":"Team & Execution Readiness","weight":10,"why":"Funders assess whether the team can deploy capital and deliver the proposed plan.","strengthen":["Clarify leadership ownership","Evidence execution track record","Plan critical hires"],"proof":"Named owners, execution cadence and a costed hiring plan for the funding period."},
+        {"id":"documentation","label":"Funding Documentation & Readiness","weight":10,"why":"Well-organised documents reduce friction and signal operational discipline during diligence.","strengthen":["Complete pitch and model","Build a structured data room","Resolve legal and cap-table gaps"],"proof":"A current pitch deck, model and indexed data room ready for controlled sharing."}
+      ],
+      "questions": [
+        {"id":"op_solution","dimension":"problem_solution","type":"text","prompt":"Which customer outcomes best demonstrate the value of your solution today?","help":"Use quantified outcomes, retention or repeat use where possible."},
+        {"id":"op_market","dimension":"market_position","type":"text","prompt":"How do you size the market and explain your competitive position or defensible wedge?","help":"Include sources, win/loss evidence and key alternatives."},
+        {"id":"op_model","dimension":"business_model","type":"text","prompt":"What do revenue quality, pricing, margins and unit economics show about the model?","help":"Distinguish recurring, contracted, pilot and one-off revenue."},
+        {"id":"op_growth","dimension":"traction_growth","type":"text","prompt":"What are your core traction and growth metrics over the last 6–12 months?","help":"Include the trend, growth drivers, retention and pipeline quality."},
+        {"id":"op_finance","dimension":"financial_readiness","type":"choice","prompt":"How diligence-ready are your financials and projections?","options":[{"label":"Historicals reconcile and a scenario-based model is current","score":3},{"label":"We have a current model with a few gaps or untested assumptions","score":2},{"label":"Financial records exist but the forward model is limited","score":1},{"label":"Financials and projections are not yet ready for review","score":0}]},
+        {"id":"op_ask","dimension":"funding_ask","type":"text","prompt":"What are you raising, how will it be allocated, and which milestones will it unlock?","help":"State amount, instrument if known, runway, major uses and measurable milestones."},
+        {"id":"op_team","dimension":"team_execution","type":"text","prompt":"Why is this team equipped to execute the funded plan, and which hires are essential?","help":"Connect track record, ownership and hiring to the plan."},
+        {"id":"op_docs","dimension":"documentation","type":"choice","prompt":"What is ready for investor, lender, grant or accelerator review?","options":[{"label":"Pitch, model, cap table and an organised data room are current","score":3},{"label":"Core documents exist and the data room is being completed","score":2},{"label":"Some documents exist but material gaps remain","score":1},{"label":"Funding documents are not yet assembled","score":0}]}
+      ]
+    }
+  ]
+}

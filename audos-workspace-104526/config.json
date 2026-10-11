@@ -1,326 +1,367 @@
 {
- "id": "workspace-104526",
- "name": "FoundarOS",
- "description": "Workspace for FoundarOS",
- "version": "4.0.0",
- "templateVersion": 4,
- "publicEntry": {
-  "mode": "space-email-gate",
-  "path": "/site/:configId",
-  "component": "components/EmailGate.tsx"
- },
- "apps": [
-  {
-   "id": "gap-radar",
-   "name": "Gap Radar",
-   "icon": "ListChecks",
-   "dataFile": "data/gap-radar.json",
-   "component": "apps/GapRadar/App.tsx"
-  }
- ],
- "terminology": {
-  "reading": "loading",
-  "writing": "saving",
-  "creating": "adding",
-  "deleting": "removing",
-  "editing": "updating"
- },
- "desktop": {
-  "theme": {
-   "gradient": "from-[#0A0B14] via-[#0D0F1D] to-[#4C1D95]",
-   "accentColor": "#7C3AED",
-   "dockStyle": "glass"
+  "id": "workspace-104526",
+  "name": "FoundarOS",
+  "description": "Workspace for FoundarOS",
+  "version": "4.0.0",
+  "templateVersion": 4,
+  "publicEntry": {
+    "mode": "space-email-gate",
+    "path": "/site/:configId",
+    "component": "components/EmailGate.tsx"
   },
-  "themeRecipe": "glass",
-  "themeTokens": {
-   "palette": {
-    "primary": "#7C3AED",
-    "highlight": "#14B8A6",
-    "contrast": "#F5A623",
-    "secondary": "#A78BFA",
-    "accent": "#10B981",
-    "primaryScale": {
-     "50": "#F3EFFE",
-     "100": "#E4D9FC",
-     "200": "#C9B3F9",
-     "500": "#8B5CF6",
-     "600": "#7C3AED",
-     "700": "#6224D6",
-     "900": "#4C1D95"
+  "apps": [
+    {
+      "id": "founder-journey",
+      "name": "Founder Journey",
+      "icon": "Compass",
+      "component": "apps/FounderJourney/App.tsx"
     },
-    "highlightScale": {
-     "50": "#ECFDF9",
-     "100": "#CCFBF1",
-     "200": "#99F6E4",
-     "500": "#2DD4BF",
-     "600": "#14B8A6",
-     "700": "#0F766E",
-     "900": "#134E4A"
+    {
+      "id": "idea-discovery",
+      "name": "Idea Discovery",
+      "icon": "Lightbulb",
+      "component": "apps/IdeaDiscovery/App.tsx"
     },
-    "surfaces": {
-     "page": "#0A0B14",
-     "pageAlt": "#0D0F1D",
-     "gradientFrom": "#0A0B14",
-     "gradientVia": "#0D0F1D",
-     "gradientTo": "#4C1D95",
-     "card": "rgba(255,255,255,0.03)",
-     "cardHover": "rgba(255,255,255,0.06)",
-     "panel": "#10121F",
-     "panelStrong": "#141726",
-     "muted": "#0D0F1D",
-     "accentSoft": "rgba(124,58,237,0.12)",
-     "border": "rgba(167,139,250,0.18)",
-     "borderStrong": "rgba(167,139,250,0.35)"
+    {
+      "id": "investor-readiness",
+      "name": "Investor Readiness Scorecard",
+      "icon": "Target",
+      "component": "apps/InvestorReadiness/App.tsx"
     },
-    "text": {
-     "primary": "#F5F5FA",
-     "secondary": "#9599B8",
-     "brand": "#F5F5FA",
-     "accent": "#A78BFA",
-     "muted": "#6B7094",
-     "onPrimary": "#FFFFFF",
-     "onHighlight": "#0A0B14",
-     "onContrast": "#0A0B14"
+    {
+      "id": "gap-radar",
+      "name": "Gap Radar",
+      "icon": "ListChecks",
+      "dataFile": "data/gap-radar.json",
+      "component": "apps/GapRadar/App.tsx"
     },
-    "semantic": {
-     "success": "#10B981",
-     "warning": "#F5A623",
-     "danger": "#F0653F"
+    {
+      "id": "claim-your-spot",
+      "name": "Claim Your Spot",
+      "icon": "CreditCard",
+      "component": "apps/ClaimYourSpot/App.tsx"
     },
-    "shell": {
-     "buttonText": "#FFFFFF",
-     "accentButtonText": "#0A0B14",
-     "dockText": "#F5F5FA",
-     "icon": "#A78BFA",
-     "shadow": "rgba(124,58,237,0.35)",
-     "shadowStrong": "rgba(124,58,237,0.6)"
+    {
+      "id": "webhook-admin",
+      "name": "Webhook Log",
+      "icon": "Database",
+      "component": "apps/WebhookAdmin/App.tsx",
+      "allowedRoles": ["entrepreneur"]
+    },
+    {
+      "id": "audos-config",
+      "name": "Audos Referral",
+      "icon": "Share2",
+      "component": "apps/AudosConfig/App.tsx",
+      "allowedRoles": ["entrepreneur"]
     }
-   },
-   "typography": {
-    "headingFont": "Space Grotesk",
-    "bodyFont": "Inter",
-    "fontFamily": "\"Inter\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
-   },
-   "shell": {
-    "accentColor": "#7C3AED",
-    "dockStyle": "glass",
-    "pageBackground": "#0A0B14",
-    "gateBackground": "radial-gradient(1100px 620px at 82% -8%, rgba(124,58,237,0.38), transparent 62%), radial-gradient(760px 520px at 6% 20%, rgba(245,166,35,0.14), transparent 65%), linear-gradient(180deg, #0A0B14 0%, #0D0F1D 100%)",
-    "panelBackground": "#10121F",
-    "panelStrongBackground": "#141726"
-   },
-   "cssVariables": {
-    "--space-brand-primary": "#7C3AED",
-    "--space-brand-highlight": "#14B8A6",
-    "--space-brand-contrast": "#F5A623",
-    "--space-brand-primary-50": "#F3EFFE",
-    "--space-brand-primary-100": "#E4D9FC",
-    "--space-brand-primary-200": "#C9B3F9",
-    "--space-brand-primary-500": "#8B5CF6",
-    "--space-brand-primary-600": "#7C3AED",
-    "--space-brand-primary-700": "#6224D6",
-    "--space-brand-primary-900": "#4C1D95",
-    "--space-brand-highlight-50": "#ECFDF9",
-    "--space-brand-highlight-100": "#CCFBF1",
-    "--space-brand-highlight-200": "#99F6E4",
-    "--space-brand-highlight-500": "#2DD4BF",
-    "--space-brand-highlight-600": "#14B8A6",
-    "--space-brand-highlight-700": "#0F766E",
-    "--space-brand-highlight-900": "#134E4A",
-    "--space-surface-page": "#0A0B14",
-    "--space-surface-page-alt": "#0D0F1D",
-    "--space-surface-gradient-from": "#0A0B14",
-    "--space-surface-gradient-via": "#0D0F1D",
-    "--space-surface-gradient-to": "#4C1D95",
-    "--space-surface-card": "rgba(255,255,255,0.03)",
-    "--space-surface-card-hover": "rgba(255,255,255,0.06)",
-    "--space-surface-panel": "#10121F",
-    "--space-surface-panel-strong": "#141726",
-    "--space-surface-muted": "#0D0F1D",
-    "--space-surface-accent-soft": "rgba(124,58,237,0.12)",
-    "--space-border-default": "rgba(167,139,250,0.18)",
-    "--space-border-strong": "rgba(167,139,250,0.35)",
-    "--space-text-primary": "#F5F5FA",
-    "--space-text-secondary": "#9599B8",
-    "--space-text-brand": "#F5F5FA",
-    "--space-text-accent": "#A78BFA",
-    "--space-text-muted": "#6B7094",
-    "--space-text-on-primary": "#FFFFFF",
-    "--space-text-on-highlight": "#0A0B14",
-    "--space-text-on-contrast": "#0A0B14",
-    "--space-semantic-success": "#10B981",
-    "--space-semantic-warning": "#F5A623",
-    "--space-semantic-danger": "#F0653F",
-    "--space-shell-button-text": "#FFFFFF",
-    "--space-shell-accent-button-text": "#0A0B14",
-    "--space-shell-dock-text": "#F5F5FA",
-    "--space-shell-icon": "#A78BFA",
-    "--space-shell-shadow": "rgba(124,58,237,0.35)",
-    "--space-shell-shadow-strong": "rgba(124,58,237,0.6)"
-   }
+  ],
+  "terminology": {
+    "reading": "loading",
+    "writing": "saving",
+    "creating": "adding",
+    "deleting": "removing",
+    "editing": "updating"
   },
-  "layout": {
-   "agentPosition": "center",
-   "dockPosition": "left",
-   "appWindowSize": "medium",
-   "customerLandsOnAgent": true
-  },
-  "branding": {
-   "name": "FoundarOS",
-   "tagline": "AI operating system for founders",
-   "logoUrl": "https://storage.googleapis.com/audos-images/brand-icons/09a33912-84fd-457d-ac2c-621ba4082667.mono.png",
-   "headingFont": "Space Grotesk",
-   "bodyFont": "Inter",
-   "colors": {
-    "primary": "#7C3AED",
-    "highlight": "#14B8A6",
-    "contrast": "#F5A623",
-    "secondary": "#A78BFA",
-    "accent": "#10B981",
-    "primaryScale": {
-     "50": "#F3EFFE",
-     "100": "#E4D9FC",
-     "200": "#C9B3F9",
-     "500": "#8B5CF6",
-     "600": "#7C3AED",
-     "700": "#6224D6",
-     "900": "#4C1D95"
+  "desktop": {
+    "theme": {
+      "gradient": "from-[#0A0B14] via-[#0D0F1D] to-[#4C1D95]",
+      "accentColor": "#7C3AED",
+      "dockStyle": "glass"
     },
-    "highlightScale": {
-     "50": "#ECFDF9",
-     "100": "#CCFBF1",
-     "200": "#99F6E4",
-     "500": "#2DD4BF",
-     "600": "#14B8A6",
-     "700": "#0F766E",
-     "900": "#134E4A"
+    "themeRecipe": "glass",
+    "themeTokens": {
+      "palette": {
+        "primary": "#7C3AED",
+        "highlight": "#14B8A6",
+        "contrast": "#F5A623",
+        "secondary": "#A78BFA",
+        "accent": "#10B981",
+        "primaryScale": {
+          "50": "#F3EFFE",
+          "100": "#E4D9FC",
+          "200": "#C9B3F9",
+          "500": "#8B5CF6",
+          "600": "#7C3AED",
+          "700": "#6224D6",
+          "900": "#4C1D95"
+        },
+        "highlightScale": {
+          "50": "#ECFDF9",
+          "100": "#CCFBF1",
+          "200": "#99F6E4",
+          "500": "#2DD4BF",
+          "600": "#14B8A6",
+          "700": "#0F766E",
+          "900": "#134E4A"
+        },
+        "surfaces": {
+          "page": "#0A0B14",
+          "pageAlt": "#0D0F1D",
+          "gradientFrom": "#0A0B14",
+          "gradientVia": "#0D0F1D",
+          "gradientTo": "#4C1D95",
+          "card": "rgba(255,255,255,0.03)",
+          "cardHover": "rgba(255,255,255,0.06)",
+          "panel": "#10121F",
+          "panelStrong": "#141726",
+          "muted": "#0D0F1D",
+          "accentSoft": "rgba(124,58,237,0.12)",
+          "border": "rgba(167,139,250,0.18)",
+          "borderStrong": "rgba(167,139,250,0.35)"
+        },
+        "text": {
+          "primary": "#F5F5FA",
+          "secondary": "#9599B8",
+          "brand": "#F5F5FA",
+          "accent": "#A78BFA",
+          "muted": "#6B7094",
+          "onPrimary": "#FFFFFF",
+          "onHighlight": "#0A0B14",
+          "onContrast": "#0A0B14"
+        },
+        "semantic": {
+          "success": "#10B981",
+          "warning": "#F5A623",
+          "danger": "#F0653F"
+        },
+        "shell": {
+          "buttonText": "#FFFFFF",
+          "accentButtonText": "#0A0B14",
+          "dockText": "#F5F5FA",
+          "icon": "#A78BFA",
+          "shadow": "rgba(124,58,237,0.35)",
+          "shadowStrong": "rgba(124,58,237,0.6)"
+        }
+      },
+      "typography": {
+        "headingFont": "Space Grotesk",
+        "bodyFont": "Inter",
+        "fontFamily": "\"Inter\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
+      },
+      "shell": {
+        "accentColor": "#7C3AED",
+        "dockStyle": "glass",
+        "pageBackground": "#0A0B14",
+        "gateBackground": "radial-gradient(1100px 620px at 82% -8%, rgba(124,58,237,0.38), transparent 62%), radial-gradient(760px 520px at 6% 20%, rgba(245,166,35,0.14), transparent 65%), linear-gradient(180deg, #0A0B14 0%, #0D0F1D 100%)",
+        "panelBackground": "#10121F",
+        "panelStrongBackground": "#141726"
+      },
+      "cssVariables": {
+        "--space-brand-primary": "#7C3AED",
+        "--space-brand-highlight": "#14B8A6",
+        "--space-brand-contrast": "#F5A623",
+        "--space-brand-primary-50": "#F3EFFE",
+        "--space-brand-primary-100": "#E4D9FC",
+        "--space-brand-primary-200": "#C9B3F9",
+        "--space-brand-primary-500": "#8B5CF6",
+        "--space-brand-primary-600": "#7C3AED",
+        "--space-brand-primary-700": "#6224D6",
+        "--space-brand-primary-900": "#4C1D95",
+        "--space-brand-highlight-50": "#ECFDF9",
+        "--space-brand-highlight-100": "#CCFBF1",
+        "--space-brand-highlight-200": "#99F6E4",
+        "--space-brand-highlight-500": "#2DD4BF",
+        "--space-brand-highlight-600": "#14B8A6",
+        "--space-brand-highlight-700": "#0F766E",
+        "--space-brand-highlight-900": "#134E4A",
+        "--space-surface-page": "#0A0B14",
+        "--space-surface-page-alt": "#0D0F1D",
+        "--space-surface-gradient-from": "#0A0B14",
+        "--space-surface-gradient-via": "#0D0F1D",
+        "--space-surface-gradient-to": "#4C1D95",
+        "--space-surface-card": "rgba(255,255,255,0.03)",
+        "--space-surface-card-hover": "rgba(255,255,255,0.06)",
+        "--space-surface-panel": "#10121F",
+        "--space-surface-panel-strong": "#141726",
+        "--space-surface-muted": "#0D0F1D",
+        "--space-surface-accent-soft": "rgba(124,58,237,0.12)",
+        "--space-border-default": "rgba(167,139,250,0.18)",
+        "--space-border-strong": "rgba(167,139,250,0.35)",
+        "--space-text-primary": "#F5F5FA",
+        "--space-text-secondary": "#9599B8",
+        "--space-text-brand": "#F5F5FA",
+        "--space-text-accent": "#A78BFA",
+        "--space-text-muted": "#6B7094",
+        "--space-text-on-primary": "#FFFFFF",
+        "--space-text-on-highlight": "#0A0B14",
+        "--space-text-on-contrast": "#0A0B14",
+        "--space-semantic-success": "#10B981",
+        "--space-semantic-warning": "#F5A623",
+        "--space-semantic-danger": "#F0653F",
+        "--space-shell-button-text": "#FFFFFF",
+        "--space-shell-accent-button-text": "#0A0B14",
+        "--space-shell-dock-text": "#F5F5FA",
+        "--space-shell-icon": "#A78BFA",
+        "--space-shell-shadow": "rgba(124,58,237,0.35)",
+        "--space-shell-shadow-strong": "rgba(124,58,237,0.6)"
+      }
     },
-    "surfaces": {
-     "page": "#0A0B14",
-     "pageAlt": "#0D0F1D",
-     "gradientFrom": "#0A0B14",
-     "gradientVia": "#0D0F1D",
-     "gradientTo": "#4C1D95",
-     "card": "rgba(255,255,255,0.03)",
-     "cardHover": "rgba(255,255,255,0.06)",
-     "panel": "#10121F",
-     "panelStrong": "#141726",
-     "muted": "#0D0F1D",
-     "accentSoft": "rgba(124,58,237,0.12)",
-     "border": "rgba(167,139,250,0.18)",
-     "borderStrong": "rgba(167,139,250,0.35)"
+    "layout": {
+      "agentPosition": "center",
+      "dockPosition": "left",
+      "appWindowSize": "medium",
+      "defaultLandingView": "app",
+      "defaultLandingAppId": "founder-journey",
+      "customerLandsOnAgent": false
     },
-    "text": {
-     "primary": "#F5F5FA",
-     "secondary": "#9599B8",
-     "brand": "#F5F5FA",
-     "accent": "#A78BFA",
-     "muted": "#6B7094",
-     "onPrimary": "#FFFFFF",
-     "onHighlight": "#0A0B14",
-     "onContrast": "#0A0B14"
-    },
-    "semantic": {
-     "success": "#10B981",
-     "warning": "#F5A623",
-     "danger": "#F0653F"
-    },
-    "shell": {
-     "buttonText": "#FFFFFF",
-     "accentButtonText": "#0A0B14",
-     "dockText": "#F5F5FA",
-     "icon": "#A78BFA",
-     "shadow": "rgba(124,58,237,0.35)",
-     "shadowStrong": "rgba(124,58,237,0.6)"
+    "branding": {
+      "name": "FoundarOS",
+      "tagline": "AI operating system for founders",
+      "logoUrl": "https://storage.googleapis.com/audos-images/brand-icons/09a33912-84fd-457d-ac2c-621ba4082667.mono.png",
+      "headingFont": "Space Grotesk",
+      "bodyFont": "Inter",
+      "colors": {
+        "primary": "#7C3AED",
+        "highlight": "#14B8A6",
+        "contrast": "#F5A623",
+        "secondary": "#A78BFA",
+        "accent": "#10B981",
+        "primaryScale": {
+          "50": "#F3EFFE",
+          "100": "#E4D9FC",
+          "200": "#C9B3F9",
+          "500": "#8B5CF6",
+          "600": "#7C3AED",
+          "700": "#6224D6",
+          "900": "#4C1D95"
+        },
+        "highlightScale": {
+          "50": "#ECFDF9",
+          "100": "#CCFBF1",
+          "200": "#99F6E4",
+          "500": "#2DD4BF",
+          "600": "#14B8A6",
+          "700": "#0F766E",
+          "900": "#134E4A"
+        },
+        "surfaces": {
+          "page": "#0A0B14",
+          "pageAlt": "#0D0F1D",
+          "gradientFrom": "#0A0B14",
+          "gradientVia": "#0D0F1D",
+          "gradientTo": "#4C1D95",
+          "card": "rgba(255,255,255,0.03)",
+          "cardHover": "rgba(255,255,255,0.06)",
+          "panel": "#10121F",
+          "panelStrong": "#141726",
+          "muted": "#0D0F1D",
+          "accentSoft": "rgba(124,58,237,0.12)",
+          "border": "rgba(167,139,250,0.18)",
+          "borderStrong": "rgba(167,139,250,0.35)"
+        },
+        "text": {
+          "primary": "#F5F5FA",
+          "secondary": "#9599B8",
+          "brand": "#F5F5FA",
+          "accent": "#A78BFA",
+          "muted": "#6B7094",
+          "onPrimary": "#FFFFFF",
+          "onHighlight": "#0A0B14",
+          "onContrast": "#0A0B14"
+        },
+        "semantic": {
+          "success": "#10B981",
+          "warning": "#F5A623",
+          "danger": "#F0653F"
+        },
+        "shell": {
+          "buttonText": "#FFFFFF",
+          "accentButtonText": "#0A0B14",
+          "dockText": "#F5F5FA",
+          "icon": "#A78BFA",
+          "shadow": "rgba(124,58,237,0.35)",
+          "shadowStrong": "rgba(124,58,237,0.6)"
+        }
+      },
+      "palette": {
+        "primary": "#7C3AED",
+        "highlight": "#14B8A6",
+        "contrast": "#F5A623",
+        "secondary": "#A78BFA",
+        "accent": "#10B981",
+        "primaryScale": {
+          "50": "#F3EFFE",
+          "100": "#E4D9FC",
+          "200": "#C9B3F9",
+          "500": "#8B5CF6",
+          "600": "#7C3AED",
+          "700": "#6224D6",
+          "900": "#4C1D95"
+        },
+        "highlightScale": {
+          "50": "#ECFDF9",
+          "100": "#CCFBF1",
+          "200": "#99F6E4",
+          "500": "#2DD4BF",
+          "600": "#14B8A6",
+          "700": "#0F766E",
+          "900": "#134E4A"
+        },
+        "surfaces": {
+          "page": "#0A0B14",
+          "pageAlt": "#0D0F1D",
+          "gradientFrom": "#0A0B14",
+          "gradientVia": "#0D0F1D",
+          "gradientTo": "#4C1D95",
+          "card": "rgba(255,255,255,0.03)",
+          "cardHover": "rgba(255,255,255,0.06)",
+          "panel": "#10121F",
+          "panelStrong": "#141726",
+          "muted": "#0D0F1D",
+          "accentSoft": "rgba(124,58,237,0.12)",
+          "border": "rgba(167,139,250,0.18)",
+          "borderStrong": "rgba(167,139,250,0.35)"
+        },
+        "text": {
+          "primary": "#F5F5FA",
+          "secondary": "#9599B8",
+          "brand": "#F5F5FA",
+          "accent": "#A78BFA",
+          "muted": "#6B7094",
+          "onPrimary": "#FFFFFF",
+          "onHighlight": "#0A0B14",
+          "onContrast": "#0A0B14"
+        },
+        "semantic": {
+          "success": "#10B981",
+          "warning": "#F5A623",
+          "danger": "#F0653F"
+        },
+        "shell": {
+          "buttonText": "#FFFFFF",
+          "accentButtonText": "#0A0B14",
+          "dockText": "#F5F5FA",
+          "icon": "#A78BFA",
+          "shadow": "rgba(124,58,237,0.35)",
+          "shadowStrong": "rgba(124,58,237,0.6)"
+        }
+      }
     }
-   },
-   "palette": {
-    "primary": "#7C3AED",
-    "highlight": "#14B8A6",
-    "contrast": "#F5A623",
-    "secondary": "#A78BFA",
-    "accent": "#10B981",
-    "primaryScale": {
-     "50": "#F3EFFE",
-     "100": "#E4D9FC",
-     "200": "#C9B3F9",
-     "500": "#8B5CF6",
-     "600": "#7C3AED",
-     "700": "#6224D6",
-     "900": "#4C1D95"
+  },
+  "cdnDependencies": {
+    "remark-gfm": {
+      "version": "4.0.0"
     },
-    "highlightScale": {
-     "50": "#ECFDF9",
-     "100": "#CCFBF1",
-     "200": "#99F6E4",
-     "500": "#2DD4BF",
-     "600": "#14B8A6",
-     "700": "#0F766E",
-     "900": "#134E4A"
+    "pptxgenjs": {
+      "version": "4.0.1"
     },
-    "surfaces": {
-     "page": "#0A0B14",
-     "pageAlt": "#0D0F1D",
-     "gradientFrom": "#0A0B14",
-     "gradientVia": "#0D0F1D",
-     "gradientTo": "#4C1D95",
-     "card": "rgba(255,255,255,0.03)",
-     "cardHover": "rgba(255,255,255,0.06)",
-     "panel": "#10121F",
-     "panelStrong": "#141726",
-     "muted": "#0D0F1D",
-     "accentSoft": "rgba(124,58,237,0.12)",
-     "border": "rgba(167,139,250,0.18)",
-     "borderStrong": "rgba(167,139,250,0.35)"
+    "docx": {
+      "version": "9.1.1"
     },
-    "text": {
-     "primary": "#F5F5FA",
-     "secondary": "#9599B8",
-     "brand": "#F5F5FA",
-     "accent": "#A78BFA",
-     "muted": "#6B7094",
-     "onPrimary": "#FFFFFF",
-     "onHighlight": "#0A0B14",
-     "onContrast": "#0A0B14"
-    },
-    "semantic": {
-     "success": "#10B981",
-     "warning": "#F5A623",
-     "danger": "#F0653F"
-    },
-    "shell": {
-     "buttonText": "#FFFFFF",
-     "accentButtonText": "#0A0B14",
-     "dockText": "#F5F5FA",
-     "icon": "#A78BFA",
-     "shadow": "rgba(124,58,237,0.35)",
-     "shadowStrong": "rgba(124,58,237,0.6)"
+    "xlsx": {
+      "version": "0.18.5"
     }
-   }
-  }
- },
- "cdnDependencies": {
-  "remark-gfm": {
-   "version": "4.0.0"
   },
-  "pptxgenjs": {
-   "version": "4.0.1"
+  "agent": {
+    "welcomeMessage": "Welcome to FoundarOS — the operating system for your whole founder journey. No idea yet? Start with Idea Discovery to uncover opportunities in your experience and network. Already have an idea or business? Gap Radar shows what to prove next.",
+    "starterPrompts": [
+      "I don't have a business idea yet — where do I start?",
+      "How does Idea Discovery work?",
+      "I have an idea — is it worth pursuing?",
+      "Help me understand my funding readiness",
+      "Which stage of the founder journey am I in?"
+    ]
   },
-  "docx": {
-   "version": "9.1.1"
-  },
-  "xlsx": {
-   "version": "0.18.5"
-  }
- },
- "agent": {
-  "welcomeMessage": "Welcome to FoundarOS from first idea to funded, operating business.",
-  "starterPrompts": [
-   "How does the Startup Readiness assessment work?",
-   "Which stage of the founder journey am I in?",
-   "What's included in the $99 Starter Pack?",
-   "Help me close my biggest startup gap"
-  ]
- },
- "updatedAt": "2026-07-20T00:00:00.000Z"
+  "updatedAt": "2026-07-20T00:00:00.000Z"
 }

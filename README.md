@@ -64,6 +64,12 @@ platform default does **not** appear in `config.json`, so the file can look
 smaller than you expect. To override a default, just add the field with the
 value you want.
 
+**GitHub → audos (your pushes)**
+When you push commits to this branch, audos applies only the files those
+commits added or changed. Files you did not touch keep whatever audos has,
+including edits the agent made after your last pull. Pull before you edit a
+file here, or your copy of that file replaces the agent's newer one.
+
 **GitHub → audos (Sync from GitHub)**
 Whatever is in this repo wins. If you delete a key from `config.json` or remove
 a file, that deletion lands in audos on the next sync. This is the direction to
