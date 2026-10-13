@@ -1,108 +1,60 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode, type Ref } from 'react';
 import {
   Compass,
-  Lightbulb,
   ArrowRight,
   ArrowLeft,
   Sparkles,
   Loader2,
-  CheckCircle2,
   Check,
-  Users,
-  Briefcase,
-  Brain,
-  Target,
-  AlertTriangle,
   Rocket,
-  Map as MapIcon,
-  ClipboardList,
   MessageCircle,
-  CalendarDays,
   Printer,
   ArrowUpRight,
-  Layers,
   Gauge,
-  Wallet,
-  Clock,
-  Star,
   Info,
   Copy,
+  RefreshCw,
+  Target,
 } from 'lucide-react';
 import { tw } from '../../lib/colors';
 import { useSpaceRuntime } from '../../SpaceRuntimeContext';
 
 /* ============================================================================
- * FoundarOS — Idea Discovery
+ * FoundarOS — Idea Discovery (simplified flow)
  *
  * The pre-idea path of the FoundarOS founder journey (DISCOVER → VALIDATE →
- * BUILD → ASSESS → FUND → OPERATE). This module is completely SEPARATE from
- * Gap Radar: it never scores fundability, never shows a traction score, and
- * never tells an idea-less founder they are "unfundable". It helps a founder
- * uncover opportunities from who they are, what they know and who they can
- * reach, then hands a chosen concept to Gap Radar for validation.
+ * BUILD → ASSESS → FUND → OPERATE). Separate from Gap Radar: it never scores
+ * fundability and never tells an idea-less founder they are "unfundable".
+ *
+ * Flow (4 screens + 1 loading wait, down from 12 phases / 4 AI waits):
+ *   welcome → questions (3 short steps) → results (3 ideas) → plan → build
+ *
+ *   1. questions  8 questions (4 required) across 3 steps, mostly tap-to-answer.
+ *   2. results    ONE AI call returns a short founder snapshot + 3 distinct
+ *                 ideas. "Show me different ideas" regenerates; "Edit my
+ *                 answers" goes back.
+ *   3. plan       The chosen idea + its 14-day test plan (loads inline, no
+ *                 full-screen wait) with two clear next steps: Build on Audos
+ *                 or test with Gap Radar.
  *
  * Data model (WorkspaceDB, session-scoped, reads via useWorkspaceDB / writes
- * via window.__workspaceDb):
+ * via window.__workspaceDb). Column sets are unchanged from the previous
+ * version so existing rows stay compatible:
  *   idea_discovery_profiles          — questionnaire responses
- *   idea_discovery_territories       — generated opportunity territories
  *   idea_discovery_concepts          — generated business concepts
  *   idea_discovery_validation_plans  — 14-day validation plan for the concept
+ * (idea_discovery_territories is no longer written: territories were removed
+ *  as a separate step.)
  * ========================================================================== */
 
-// ---------------------------------------------------------------------------
-// Tier architecture — configurable, no hardcoded prices. For the MVP every
-// user defaults to 'paid' (all features open). The gating knobs exist for
-// future monetization, not to lock anything out today.
-// ---------------------------------------------------------------------------
-const PAID_TIER = {
-  founderProfile: true,
-  opportunityTerritories: 4,
-  conceptPreview: true,
-  conceptsUnlocked: 6,
-  validationPlan: true,
-  opportunityMap: true,
-} as const;
+const IDEA_COUNT = 3;
 
-const TIER_CONFIG = {
-  free: {
-    founderProfile: true,
-    opportunityTerritories: 3,
-    conceptPreview: true,
-    conceptsUnlocked: 0,
-    validationPlan: false,
-    opportunityMap: false,
-  },
-  paid: PAID_TIER,
-  premium: {
-    ...PAID_TIER,
-    humanSession: true,
-  },
-} as const;
-
-type TierName = keyof typeof TIER_CONFIG;
-// MVP: everyone gets full access. Flip this (or make it session-driven) later.
-const ACTIVE_TIER: TierName = 'paid';
-const tier = TIER_CONFIG[ACTIVE_TIER];
-
-const FIT_LABELS = ['Worth exploring', 'Strong founder fit', 'Promising starting point', 'Requires validation'] as const;
 const STARTABILITY_LABELS = ['Easy to test', 'Moderate to test', 'Requires significant resources'] as const;
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-type Phase =
-  | 'welcome'
-  | 'questions'
-  | 'loading'
-  | 'profile'
-  | 'territories'
-  | 'concepts'
-  | 'compare'
-  | 'summary'
-  | 'validation'
-  | 'map'
-  | 'build-brief'
-  | 'build-transition';
+type Phase = 'welcome' | 'questions' | 'loading' | 'results' | 'plan' | 'build-brief' | 'build-transition';
 
 type AnswerValue = string | string[] | number;
 type AnswerMap = Record<string, AnswerValue>;
@@ -120,50 +72,21 @@ interface Question {
   placeholder?: string;
 }
 
-interface Section {
+interface Step {
   title: string;
   intro?: string;
-  critical?: boolean;
-  criticalNote?: string;
   questions: Question[];
 }
 
-interface FounderProfile {
-  experienceStrengths: string;
-  coreSkills: string[];
-  knowledgeAdvantage: string;
-  problemSensitivity: string;
-  accessAdvantage: string;
-  founderGoal: string;
-  resourceProfile: { time: string; capital: string; assets: string };
-  opportunityPattern: string;
-}
-
-interface Territory {
-  id?: number;
-  name: string;
-  description: string;
-  whyItFits: string[];
-  potentialCustomers: string;
-  problemsToExplore: string[];
-  fitLabel: string;
-  selected?: boolean;
-}
-
-interface ConceptComparison {
-  founderFit: string;
-  problemClarity: string;
-  customerClarity: string;
-  access: string;
-  startability: string;
-  businessModel: string;
-  validationDifficulty: string;
+interface Snapshot {
+  summary: string;
+  strengths: string[];
 }
 
 interface Concept {
   id?: number;
-  territoryName: string;
   name: string;
+  pitch: string;
   problem: string;
   targetCustomer: string;
   solution: string;
@@ -173,7 +96,12 @@ interface Concept {
   assumptions: string[];
   validationExperiment: string;
   startability: string;
-  comparison: ConceptComparison;
+}
+
+interface DiscoveryResult {
+  snapshot: Snapshot;
+  concepts: Concept[];
+  usedFallback: boolean;
 }
 
 interface ValidationPlan {
@@ -210,7 +138,7 @@ const BUILD_PARTNERS: Record<string, BuildPartner> = {
 };
 
 // ---------------------------------------------------------------------------
-// Questionnaire definition (6 sections, one section at a time)
+// Questionnaire — 3 short steps. Only 4 questions are required.
 // ---------------------------------------------------------------------------
 const INTEREST_AREAS = [
   'Technology', 'AI', 'Finance', 'Education', 'Healthcare', 'Agriculture', 'Food', 'Fashion',
@@ -225,70 +153,31 @@ const ACCESS_GROUPS = [
   'Religious/community organizations', 'Other',
 ];
 
-const GOAL_MOTIVATIONS = [
-  'Generate additional income', 'Build a side business', 'Eventually replace my salary',
-  'Build a scalable startup', 'Solve a problem I care about', 'Create employment',
-  'Build something I can eventually sell', 'Gain more independence', 'Other',
-];
-
-const SECTIONS: Section[] = [
+const STEPS: Step[] = [
   {
-    title: 'Your Experience',
-    intro: 'Start with what you already carry. There are no wrong answers here.',
+    title: 'About you',
+    intro: 'Start with what you already know. Short answers are fine.',
     questions: [
-      { id: 'experience_current', type: 'textarea', label: 'What do you currently do?', helper: 'Tell us about your current job, profession, business or primary activity.' },
-      { id: 'experience_other', type: 'textarea', label: 'What other roles, industries or experiences have you had?' },
-      { id: 'skills', type: 'tags', label: 'What are your strongest skills?', helper: 'Add up to 5. Press Enter after each one.', maxTags: 5, placeholder: 'e.g. sales, operations, design…' },
-      { id: 'skills_help', type: 'textarea', label: 'What do people usually come to you for help with?' },
-      { id: 'skills_knowledge', type: 'textarea', label: 'What do you know unusually well?', helper: 'This could be an industry, process, profession, community, technical skill or personal experience.' },
+      { id: 'experience_current', type: 'textarea', label: 'What do you do, or know really well?', helper: 'Your job, your business, or something people always ask you about.', placeholder: 'e.g. I manage operations for a logistics company…' },
+      { id: 'skills', type: 'tags', optional: true, label: 'Your top skills', helper: 'Up to 3. Press Enter after each one.', maxTags: 3, placeholder: 'e.g. sales, design, bookkeeping…' },
     ],
   },
   {
-    title: 'Your Interests',
-    intro: 'Energy matters. The right business is one you can sustain.',
+    title: 'What needs fixing',
+    intro: 'Good ideas usually start with a problem you keep noticing.',
     questions: [
-      { id: 'interests_topics', type: 'textarea', label: 'What topics could you spend hours learning about without being forced?' },
-      { id: 'interests_areas', type: 'multiselect', label: 'Which areas interest you most?', helper: 'Select all that apply.', options: INTEREST_AREAS },
-      { id: 'interests_work', type: 'textarea', label: 'What kind of work would you enjoy doing even if you had to start very small?' },
+      { id: 'problems_frustrations', type: 'textarea', label: 'What problem do you keep noticing — at work, in your community, or in your own life?', helper: 'Something that wastes time or money, or that people complain about.', placeholder: 'e.g. Small shops keep running out of stock because they track it on paper…' },
+      { id: 'interests_areas', type: 'multiselect', optional: true, label: 'Any areas you would enjoy working in?', helper: 'Pick a few, or skip.', options: INTEREST_AREAS },
     ],
   },
   {
-    title: 'Problem Discovery',
-    critical: true,
-    criticalNote: 'This is where business ideas really come from. Take your time here — the sharper your answers, the sharper your opportunities.',
+    title: 'Your situation',
+    intro: 'Who you can reach and how much time you have shape which ideas are realistic.',
     questions: [
-      { id: 'problems_frustrations', type: 'textarea', label: 'What regularly frustrates you about the way things are currently done?' },
-      { id: 'problems_others', type: 'textarea', label: 'What do people around you frequently complain about?' },
-      { id: 'problems_better_way', type: 'textarea', label: "Have you ever thought, 'There should be an easier or better way to do this'? If yes, describe it." },
-      { id: 'problems_personal', type: 'textarea', label: 'What problem have you personally experienced that you believe other people experience too?' },
-    ],
-  },
-  {
-    title: 'Access Advantage',
-    intro: 'Who you can already reach is one of your biggest unfair advantages.',
-    questions: [
-      { id: 'access_groups', type: 'multiselect', label: 'Which groups of people do you already have easy access to?', helper: 'Select all that apply.', options: ACCESS_GROUPS },
-      { id: 'access_network_size', type: 'radio', label: 'Approximately how many people within these groups could you realistically speak to about a potential business idea?', options: ['1–10', '11–25', '26–50', '51–100', '100+'] },
-    ],
-  },
-  {
-    title: 'Founder Goals',
-    intro: 'What does a win look like for you? This shapes the kind of business that fits.',
-    questions: [
-      { id: 'goals_motivation', type: 'multiselect', label: 'Why do you want to start a business?', helper: 'Select all that apply.', options: GOAL_MOTIVATIONS },
-      { id: 'goals_time_per_week', type: 'radio', label: 'How much time can you realistically dedicate each week?', options: ['Less than 3 hours', '3–5 hours', '5–10 hours', '10–20 hours', '20+ hours'] },
-      { id: 'goals_business_type', type: 'radio', label: 'What type of business interests you most?', options: ['Service business', 'Digital product', 'Software/SaaS', 'Marketplace', 'E-commerce', 'Physical product', 'Consultancy', 'Agency', 'Local/offline business', 'Not sure'] },
-      { id: 'goals_capital', type: 'currency', label: 'How much are you realistically prepared to invest initially?' },
-      { id: 'goals_risk_tolerance', type: 'scale', label: 'How comfortable are you with uncertainty while building something new?', helper: '1 = I prefer certainty · 5 = I thrive in the unknown' },
-    ],
-  },
-  {
-    title: 'Starting Point',
-    intro: 'A few final prompts to anchor your discovery.',
-    questions: [
-      { id: 'goals_completion_vision', type: 'textarea', label: 'Complete this sentence:', helper: '“If I could build a business that solved one problem in my world, I would want it to solve…”', placeholder: 'If I could build a business that solved one problem in my world, I would want it to solve…' },
-      { id: 'context_additional', type: 'textarea', label: 'Is there anything else about your experience, personality, interests or circumstances that could help us identify the right opportunity for you?', optional: true },
-      { id: 'context_success_definition', type: 'textarea', label: 'What would make this Idea Discovery experience successful for you?' },
+      { id: 'access_groups', type: 'multiselect', label: 'Who could you easily talk to about a business idea?', helper: 'Pick all that apply.', options: ACCESS_GROUPS },
+      { id: 'goals_time_per_week', type: 'radio', label: 'How much time can you give this each week?', options: ['Less than 3 hours', '3–5 hours', '5–10 hours', '10–20 hours', '20+ hours'] },
+      { id: 'goals_capital', type: 'currency', optional: true, label: 'How much could you invest to get started?' },
+      { id: 'goals_business_type', type: 'radio', optional: true, label: 'What kind of business appeals to you?', options: ['Service business', 'Digital product', 'Software/SaaS', 'Marketplace', 'E-commerce', 'Physical product', 'Consultancy', 'Local/offline business', 'Not sure'] },
     ],
   },
 ];
@@ -302,14 +191,6 @@ function asText(v: AnswerValue | undefined): string {
   if (v === undefined || v === null) return '';
   if (Array.isArray(v)) return v.join(', ');
   return String(v);
-}
-
-function parseJson<T>(value: unknown, fallback: T): T {
-  if (value === null || value === undefined) return fallback;
-  if (typeof value === 'string') {
-    try { return JSON.parse(value) as T; } catch { return fallback; }
-  }
-  return value as T;
 }
 
 function openApp(appId: string, intent?: string) {
@@ -329,11 +210,6 @@ function readReferralAttributes(): ReferralAttributes {
   } catch {
     return {};
   }
-}
-
-function sanitizeFit(label: string | undefined): string {
-  const match = FIT_LABELS.find((l) => l.toLowerCase() === String(label || '').toLowerCase());
-  return match || 'Worth exploring';
 }
 
 function sanitizeStartability(label: string | undefined): string {
@@ -384,8 +260,8 @@ const GUARDRAIL_LANGUAGE =
 // ---------------------------------------------------------------------------
 function answersDigest(answers: AnswerMap): string {
   const lines: string[] = [];
-  SECTIONS.forEach((section) => {
-    section.questions.forEach((q) => {
+  STEPS.forEach((step) => {
+    step.questions.forEach((q) => {
       const val = asText(answers[q.id]);
       if (val.trim()) lines.push(`- ${q.label} => ${val}`);
     });
@@ -393,193 +269,116 @@ function answersDigest(answers: AnswerMap): string {
   return lines.join('\n');
 }
 
-async function generateProfile(answers: AnswerMap): Promise<FounderProfile> {
+function normalizeConcept(c: any): Concept {
+  const solution = String(c?.solution || '').trim();
+  return {
+    name: String(c?.name || 'Business concept').trim(),
+    pitch: String(c?.pitch || '').trim() || solution,
+    problem: String(c?.problem || '').trim(),
+    targetCustomer: String(c?.targetCustomer || '').trim(),
+    solution,
+    businessModel: String(c?.businessModel || '').trim(),
+    founderFit: String(c?.founderFit || '').trim(),
+    founderAdvantage: String(c?.founderAdvantage || '').trim(),
+    assumptions: Array.isArray(c?.assumptions) ? c.assumptions.map(String).filter(Boolean) : [],
+    validationExperiment: String(c?.validationExperiment || '').trim(),
+    startability: sanitizeStartability(c?.startability),
+  };
+}
+
+// ONE call replaces the old profile → territories → concepts chain.
+async function generateIdeas(answers: AnswerMap, avoidNames: string[]): Promise<DiscoveryResult> {
   const system = [
-    'You are FoundarOS Idea Discovery, generating a FOUNDER OPPORTUNITY PROFILE from a founder\u2019s discovery answers.',
-    'Do NOT generate business ideas at this stage — only interpret who this founder is.',
+    'You are FoundarOS Idea Discovery. From a founder’s short answers, do two things:',
+    '1) write a brief snapshot of what stands out about them;',
+    `2) suggest exactly ${IDEA_COUNT} distinct business concepts worth exploring.`,
+    'The concepts must differ from each other (different customer or different business model), and at least one must be easy to test with the founder’s existing network.',
+    'Use plain, simple language and short sentences. No jargon. Do NOT rank the concepts or pick a winner. These are concepts worth exploring, not validated businesses.',
+    avoidNames.length ? `Do NOT repeat or closely resemble these earlier concepts: ${avoidNames.join('; ')}.` : '',
     GUARDRAIL_LANGUAGE,
     'Return ONLY valid JSON of this exact shape:',
-    '{"experienceStrengths":"2-4 sentences","coreSkills":["skill"],"knowledgeAdvantage":"2-3 sentences","problemSensitivity":"2-3 sentences","accessAdvantage":"2-3 sentences","founderGoal":"one of: side income | full-time | scalable startup | service | digital","resourceProfile":{"time":"string","capital":"string","assets":"string"},"opportunityPattern":"2-3 sentence human-readable interpretation"}',
-  ].join('\n');
-  const user = `Founder discovery answers:\n${answersDigest(answers)}`;
+    '{"snapshot":{"summary":"2 sentences on what stands out about this founder, grounded in their answers","strengths":["up to 4 short phrases"]},"concepts":[{"name":"concept name","pitch":"ONE sentence: what it is and who it is for","problem":"the problem it solves","targetCustomer":"who would pay","solution":"what the business provides","businessModel":"how it makes money","founderFit":"ONE sentence tied to their answers","founderAdvantage":"experience, skill, relationship or access they already have","assumptions":["2 key things to prove"],"validationExperiment":"smallest practical experiment, one sentence","startability":"one of: Easy to test | Moderate to test | Requires significant resources"}]}',
+  ].filter(Boolean).join('\n');
+  const user = `Founder answers:\n${answersDigest(answers)}`;
   try {
-    const raw = await callDiscoveryAI(system, user, 2200);
+    const raw = await callDiscoveryAI(system, user, 3200);
+    const list = Array.isArray(raw.concepts) ? raw.concepts : [];
+    const concepts = list.slice(0, IDEA_COUNT).map(normalizeConcept);
+    if (!concepts.length) throw new Error('No concepts returned');
+    const fb = fallbackSnapshot(answers);
     return {
-      experienceStrengths: String(raw.experienceStrengths || '').trim() || fallbackProfile(answers).experienceStrengths,
-      coreSkills: Array.isArray(raw.coreSkills) && raw.coreSkills.length ? raw.coreSkills.map(String) : fallbackProfile(answers).coreSkills,
-      knowledgeAdvantage: String(raw.knowledgeAdvantage || '').trim() || fallbackProfile(answers).knowledgeAdvantage,
-      problemSensitivity: String(raw.problemSensitivity || '').trim() || fallbackProfile(answers).problemSensitivity,
-      accessAdvantage: String(raw.accessAdvantage || '').trim() || fallbackProfile(answers).accessAdvantage,
-      founderGoal: String(raw.founderGoal || '').trim() || fallbackProfile(answers).founderGoal,
-      resourceProfile: {
-        time: String(raw?.resourceProfile?.time || '').trim() || asText(answers.goals_time_per_week) || 'Not specified',
-        capital: String(raw?.resourceProfile?.capital || '').trim() || asText(answers.goals_capital) || 'Not specified',
-        assets: String(raw?.resourceProfile?.assets || '').trim() || fallbackProfile(answers).resourceProfile.assets,
+      snapshot: {
+        summary: String(raw?.snapshot?.summary || '').trim() || fb.summary,
+        strengths: Array.isArray(raw?.snapshot?.strengths) && raw.snapshot.strengths.length
+          ? raw.snapshot.strengths.map(String).slice(0, 4)
+          : fb.strengths,
       },
-      opportunityPattern: String(raw.opportunityPattern || '').trim() || fallbackProfile(answers).opportunityPattern,
+      concepts,
+      usedFallback: false,
     };
   } catch (error) {
-    console.warn('[IdeaDiscovery] profile AI unavailable, using rubric.', error);
-    return fallbackProfile(answers);
+    console.warn('[IdeaDiscovery] idea generation unavailable, using rubric.', error);
+    return { snapshot: fallbackSnapshot(answers), concepts: fallbackConcepts(answers), usedFallback: true };
   }
 }
 
-function fallbackProfile(answers: AnswerMap): FounderProfile {
+function fallbackSnapshot(answers: AnswerMap): Snapshot {
   const skills = Array.isArray(answers.skills) ? (answers.skills as string[]) : [];
   return {
-    experienceStrengths: asText(answers.experience_current) || 'Your experience is the foundation we will build from as you complete more of your discovery.',
-    coreSkills: skills.length ? skills : ['Add your strongest skills to sharpen this'],
-    knowledgeAdvantage: asText(answers.skills_knowledge) || 'The areas you know unusually well point to where you can move faster than most.',
-    problemSensitivity: asText(answers.problems_frustrations) || asText(answers.problems_personal) || 'The frustrations you notice are early signals of problems worth exploring.',
-    accessAdvantage: asText(answers.access_groups) || 'The communities you can already reach are a real advantage for early conversations.',
-    founderGoal: asText(answers.goals_business_type) ? 'service' : 'side income',
-    resourceProfile: {
-      time: asText(answers.goals_time_per_week) || 'Not specified',
-      capital: asText(answers.goals_capital) || 'Not specified',
-      assets: asText(answers.skills_help) || 'Your reputation and the people who trust your judgement.',
-    },
-    opportunityPattern: 'Your responses point to a promising starting point. As you explore territories below, look for problems that sit where your experience, your access and your energy overlap — those are worth exploring first.',
+    summary: 'These ideas sit where your experience, the problems you notice and the people you can reach overlap.',
+    strengths: skills.slice(0, 4),
   };
 }
 
-async function generateTerritories(answers: AnswerMap, profile: FounderProfile, count: number): Promise<Territory[]> {
-  const system = [
-    'You are FoundarOS Idea Discovery, generating OPPORTUNITY TERRITORIES.',
-    'These are NOT business ideas — they are broad areas worth exploring, connected to the founder\u2019s specific answers.',
-    'Do NOT rank them and do NOT crown one as best.',
-    GUARDRAIL_LANGUAGE,
-    `Generate exactly ${count} territories. Return ONLY valid JSON of this shape:`,
-    '{"territories":[{"name":"e.g. SME Operations","description":"1 sentence","whyItFits":["bullet tied to a specific answer"],"potentialCustomers":"who","problemsToExplore":["3-4 problems"],"fitLabel":"one of: Worth exploring | Strong founder fit | Promising starting point | Requires validation"}]}',
-  ].join('\n');
-  const user = `Founder answers:\n${answersDigest(answers)}\n\nFounder opportunity pattern: ${profile.opportunityPattern}`;
-  try {
-    const raw = await callDiscoveryAI(system, user, 2600);
-    const list = Array.isArray(raw.territories) ? raw.territories : [];
-    const mapped = list.slice(0, count).map((t: any) => ({
-      name: String(t.name || 'Opportunity area').trim(),
-      description: String(t.description || '').trim(),
-      whyItFits: Array.isArray(t.whyItFits) ? t.whyItFits.map(String).filter(Boolean) : [],
-      potentialCustomers: String(t.potentialCustomers || '').trim(),
-      problemsToExplore: Array.isArray(t.problemsToExplore) ? t.problemsToExplore.map(String).filter(Boolean) : [],
-      fitLabel: sanitizeFit(t.fitLabel),
-      selected: false,
-    }));
-    if (mapped.length) return mapped;
-    throw new Error('No territories returned');
-  } catch (error) {
-    console.warn('[IdeaDiscovery] territories AI unavailable, using rubric.', error);
-    return fallbackTerritories(answers).slice(0, count);
-  }
-}
-
-function fallbackTerritories(answers: AnswerMap): Territory[] {
-  const areas = Array.isArray(answers.interests_areas) ? (answers.interests_areas as string[]) : [];
+function fallbackConcepts(answers: AnswerMap): Concept[] {
   const groups = Array.isArray(answers.access_groups) ? (answers.access_groups as string[]) : [];
-  const base: Territory[] = [
+  const skills = Array.isArray(answers.skills) ? (answers.skills as string[]) : [];
+  const group = groups[0] || 'people in your network';
+  const group2 = groups[1] || group;
+  const problem = asText(answers.problems_frustrations) || 'A recurring problem you have noticed';
+  const know = asText(answers.experience_current) || 'What you already know well';
+  const skill = skills[0] || 'your expertise';
+  return [
     {
-      name: areas[0] ? `${areas[0]} Solutions` : 'Operational Problem-Solving',
-      description: 'An area where your interests and everyday frustrations overlap.',
-      whyItFits: [asText(answers.problems_frustrations) || 'You noticed friction here', asText(answers.skills_knowledge) || 'You know this space'].filter(Boolean),
-      potentialCustomers: groups[0] || 'People in your immediate network',
-      problemsToExplore: ['A recurring frustration you described', 'A task people around you complain about', 'A process that feels harder than it should'],
-      fitLabel: 'Worth exploring',
-      selected: false,
+      name: `Done-for-you service for ${group}`,
+      pitch: `A simple paid service that takes this problem off the plate of ${group}.`,
+      problem,
+      targetCustomer: group,
+      solution: 'You personally deliver the fix as a small, clearly priced service.',
+      businessModel: 'Fixed fee per job, or a monthly retainer.',
+      founderFit: 'Built on what you already know and the people you can already reach.',
+      founderAdvantage: know,
+      assumptions: ['They feel this problem strongly enough to pay', 'You can reach enough of them directly'],
+      validationExperiment: 'Offer the service to 5 people you know at a small starter price.',
+      startability: 'Easy to test',
     },
     {
-      name: groups[0] ? `Services for ${groups[0]}` : 'Knowledge Services',
-      description: 'Turning what you know unusually well into help others will pay for.',
-      whyItFits: [asText(answers.skills_help) || 'People already come to you for help', asText(answers.access_network_size) ? `You can reach ${asText(answers.access_network_size)} people` : ''].filter(Boolean),
-      potentialCustomers: groups[1] || groups[0] || 'A community you can already reach',
-      problemsToExplore: ['A problem this group repeatedly faces', 'Something they currently pay too much for', 'A gap between what they need and what exists'],
-      fitLabel: 'Strong founder fit',
-      selected: false,
+      name: `Coaching or training from ${skill}`,
+      pitch: `Teach ${group2} how to solve this problem themselves.`,
+      problem,
+      targetCustomer: group2,
+      solution: 'A short workshop, course or coaching programme based on your experience.',
+      businessModel: 'Paid workshop, cohort or one-to-one sessions.',
+      founderFit: 'Turns what people already ask you about into something they pay for.',
+      founderAdvantage: know,
+      assumptions: ['People want to learn this rather than outsource it', 'Your experience is credible to them'],
+      validationExperiment: 'Run one small paid session with a handful of people.',
+      startability: 'Moderate to test',
     },
     {
-      name: areas[1] ? `${areas[1]} Opportunities` : 'Adjacent Opportunities',
-      description: 'A promising starting point just outside your current lane.',
-      whyItFits: [asText(answers.interests_topics) || 'You are drawn to this topic'].filter(Boolean),
-      potentialCustomers: groups[2] || 'Early adopters in your interest area',
-      problemsToExplore: ['An unmet need you keep noticing', 'A workaround people rely on today', 'A trend creating new problems'],
-      fitLabel: 'Promising starting point',
-      selected: false,
+      name: `Simple tool or template kit for ${group}`,
+      pitch: `A ready-made tool that removes the same problem for many people at once.`,
+      problem,
+      targetCustomer: group,
+      solution: 'A lightweight digital tool, template or checklist that solves the core problem.',
+      businessModel: 'One-time purchase or small monthly subscription.',
+      founderFit: 'Packages your know-how so it can reach more people than you can serve one by one.',
+      founderAdvantage: know,
+      assumptions: ['A self-serve version is good enough for them', 'They will pay without a personal service'],
+      validationExperiment: 'Share a mock-up with 10 people and ask who would pay for it.',
+      startability: 'Moderate to test',
     },
   ];
-  return base;
-}
-
-async function generateConcepts(answers: AnswerMap, profile: FounderProfile, territories: Territory[], maxConcepts: number): Promise<Concept[]> {
-  const perTerritory = territories.length === 1 ? 3 : Math.max(1, Math.floor(maxConcepts / territories.length));
-  const system = [
-    'You are FoundarOS Idea Discovery, generating personalized BUSINESS CONCEPTS for the selected opportunity territories.',
-    `Generate ${perTerritory} concepts per territory. Never exceed ${maxConcepts} concepts total.`,
-    'These are concepts worth exploring, NOT validated businesses. Do NOT rank them or pick a winner.',
-    GUARDRAIL_LANGUAGE,
-    'For "comparison", use short 1-3 word qualitative labels (e.g. Strong, Clear, Moderate, Emerging, Easy, Requires work).',
-    'Return ONLY valid JSON of this shape:',
-    '{"concepts":[{"territoryName":"matches a selected territory","name":"concept name","problem":"what it solves","targetCustomer":"who would pay","solution":"what the business provides","businessModel":"how it makes money","founderFit":"tied to their answers","founderAdvantage":"experience/skill/relationship/access","assumptions":["2-4 key assumptions"],"validationExperiment":"smallest practical experiment","startability":"one of: Easy to test | Moderate to test | Requires significant resources","comparison":{"founderFit":"label","problemClarity":"label","customerClarity":"label","access":"label","startability":"label","businessModel":"label","validationDifficulty":"label"}}]}',
-  ].join('\n');
-  const territoryText = territories.map((t) => `Territory: ${t.name} — ${t.description} (customers: ${t.potentialCustomers})`).join('\n');
-  const user = `Founder answers:\n${answersDigest(answers)}\n\nSelected territories:\n${territoryText}`;
-  try {
-    const raw = await callDiscoveryAI(system, user, 4000);
-    const list = Array.isArray(raw.concepts) ? raw.concepts : [];
-    const mapped = list.slice(0, maxConcepts).map((c: any) => normalizeConcept(c, territories));
-    if (mapped.length) return mapped;
-    throw new Error('No concepts returned');
-  } catch (error) {
-    console.warn('[IdeaDiscovery] concepts AI unavailable, using rubric.', error);
-    return fallbackConcepts(territories, perTerritory).slice(0, maxConcepts);
-  }
-}
-
-function normalizeConcept(c: any, territories: Territory[]): Concept {
-  const territoryName = String(c.territoryName || territories[0]?.name || '').trim();
-  const cmp = c.comparison || {};
-  return {
-    territoryName,
-    name: String(c.name || 'Business concept').trim(),
-    problem: String(c.problem || '').trim(),
-    targetCustomer: String(c.targetCustomer || '').trim(),
-    solution: String(c.solution || '').trim(),
-    businessModel: String(c.businessModel || '').trim(),
-    founderFit: String(c.founderFit || '').trim(),
-    founderAdvantage: String(c.founderAdvantage || '').trim(),
-    assumptions: Array.isArray(c.assumptions) ? c.assumptions.map(String).filter(Boolean) : [],
-    validationExperiment: String(c.validationExperiment || '').trim(),
-    startability: sanitizeStartability(c.startability),
-    comparison: {
-      founderFit: String(cmp.founderFit || 'Moderate'),
-      problemClarity: String(cmp.problemClarity || 'Emerging'),
-      customerClarity: String(cmp.customerClarity || 'Emerging'),
-      access: String(cmp.access || 'Moderate'),
-      startability: String(cmp.startability || 'Moderate'),
-      businessModel: String(cmp.businessModel || 'Emerging'),
-      validationDifficulty: String(cmp.validationDifficulty || 'Moderate'),
-    },
-  };
-}
-
-function fallbackConcepts(territories: Territory[], perTerritory: number): Concept[] {
-  const out: Concept[] = [];
-  territories.forEach((t) => {
-    for (let i = 0; i < perTerritory; i += 1) {
-      out.push({
-        territoryName: t.name,
-        name: `${t.name} concept ${i + 1}`,
-        problem: t.problemsToExplore[i] || t.problemsToExplore[0] || 'A problem worth exploring in this territory.',
-        targetCustomer: t.potentialCustomers || 'A specific group you can reach',
-        solution: 'A focused first offering that addresses the problem directly.',
-        businessModel: 'Start with a simple paid service or product, then expand.',
-        founderFit: t.whyItFits[0] || 'Connected to your experience and access.',
-        founderAdvantage: 'The relationships and knowledge you already have in this space.',
-        assumptions: ['Customers feel this problem strongly enough to pay', 'You can reach enough of them affordably'],
-        validationExperiment: 'Talk to 10 potential customers and offer a small paid pilot.',
-        startability: 'Moderate to test',
-        comparison: { founderFit: 'Strong', problemClarity: 'Emerging', customerClarity: 'Clear', access: 'Strong', startability: 'Moderate', businessModel: 'Emerging', validationDifficulty: 'Moderate' },
-      });
-    }
-  });
-  return out;
 }
 
 async function generateValidationPlan(answers: AnswerMap, concept: Concept): Promise<ValidationPlan> {
@@ -630,27 +429,6 @@ function fallbackPlan(concept: Concept): ValidationPlan {
 // ---------------------------------------------------------------------------
 // Small UI primitives
 // ---------------------------------------------------------------------------
-function FitBadge({ label }: { label: string }) {
-  const tone =
-    label === 'Strong founder fit'
-      ? 'var(--space-semantic-success)'
-      : label === 'Requires validation'
-        ? 'var(--space-semantic-warning)'
-        : 'var(--space-brand-primary-500)';
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-      style={{
-        color: tone,
-        background: `color-mix(in srgb, ${tone} 14%, transparent)`,
-        border: `1px solid color-mix(in srgb, ${tone} 40%, transparent)`,
-      }}
-    >
-      <Star className="w-3 h-3" /> {label}
-    </span>
-  );
-}
-
 function StartBadge({ label }: { label: string }) {
   const tone =
     label === 'Easy to test'
@@ -669,20 +447,6 @@ function StartBadge({ label }: { label: string }) {
     >
       <Gauge className="w-3 h-3" /> {label}
     </span>
-  );
-}
-
-function SectionCard({ icon: Icon, title, children }: { icon: any; title: string; children: ReactNode }) {
-  return (
-    <div className={`${tw.card.glass} p-5`}>
-      <div className="flex items-center gap-2.5 mb-3">
-        <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[var(--space-surface-accent-soft)]">
-          <Icon className={`w-4 h-4 ${tw.icon.primary}`} />
-        </span>
-        <h3 className={`text-sm font-semibold ${tw.typography.color.primary}`}>{title}</h3>
-      </div>
-      <div className={`text-sm leading-6 ${tw.typography.color.secondary}`}>{children}</div>
-    </div>
   );
 }
 
@@ -737,23 +501,23 @@ export default function IdeaDiscovery() {
   }) as { data: any[]; loading: boolean };
 
   const [phase, setPhase] = useState<Phase>('welcome');
-  const [loadingLabel, setLoadingLabel] = useState('Analysing your profile…');
-  const [sectionIndex, setSectionIndex] = useState(0);
+  const [loadingLabel, setLoadingLabel] = useState('Finding ideas that fit you…');
+  const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [profileId, setProfileId] = useState<number | null>(null);
-  const [profile, setProfile] = useState<FounderProfile | null>(null);
-  const [territories, setTerritories] = useState<Territory[]>([]);
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [selectedConceptIndex, setSelectedConceptIndex] = useState<number | null>(null);
   const [plan, setPlan] = useState<ValidationPlan | null>(null);
+  const [planLoading, setPlanLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [showBooking, setShowBooking] = useState(false);
   const [buildBriefText, setBuildBriefText] = useState('');
   const [referralUrl, setReferralUrl] = useState('');
   const [referralError, setReferralError] = useState<string | null>(null);
   const [referralLoading, setReferralLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const planRequestRef = useRef(0);
 
   const hasSavedRun = Array.isArray(profileRows) && profileRows.length > 0 && profileRows[0]?.status === 'completed';
 
@@ -823,10 +587,10 @@ export default function IdeaDiscovery() {
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [phase, sectionIndex]);
+  }, [phase, stepIndex]);
 
-  const section = SECTIONS[sectionIndex];
-  const totalSections = SECTIONS.length;
+  const step = STEPS[stepIndex];
+  const totalSteps = STEPS.length;
 
   const setAnswer = (id: string, value: AnswerValue) => setAnswers((prev) => ({ ...prev, [id]: value }));
 
@@ -838,10 +602,10 @@ export default function IdeaDiscovery() {
     return asText(v).trim().length > 0;
   };
 
-  const sectionComplete = section ? section.questions.every(isQuestionAnswered) : false;
+  const stepComplete = step ? step.questions.every(isQuestionAnswered) : false;
 
   // -- persistence helpers (best-effort; UI is driven by state) -------------
-  const persistProfile = async (built: FounderProfile): Promise<number | null> => {
+  const persistProfile = async (): Promise<number | null> => {
     try {
       const db = (window as any).__workspaceDb;
       const payload = {
@@ -879,43 +643,14 @@ export default function IdeaDiscovery() {
     }
   };
 
-  const persistTerritories = async (pid: number | null, list: Territory[]): Promise<Territory[]> => {
-    if (!pid) return list;
-    try {
-      const db = (window as any).__workspaceDb;
-      for (const t of list) {
-        await db.from('idea_discovery_territories').insert({
-          profile_id: pid,
-          name: t.name,
-          description: t.description,
-          why_it_fits: t.whyItFits,
-          potential_customers: t.potentialCustomers,
-          problems_to_explore: t.problemsToExplore,
-          fit_label: t.fitLabel,
-          selected: false,
-        });
-      }
-      const res = await db.from('idea_discovery_territories').orderBy('created_at', 'desc').limit(list.length).get();
-      const rows: any[] = Array.isArray(res?.data) ? res.data : [];
-      return list.map((t) => {
-        const match = rows.find((r) => r.name === t.name && r.profile_id === pid);
-        return match ? { ...t, id: match.id } : t;
-      });
-    } catch (error) {
-      console.warn('[IdeaDiscovery] could not persist territories.', error);
-      return list;
-    }
-  };
-
-  const persistConcepts = async (pid: number | null, list: Concept[], terr: Territory[]): Promise<Concept[]> => {
+  const persistConcepts = async (pid: number | null, list: Concept[]): Promise<Concept[]> => {
     if (!pid) return list;
     try {
       const db = (window as any).__workspaceDb;
       for (const c of list) {
-        const territoryId = terr.find((t) => t.name === c.territoryName)?.id ?? null;
         await db.from('idea_discovery_concepts').insert({
           profile_id: pid,
-          territory_id: territoryId,
+          territory_id: null,
           name: c.name,
           problem: c.problem,
           target_customer: c.targetCustomer,
@@ -961,73 +696,63 @@ export default function IdeaDiscovery() {
   };
 
   // -- flow transitions -----------------------------------------------------
-  const finishQuestionnaire = async () => {
-    setLoadingLabel('Analysing your profile…');
-    setPhase('loading');
-    const built = await generateProfile(answers);
-    setProfile(built);
-    const pid = await persistProfile(built);
-    setProfileId(pid);
-    setPhase('profile');
-  };
-
-  const goToTerritories = async () => {
-    if (!profile) return;
-    setLoadingLabel('Mapping your opportunity territories…');
-    setPhase('loading');
-    const built = await generateTerritories(answers, profile, tier.opportunityTerritories);
-    const withIds = await persistTerritories(profileId, built);
-    setTerritories(withIds);
-    setPhase('territories');
-  };
-
-  const toggleTerritory = (idx: number) => {
-    setTerritories((prev) => {
-      const selectedCount = prev.filter((t) => t.selected).length;
-      return prev.map((t, i) => {
-        if (i !== idx) return t;
-        if (!t.selected && selectedCount >= 2) return t; // max 2
-        return { ...t, selected: !t.selected };
-      });
-    });
-  };
-
-  const selectedTerritories = useMemo(() => territories.filter((t) => t.selected), [territories]);
-
-  const goToConcepts = async () => {
-    if (!profile || selectedTerritories.length === 0) return;
-    // persist selection state (best-effort)
-    try {
-      const db = (window as any).__workspaceDb;
-      for (const t of selectedTerritories) if (t.id) await db.from('idea_discovery_territories').update(t.id, { selected: true });
-    } catch { /* noop */ }
-    setLoadingLabel('Generating business concepts for you…');
-    setPhase('loading');
-    const built = await generateConcepts(answers, profile, selectedTerritories, tier.conceptsUnlocked || 6);
-    const withIds = await persistConcepts(profileId, built, territories);
+  const applyResult = async (result: DiscoveryResult, pid: number | null) => {
+    const withIds = await persistConcepts(pid, result.concepts);
+    planRequestRef.current += 1; // cancel any in-flight plan request
+    setSnapshot(result.snapshot);
     setConcepts(withIds);
-    setPhase('concepts');
+    setSelectedConceptIndex(null);
+    setPlan(null);
+    setPlanLoading(false);
+    setNotice(
+      result.usedFallback
+        ? 'We couldn’t reach the idea generator, so these are starter ideas built from your answers. Tap “Show me different ideas” to try again.'
+        : null,
+    );
+    setPhase('results');
   };
 
-  const chooseConcept = async (idx: number) => {
-    setSelectedConceptIndex(idx);
-    const chosen = concepts[idx];
-    try {
-      const db = (window as any).__workspaceDb;
-      if (chosen?.id) await db.from('idea_discovery_concepts').update(chosen.id, { selected: true });
-    } catch { /* noop */ }
-    setPhase('summary');
-  };
-
-  const goToValidation = async () => {
-    if (selectedConceptIndex === null) return;
-    const chosen = concepts[selectedConceptIndex];
-    setLoadingLabel('Building your 14-day validation plan…');
+  const finishQuestionnaire = async () => {
+    setLoadingLabel('Finding ideas that fit you…');
     setPhase('loading');
-    const built = await generateValidationPlan(answers, chosen);
-    setPlan(built);
-    await persistValidationPlan(profileId, chosen?.id ?? null, built);
-    setPhase('validation');
+    const [result, pid] = await Promise.all([generateIdeas(answers, []), persistProfile()]);
+    setProfileId(pid);
+    await applyResult(result, pid);
+  };
+
+  const showDifferentIdeas = async () => {
+    setLoadingLabel('Looking for different ideas…');
+    setPhase('loading');
+    const result = await generateIdeas(answers, concepts.map((c) => c.name));
+    await applyResult(result, profileId);
+  };
+
+  // Choosing an idea opens the plan screen immediately; the 14-day plan loads
+  // inline so there is no full-screen wait.
+  const chooseConcept = (idx: number) => {
+    if (selectedConceptIndex === idx && plan) {
+      setPhase('plan');
+      return;
+    }
+    const chosen = concepts[idx];
+    if (!chosen) return;
+    const requestId = planRequestRef.current + 1;
+    planRequestRef.current = requestId;
+    setSelectedConceptIndex(idx);
+    setPlan(null);
+    setPlanLoading(true);
+    setPhase('plan');
+    void (async () => {
+      try {
+        const db = (window as any).__workspaceDb;
+        if (chosen.id) await db.from('idea_discovery_concepts').update(chosen.id, { selected: true });
+      } catch { /* noop */ }
+      const built = await generateValidationPlan(answers, chosen);
+      if (planRequestRef.current !== requestId) return;
+      setPlan(built);
+      setPlanLoading(false);
+      await persistValidationPlan(profileId, chosen.id ?? null, built);
+    })();
   };
 
   const copyBuildBrief = async () => {
@@ -1125,14 +850,15 @@ export default function IdeaDiscovery() {
   };
 
   const restart = () => {
+    planRequestRef.current += 1;
     setAnswers({});
-    setSectionIndex(0);
-    setProfile(null);
+    setStepIndex(0);
     setProfileId(null);
-    setTerritories([]);
+    setSnapshot(null);
     setConcepts([]);
     setSelectedConceptIndex(null);
     setPlan(null);
+    setPlanLoading(false);
     setNotice(null);
     setBuildBriefText('');
     setReferralUrl('');
@@ -1175,37 +901,35 @@ export default function IdeaDiscovery() {
           <h1 className={`text-3xl sm:text-4xl font-bold tracking-tight ${tw.typography.color.primary} max-w-2xl`}>
             You don’t need a business idea to start.
           </h1>
-          <p className={`mt-5 text-base sm:text-lg leading-7 ${tw.typography.color.secondary} max-w-2xl`}>
-            Your experience, skills, interests, frustrations and connections may already contain the clues to your next
-            business. FoundarOS helps you uncover them.
+          <p className={`mt-5 text-base sm:text-lg leading-7 ${tw.typography.color.secondary} max-w-xl`}>
+            Tell us what you know, what bugs you and who you can reach. We’ll suggest {IDEA_COUNT} ideas that fit you — and a 14-day plan to test the one you like.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3">
             <PrimaryButton onClick={() => setPhase('questions')}>
-              <Sparkles className="w-4 h-4" /> Start Idea Discovery
+              <Sparkles className="w-4 h-4" /> Find my ideas
             </PrimaryButton>
-            <span className={`text-xs ${tw.typography.color.muted}`}>Estimated time: 10–15 minutes</span>
+            <span className={`text-xs ${tw.typography.color.muted}`}>About 3 minutes · 3 short steps</span>
           </div>
+          <ol className="mt-12 grid sm:grid-cols-3 gap-3 w-full max-w-2xl text-left">
+            {[
+              { n: 1, t: 'Answer a few questions', d: 'Mostly taps. Four short written answers.' },
+              { n: 2, t: `Get ${IDEA_COUNT} ideas`, d: 'Based only on what you tell us.' },
+              { n: 3, t: 'Pick one to test', d: 'With a 14-day plan, then build or validate.' },
+            ].map((f) => (
+              <li key={f.n} className={`${tw.card.flat} p-4 flex gap-3`}>
+                <span className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-semibold bg-[var(--space-surface-accent-soft)] text-[var(--space-text-brand)]">{f.n}</span>
+                <div>
+                  <p className={`text-sm font-semibold ${tw.typography.color.primary}`}>{f.t}</p>
+                  <p className={`text-xs mt-1 ${tw.typography.color.muted}`}>{f.d}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
           {hasSavedRun && (
             <p className={`mt-8 text-xs ${tw.typography.color.muted}`}>
-              You have a previous discovery saved. Starting again creates a fresh profile.
+              You have a previous discovery saved. Starting again creates a fresh one.
             </p>
           )}
-          <div className="mt-12 grid sm:grid-cols-3 gap-3 w-full max-w-2xl text-left">
-            {[
-              { icon: Brain, t: 'Understand your edge', d: 'A profile built only from your real answers.' },
-              { icon: Layers, t: 'Explore territories', d: 'Broad areas worth exploring — never ranked for you.' },
-              { icon: Rocket, t: 'Leave with a plan', d: 'A concept to test and a 14-day validation plan.' },
-            ].map((f) => (
-              <div key={f.t} className={`${tw.card.flat} p-4`}>
-                <f.icon className={`w-5 h-5 mb-2 ${tw.icon.primary}`} />
-                <p className={`text-sm font-semibold ${tw.typography.color.primary}`}>{f.t}</p>
-                <p className={`text-xs mt-1 ${tw.typography.color.muted}`}>{f.d}</p>
-              </div>
-            ))}
-          </div>
-          <p className={`mt-10 text-xs ${tw.typography.color.muted} max-w-md`}>
-            DISCOVER → VALIDATE → BUILD → ASSESS → FUND → OPERATE. You are at the very first step.
-          </p>
         </div>
       </Shell>
     );
@@ -1214,45 +938,27 @@ export default function IdeaDiscovery() {
   if (phase === 'questions') {
     return (
       <Shell innerRef={scrollRef}>
-        {/* progress */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className={`text-xs font-medium ${tw.typography.color.accent}`}>Section {sectionIndex + 1} of {totalSections}</span>
-            <span className={`text-xs ${tw.typography.color.muted}`}>{section.title}</span>
+            <span className={`text-xs font-medium ${tw.typography.color.accent}`}>Step {stepIndex + 1} of {totalSteps}</span>
+            <span className={`text-xs ${tw.typography.color.muted}`}>{step.title}</span>
           </div>
           <div className="h-1.5 rounded-full overflow-hidden bg-[var(--space-surface-muted)]">
             <div
               className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${((sectionIndex + 1) / totalSections) * 100}%`, background: 'var(--space-brand-primary)' }}
+              style={{ width: `${((stepIndex + 1) / totalSteps) * 100}%`, background: 'var(--space-brand-primary)' }}
             />
           </div>
         </div>
 
         <div className={`${tw.card.glass} p-5 sm:p-7`}>
-          <h2 className={`text-xl font-bold ${tw.typography.color.primary}`}>{section.title}</h2>
-          {section.intro && <p className={`mt-1.5 text-sm ${tw.typography.color.secondary}`}>{section.intro}</p>}
-          {section.critical && (
-            <div
-              className="mt-4 flex items-start gap-2.5 p-3 rounded-lg"
-              style={{
-                background: 'color-mix(in srgb, var(--space-brand-primary-500) 12%, transparent)',
-                border: '1px solid color-mix(in srgb, var(--space-brand-primary-500) 40%, transparent)',
-              }}
-            >
-              <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${tw.icon.primary}`} />
-              <p className={`text-xs leading-5 ${tw.typography.color.secondary}`}>
-                <span className={`font-semibold ${tw.typography.color.primary}`}>Most important section. </span>
-                {section.criticalNote}
-              </p>
-            </div>
-          )}
-
+          <h2 className={`text-xl font-bold ${tw.typography.color.primary}`}>{step.title}</h2>
+          {step.intro && <p className={`mt-1.5 text-sm ${tw.typography.color.secondary}`}>{step.intro}</p>}
           <div className="mt-6 space-y-7">
-            {section.questions.map((q, qi) => (
+            {step.questions.map((q) => (
               <QuestionField
                 key={q.id}
                 q={q}
-                index={qi}
                 value={answers[q.id]}
                 onChange={(val) => setAnswer(q.id, val)}
               />
@@ -1262,337 +968,218 @@ export default function IdeaDiscovery() {
 
         <div className="mt-6 flex items-center justify-between">
           <button
-            onClick={() => (sectionIndex === 0 ? setPhase('welcome') : setSectionIndex((i) => i - 1))}
+            onClick={() => (stepIndex === 0 ? setPhase(concepts.length ? 'results' : 'welcome') : setStepIndex((i) => i - 1))}
             className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm ${tw.button.ghost}`}
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
-          {sectionIndex < totalSections - 1 ? (
-            <PrimaryButton onClick={() => setSectionIndex((i) => i + 1)} disabled={!sectionComplete}>
+          {stepIndex < totalSteps - 1 ? (
+            <PrimaryButton onClick={() => setStepIndex((i) => i + 1)} disabled={!stepComplete}>
               Continue <ArrowRight className="w-4 h-4" />
             </PrimaryButton>
           ) : (
-            <PrimaryButton onClick={finishQuestionnaire} disabled={!sectionComplete}>
-              <Sparkles className="w-4 h-4" /> Analyse my profile
+            <PrimaryButton onClick={finishQuestionnaire} disabled={!stepComplete}>
+              <Sparkles className="w-4 h-4" /> Show me my ideas
             </PrimaryButton>
           )}
         </div>
-        {!sectionComplete && (
-          <p className={`mt-3 text-right text-xs ${tw.typography.color.muted}`}>Answer each question to continue (optional ones can be skipped).</p>
+        {!stepComplete && (
+          <p className={`mt-3 text-right text-xs ${tw.typography.color.muted}`}>Fill in the questions without “(optional)” to continue.</p>
         )}
       </Shell>
     );
   }
 
-  if (phase === 'profile' && profile) {
+  if (phase === 'results' && concepts.length > 0) {
     return (
       <Shell innerRef={scrollRef}>
-        <Header eyebrow="Step 3 · Founder Opportunity Profile" title="Your Founder Opportunity Profile" subtitle="A personalized strategic assessment — grounded only in what you told us. No ideas yet." />
-        <div
-          className="mb-6 p-5 rounded-2xl"
-          style={{
-            background: 'color-mix(in srgb, var(--space-brand-primary-500) 12%, transparent)',
-            border: '1px solid color-mix(in srgb, var(--space-brand-primary-500) 40%, transparent)',
-          }}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className={`w-4 h-4 ${tw.icon.primary}`} />
-            <h3 className={`text-sm font-semibold ${tw.typography.color.primary}`}>Founder Opportunity Pattern</h3>
+        <Header
+          eyebrow="Your ideas"
+          title={`${concepts.length} ideas worth exploring`}
+          subtitle={snapshot?.summary || 'Built from your answers. Pick the one you want to test first.'}
+        />
+        {snapshot && snapshot.strengths.length > 0 && (
+          <div className="-mt-2 mb-5 flex flex-wrap gap-2">
+            {snapshot.strengths.map((s, i) => (
+              <span key={i} className="px-2.5 py-1 rounded-full text-xs bg-[var(--space-surface-muted)] text-[var(--space-text-secondary)] border border-[var(--space-border-default)]">{s}</span>
+            ))}
           </div>
-          <p className={`text-sm leading-6 ${tw.typography.color.secondary}`}>{profile.opportunityPattern}</p>
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <SectionCard icon={Briefcase} title="Experience Strengths">{profile.experienceStrengths}</SectionCard>
-          <SectionCard icon={Sparkles} title="Core Skills">
-            <div className="flex flex-wrap gap-2">
-              {profile.coreSkills.map((s, i) => (
-                <span key={i} className="px-2.5 py-1 rounded-full text-xs bg-[var(--space-surface-muted)] text-[var(--space-text-secondary)] border border-[var(--space-border-default)]">{s}</span>
-              ))}
-            </div>
-          </SectionCard>
-          <SectionCard icon={Brain} title="Knowledge Advantage">{profile.knowledgeAdvantage}</SectionCard>
-          <SectionCard icon={AlertTriangle} title="Problem Sensitivity">{profile.problemSensitivity}</SectionCard>
-          <SectionCard icon={Users} title="Access Advantage">{profile.accessAdvantage}</SectionCard>
-          <SectionCard icon={Target} title="Founder Goal">
-            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--space-surface-accent-soft)] text-[var(--space-text-brand)] capitalize">{profile.founderGoal}</span>
-          </SectionCard>
-          <div className="sm:col-span-2">
-            <SectionCard icon={Wallet} title="Resource Profile">
-              <div className="grid sm:grid-cols-3 gap-3">
-                <ResourceItem icon={Clock} label="Time" value={profile.resourceProfile.time} />
-                <ResourceItem icon={Wallet} label="Capital" value={profile.resourceProfile.capital} />
-                <ResourceItem icon={Star} label="Relevant assets" value={profile.resourceProfile.assets} />
-              </div>
-            </SectionCard>
-          </div>
-        </div>
-
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <button onClick={restart} className={`text-xs ${tw.typography.color.muted} hover:underline`}>Start over</button>
-          <PrimaryButton onClick={goToTerritories}>
-            See your opportunity territories <ArrowRight className="w-4 h-4" />
-          </PrimaryButton>
-        </div>
-      </Shell>
-    );
-  }
-
-  if (phase === 'territories') {
-    return (
-      <Shell innerRef={scrollRef}>
-        <Header eyebrow="Steps 4–5 · Opportunity Territories" title="Which opportunity would you like to explore?" subtitle="These are broad areas worth exploring — not business ideas, and never ranked. Select 1–2 to go deeper." />
-        <div className="space-y-4">
-          {territories.map((t, i) => {
-            const disabled = !t.selected && selectedTerritories.length >= 2;
-            return (
-              <button
-                key={i}
-                onClick={() => toggleTerritory(i)}
-                disabled={disabled}
-                className={`w-full text-left ${tw.card.glass} p-5 transition-all ${t.selected ? 'ring-2' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110'}`}
-                style={t.selected ? { boxShadow: '0 0 0 2px var(--space-brand-primary)' } : undefined}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ border: '2px solid var(--space-brand-primary)', background: t.selected ? 'var(--space-brand-primary)' : 'transparent' }}>
-                      {t.selected ? <Check className="w-3.5 h-3.5 text-[var(--space-text-on-primary)]" /> : null}
-                    </span>
-                    <h3 className={`text-lg font-bold ${tw.typography.color.primary}`}>{t.name}</h3>
-                  </div>
-                  <FitBadge label={t.fitLabel} />
-                </div>
-                <p className={`mt-2 text-sm ${tw.typography.color.secondary}`}>{t.description}</p>
-                <div className="mt-4 grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <p className={`text-xs font-semibold uppercase tracking-wide mb-1.5 ${tw.typography.color.accent}`}>Why it emerged</p>
-                    <ul className="space-y-1">
-                      {t.whyItFits.map((w, wi) => (
-                        <li key={wi} className={`text-xs flex gap-1.5 ${tw.typography.color.secondary}`}><span className={tw.typography.color.accent}>•</span>{w}</li>
-                      ))}
-                    </ul>
-                    <p className={`mt-3 text-xs ${tw.typography.color.muted}`}><span className="font-semibold">Potential customers: </span>{t.potentialCustomers}</p>
-                  </div>
-                  <div>
-                    <p className={`text-xs font-semibold uppercase tracking-wide mb-1.5 ${tw.typography.color.accent}`}>Problems worth exploring</p>
-                    <ul className="space-y-1">
-                      {t.problemsToExplore.map((p, pi) => (
-                        <li key={pi} className={`text-xs flex gap-1.5 ${tw.typography.color.secondary}`}><span className={tw.typography.color.accent}>•</span>{p}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-        <div className="mt-8 flex items-center justify-between">
-          <span className={`text-xs ${tw.typography.color.muted}`}>{selectedTerritories.length}/2 selected</span>
-          <PrimaryButton onClick={goToConcepts} disabled={selectedTerritories.length === 0}>
-            Explore selected territories <ArrowRight className="w-4 h-4" />
-          </PrimaryButton>
-        </div>
-      </Shell>
-    );
-  }
-
-  if (phase === 'concepts') {
-    return (
-      <Shell innerRef={scrollRef}>
-        <Header eyebrow="Step 6 · Business Concepts" title="Personalized business concepts" subtitle="Concepts worth exploring, generated from your profile and chosen territories." />
-        <Disclaimer />
-        <div className="grid lg:grid-cols-2 gap-4 mt-4">
-          {concepts.map((c, i) => (
-            <div key={i} className={`${tw.card.glass} p-5 flex flex-col`}>
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <span className={`text-xs ${tw.typography.color.muted}`}>{c.territoryName}</span>
-                  <h3 className={`text-lg font-bold ${tw.typography.color.primary}`}>{c.name}</h3>
-                </div>
-                <StartBadge label={c.startability} />
-              </div>
-              <div className="mt-3 space-y-2.5 text-sm">
-                <ConceptRow label="The problem" value={c.problem} />
-                <ConceptRow label="Target customer" value={c.targetCustomer} />
-                <ConceptRow label="Proposed solution" value={c.solution} />
-                <ConceptRow label="Business model" value={c.businessModel} />
-                <ConceptRow label="Why it fits you" value={c.founderFit} />
-                <ConceptRow label="Founder advantage" value={c.founderAdvantage} />
-              </div>
-              <div className="mt-3">
-                <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${tw.typography.color.accent}`}>What needs to be proven</p>
-                <ul className="space-y-1">
-                  {c.assumptions.map((a, ai) => (
-                    <li key={ai} className={`text-xs flex gap-1.5 ${tw.typography.color.secondary}`}><span className={tw.typography.color.accent}>•</span>{a}</li>
-                  ))}
-                </ul>
-              </div>
-              <div className="mt-3 p-3 rounded-lg bg-[var(--space-surface-muted)]">
-                <p className={`text-xs font-semibold ${tw.typography.color.primary}`}>First validation experiment</p>
-                <p className={`text-xs mt-1 ${tw.typography.color.secondary}`}>{c.validationExperiment}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-8 flex items-center justify-end">
-          <PrimaryButton onClick={() => setPhase('compare')}>
-            Compare concepts <ArrowRight className="w-4 h-4" />
-          </PrimaryButton>
-        </div>
-      </Shell>
-    );
-  }
-
-  if (phase === 'compare') {
-    const criteria: { key: keyof ConceptComparison; label: string }[] = [
-      { key: 'founderFit', label: 'Founder Fit' },
-      { key: 'problemClarity', label: 'Problem Clarity' },
-      { key: 'customerClarity', label: 'Customer Clarity' },
-      { key: 'access', label: 'Access' },
-      { key: 'startability', label: 'Startability' },
-      { key: 'businessModel', label: 'Business Model' },
-      { key: 'validationDifficulty', label: 'Validation Difficulty' },
-    ];
-    return (
-      <Shell innerRef={scrollRef}>
-        <Header eyebrow="Step 7 · Compare" title="Compare your concepts" subtitle="Weigh them side by side. There is no automatic winner — you decide which one to investigate." />
-        <div className="overflow-x-auto rounded-2xl border border-[var(--space-border-default)]">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                <th className="text-left p-3 sticky left-0 bg-[var(--space-surface-panel-strong)] z-10">
-                  <span className={`text-xs font-semibold uppercase tracking-wide ${tw.typography.color.muted}`}>Criteria</span>
-                </th>
-                {concepts.map((c, i) => (
-                  <th key={i} className="p-3 text-left min-w-[160px] bg-[var(--space-surface-panel)]">
-                    <span className={`text-sm font-bold ${tw.typography.color.primary}`}>{c.name}</span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {criteria.map((crit) => (
-                <tr key={crit.key} className="border-t border-[var(--space-border-default)]">
-                  <td className="p-3 sticky left-0 bg-[var(--space-surface-panel-strong)] z-10">
-                    <span className={`text-xs font-medium ${tw.typography.color.secondary}`}>{crit.label}</span>
-                  </td>
-                  {concepts.map((c, i) => (
-                    <td key={i} className={`p-3 ${tw.typography.color.primary}`}>{c.comparison[crit.key]}</td>
-                  ))}
-                </tr>
-              ))}
-              <tr className="border-t border-[var(--space-border-default)]">
-                <td className="p-3 sticky left-0 bg-[var(--space-surface-panel-strong)] z-10" />
-                {concepts.map((c, i) => (
-                  <td key={i} className="p-3">
-                    <button onClick={() => chooseConcept(i)} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs ${tw.button.primary}`}>
-                      Investigate <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div className="mt-6 flex items-center justify-between">
-          <button onClick={() => setPhase('concepts')} className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm ${tw.button.ghost}`}>
-            <ArrowLeft className="w-4 h-4" /> Back to concepts
-          </button>
-        </div>
-      </Shell>
-    );
-  }
-
-  if (phase === 'summary' && selectedConceptIndex !== null) {
-    const c = concepts[selectedConceptIndex];
-    return (
-      <Shell innerRef={scrollRef}>
-        <Header eyebrow="Step 8 · Your Idea to Explore" title="Your idea to explore" subtitle="The concept you chose to investigate next." />
-        <div className={`${tw.card.glass} p-6`}>
-          <h2 className={`text-2xl font-bold ${tw.typography.color.primary}`}>{c.name}</h2>
-          <div className="mt-2 flex flex-wrap gap-2"><StartBadge label={c.startability} /><span className={`text-xs ${tw.typography.color.muted} self-center`}>{c.territoryName}</span></div>
-          <div className="mt-5 grid sm:grid-cols-2 gap-4 text-sm">
-            <ConceptRow label="Problem" value={c.problem} />
-            <ConceptRow label="Target customer" value={c.targetCustomer} />
-            <ConceptRow label="Proposed solution" value={c.solution} />
-            <ConceptRow label="Business model" value={c.businessModel} />
-            <ConceptRow label="Founder fit" value={c.founderFit} />
-            <ConceptRow label="Founder advantage" value={c.founderAdvantage} />
-          </div>
-          <div className="mt-4">
-            <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${tw.typography.color.accent}`}>Key assumptions</p>
-            <ul className="space-y-1">
-              {c.assumptions.map((a, ai) => (
-                <li key={ai} className={`text-sm flex gap-1.5 ${tw.typography.color.secondary}`}><span className={tw.typography.color.accent}>•</span>{a}</li>
-              ))}
-            </ul>
-          </div>
+        )}
+        {notice && (
           <div
-            className="mt-5 flex items-start gap-2.5 p-3 rounded-lg"
+            className="mb-4 flex items-start gap-2.5 p-3 rounded-lg"
             style={{ background: 'color-mix(in srgb, var(--space-semantic-warning) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--space-semantic-warning) 40%, transparent)' }}
           >
             <Info className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--space-semantic-warning)' }} />
-            <p className={`text-xs leading-5 ${tw.typography.color.secondary}`}>This is a concept worth exploring, not a validated business yet.</p>
+            <p className={`text-xs leading-5 ${tw.typography.color.secondary}`}>{notice}</p>
           </div>
-        </div>
-        <div className="mt-6 flex items-center justify-between">
-          <button onClick={() => setPhase('compare')} className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm ${tw.button.ghost}`}>
-            <ArrowLeft className="w-4 h-4" /> Compare again
-          </button>
-          <PrimaryButton onClick={goToValidation}>
-            <ClipboardList className="w-4 h-4" /> Build my 14-day validation plan
-          </PrimaryButton>
-        </div>
-      </Shell>
-    );
-  }
+        )}
 
-  if (phase === 'validation' && plan && selectedConceptIndex !== null) {
-    const c = concepts[selectedConceptIndex];
-    const days = [
-      { range: 'Days 1–3', title: 'Identify 10 potential customers', body: plan.days_1_3 },
-      { range: 'Days 4–7', title: 'Conduct customer interviews', body: plan.days_4_7 },
-      { range: 'Days 8–10', title: 'Test the proposed solution', body: plan.days_8_10 },
-      { range: 'Days 11–12', title: 'Test willingness to pay', body: plan.days_11_12 },
-      { range: 'Days 13–14', title: 'Review evidence & decide', body: plan.days_13_14 },
-    ];
-    return (
-      <Shell innerRef={scrollRef}>
-        <Header eyebrow="Step 9 · Validation Plan" title={`Your 14-day validation plan`} subtitle={`A practical plan to test “${c.name}” before you build anything.`} />
-        <div className="space-y-3">
-          {days.map((d, i) => (
-            <div key={i} className={`${tw.card.glass} p-4 flex gap-4`}>
-              <div className="flex flex-col items-center">
-                <span className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-[var(--space-surface-accent-soft)]">
-                  <CalendarDays className={`w-4 h-4 ${tw.icon.primary}`} />
-                </span>
-                {i < days.length - 1 && <span className="w-px flex-1 mt-1" style={{ background: 'var(--space-border-default)' }} />}
+        <div className="space-y-4">
+          {concepts.map((c, i) => (
+            <div key={i} className={`${tw.card.glass} p-5 sm:p-6`}>
+              <div className="flex items-start justify-between gap-3">
+                <h3 className={`text-lg font-bold ${tw.typography.color.primary}`}>{c.name}</h3>
+                <StartBadge label={c.startability} />
               </div>
-              <div className="pb-1">
-                <p className={`text-xs font-semibold ${tw.typography.color.accent}`}>{d.range}</p>
-                <p className={`text-sm font-semibold ${tw.typography.color.primary}`}>{d.title}</p>
-                <p className={`text-sm mt-1 ${tw.typography.color.secondary}`}>{d.body}</p>
+              <p className={`mt-2 text-sm leading-6 ${tw.typography.color.secondary}`}>{c.pitch}</p>
+              {c.founderFit && (
+                <p className={`mt-3 text-sm leading-6 ${tw.typography.color.secondary}`}>
+                  <span className={`font-semibold ${tw.typography.color.primary}`}>Why it fits you: </span>{c.founderFit}
+                </p>
+              )}
+              <details className="mt-4">
+                <summary className={`cursor-pointer select-none text-xs font-medium ${tw.typography.color.accent}`}>See the full idea</summary>
+                <div className="mt-4 grid sm:grid-cols-2 gap-4">
+                  <ConceptRow label="The problem" value={c.problem} />
+                  <ConceptRow label="Who would pay" value={c.targetCustomer} />
+                  <ConceptRow label="What you’d offer" value={c.solution} />
+                  <ConceptRow label="How it earns" value={c.businessModel} />
+                </div>
+                {c.assumptions.length > 0 && (
+                  <div className="mt-4">
+                    <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${tw.typography.color.accent}`}>To prove first</p>
+                    <ul className="space-y-1">
+                      {c.assumptions.map((a, ai) => (
+                        <li key={ai} className={`text-sm flex gap-1.5 ${tw.typography.color.secondary}`}><span className={tw.typography.color.accent}>•</span>{a}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {c.validationExperiment && (
+                  <div className="mt-4 p-3 rounded-lg bg-[var(--space-surface-muted)]">
+                    <p className={`text-xs font-semibold ${tw.typography.color.primary}`}>Smallest first test</p>
+                    <p className={`text-xs mt-1 ${tw.typography.color.secondary}`}>{c.validationExperiment}</p>
+                  </div>
+                )}
+              </details>
+              <div className="mt-5 flex justify-end">
+                <PrimaryButton onClick={() => chooseConcept(i)}>
+                  Explore this idea <ArrowRight className="w-4 h-4" />
+                </PrimaryButton>
               </div>
             </div>
           ))}
         </div>
-        <div className={`${tw.card.glass} p-5 mt-5`}>
-          <div className="flex items-center gap-2 mb-3">
-            <MessageCircle className={`w-4 h-4 ${tw.icon.primary}`} />
-            <h3 className={`text-sm font-semibold ${tw.typography.color.primary}`}>Customer interview questions</h3>
-          </div>
-          <ul className="space-y-2">
-            {plan.interviewQuestions.map((q, i) => (
-              <li key={i} className={`text-sm flex gap-2 ${tw.typography.color.secondary}`}>
-                <span className={`font-semibold ${tw.typography.color.accent}`}>{i + 1}.</span>{q}
-              </li>
-            ))}
-          </ul>
+
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <button
+            onClick={() => { setStepIndex(0); setPhase('questions'); }}
+            className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm ${tw.button.ghost}`}
+          >
+            <ArrowLeft className="w-4 h-4" /> Edit my answers
+          </button>
+          <button
+            onClick={showDifferentIdeas}
+            className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm ${tw.button.secondary}`}
+          >
+            <RefreshCw className="w-4 h-4" /> Show me different ideas
+          </button>
         </div>
-        <div className="mt-6 flex items-center justify-end">
-          <PrimaryButton onClick={() => setPhase('map')}>
-            <MapIcon className="w-4 h-4" /> See your Opportunity Map
-          </PrimaryButton>
+        <p className={`mt-6 text-center text-xs ${tw.typography.color.muted}`}>These are concepts worth exploring, not validated businesses.</p>
+      </Shell>
+    );
+  }
+
+  if (phase === 'plan' && selectedConceptIndex !== null && concepts[selectedConceptIndex]) {
+    const c = concepts[selectedConceptIndex];
+    const days = plan
+      ? [
+          { range: 'Days 1–3', title: 'Find 10 potential customers', body: plan.days_1_3 },
+          { range: 'Days 4–7', title: 'Talk to them', body: plan.days_4_7 },
+          { range: 'Days 8–10', title: 'Show your idea', body: plan.days_8_10 },
+          { range: 'Days 11–12', title: 'Ask for a small payment', body: plan.days_11_12 },
+          { range: 'Days 13–14', title: 'Review and decide', body: plan.days_13_14 },
+        ]
+      : [];
+    return (
+      <Shell innerRef={scrollRef}>
+        <div className="flex items-center justify-between gap-3 mb-4 print:hidden">
+          <button onClick={() => setPhase('results')} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm ${tw.button.ghost}`}>
+            <ArrowLeft className="w-4 h-4" /> Back to ideas
+          </button>
+          <button onClick={() => window.print()} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs ${tw.button.secondary}`}>
+            <Printer className="w-3.5 h-3.5" /> Print / Save as PDF
+          </button>
+        </div>
+
+        <Header eyebrow="Your idea" title={c.name} subtitle={c.pitch} />
+
+        <div className={`${tw.card.glass} p-5 sm:p-6`}>
+          <div className="grid sm:grid-cols-3 gap-4">
+            <ConceptRow label="The problem" value={c.problem} />
+            <ConceptRow label="Who would pay" value={c.targetCustomer} />
+            <ConceptRow label="How it earns" value={c.businessModel} />
+          </div>
+          {c.assumptions.length > 0 && (
+            <div className="mt-4">
+              <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${tw.typography.color.accent}`}>To prove first</p>
+              <ul className="space-y-1">
+                {c.assumptions.map((a, ai) => (
+                  <li key={ai} className={`text-sm flex gap-1.5 ${tw.typography.color.secondary}`}><span className={tw.typography.color.accent}>•</span>{a}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        <h2 className={`mt-8 mb-3 text-lg font-bold ${tw.typography.color.primary}`}>Your 14-day test plan</h2>
+        {planLoading || !plan ? (
+          <div className={`${tw.card.glass} p-5 flex items-center gap-3`}>
+            <Loader2 className={`w-5 h-5 animate-spin ${tw.icon.primary}`} />
+            <p className={`text-sm ${tw.typography.color.secondary}`}>Building your plan…</p>
+          </div>
+        ) : (
+          <>
+            <ol className="space-y-3">
+              {days.map((d, i) => (
+                <li key={i} className={`${tw.card.glass} p-4`}>
+                  <p className={`text-xs font-semibold ${tw.typography.color.accent}`}>{d.range}</p>
+                  <p className={`text-sm font-semibold ${tw.typography.color.primary}`}>{d.title}</p>
+                  <p className={`text-sm mt-1 ${tw.typography.color.secondary}`}>{d.body}</p>
+                </li>
+              ))}
+            </ol>
+            <details className={`${tw.card.glass} p-5 mt-3`}>
+              <summary className={`cursor-pointer select-none flex items-center gap-2 text-sm font-semibold ${tw.typography.color.primary}`}>
+                <MessageCircle className={`w-4 h-4 ${tw.icon.primary}`} /> Customer interview questions
+              </summary>
+              <ul className="mt-3 space-y-2">
+                {plan.interviewQuestions.map((q, i) => (
+                  <li key={i} className={`text-sm flex gap-2 ${tw.typography.color.secondary}`}>
+                    <span className={`font-semibold ${tw.typography.color.accent}`}>{i + 1}.</span>{q}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </>
+        )}
+
+        <div
+          className="mt-8 p-6 rounded-2xl print:hidden"
+          style={{ background: 'color-mix(in srgb, var(--space-brand-primary-500) 14%, transparent)', border: '1px solid color-mix(in srgb, var(--space-brand-primary-500) 40%, transparent)' }}
+        >
+          <h3 className={`text-lg font-bold ${tw.typography.color.primary}`}>What would you like to do next?</h3>
+          <div className="mt-4 grid sm:grid-cols-2 gap-4">
+            <div className={`${tw.card.flat} p-4 flex flex-col`}>
+              <p className={`text-sm font-semibold ${tw.typography.color.primary}`}>Build it</p>
+              <p className={`text-xs mt-1 mb-4 flex-1 ${tw.typography.color.muted}`}>Turn this idea into a first version with AI on Audos. Your idea is packaged into a brief for you.</p>
+              <PrimaryButton onClick={() => setPhase('build-brief')}>
+                Build this on Audos <ArrowRight className="w-4 h-4" />
+              </PrimaryButton>
+            </div>
+            <div className={`${tw.card.flat} p-4 flex flex-col`}>
+              <p className={`text-sm font-semibold ${tw.typography.color.primary}`}>Test it first</p>
+              <p className={`text-xs mt-1 mb-4 flex-1 ${tw.typography.color.muted}`}>See what evidence you already have and what to prove next, using Gap Radar.</p>
+              <button onClick={handoffToGapRadar} className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm ${tw.button.secondary}`}>
+                <Target className="w-4 h-4" /> Test with Gap Radar <ArrowUpRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-center print:hidden">
+          <button onClick={restart} className={`text-xs ${tw.typography.color.muted} hover:underline`}>Start a new discovery</button>
         </div>
       </Shell>
     );
@@ -1602,7 +1189,7 @@ export default function IdeaDiscovery() {
     const brief = buildBriefDraft;
     return (
       <Shell innerRef={scrollRef}>
-        <Header eyebrow="Step 11 · Audos Build Brief" title="Your Audos Build Brief" subtitle="Compiled from your Idea Discovery — no re-entry needed." />
+        <Header eyebrow="Build brief" title="Your Audos Build Brief" subtitle="Compiled from your Idea Discovery — no re-entry needed." />
         <div className={`${tw.card.glass} p-5 sm:p-6`}>
           <div className="grid sm:grid-cols-2 gap-5">
             <ConceptRow label="Idea" value={brief.c.name} />
@@ -1648,8 +1235,8 @@ export default function IdeaDiscovery() {
         )}
 
         <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-          <button onClick={() => setPhase('map')} className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm ${tw.button.ghost}`}>
-            <ArrowLeft className="w-4 h-4" /> Back to Opportunity Map
+          <button onClick={() => setPhase('plan')} className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm ${tw.button.ghost}`}>
+            <ArrowLeft className="w-4 h-4" /> Back to your plan
           </button>
           <div className="flex flex-col sm:flex-row gap-3">
             <button onClick={copyBuildBrief} className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm ${tw.button.secondary}`}>
@@ -1677,7 +1264,7 @@ export default function IdeaDiscovery() {
               Your idea has been prepared for building. You’ll now continue on Audos where you can use AI to build your product from the ground up.
             </p>
             <div className="mt-7 flex flex-col items-center gap-3">
-              <PrimaryButton onClick={() => { window.open(referralUrl, '_blank', 'noopener,noreferrer'); setPhase('map'); }}>
+              <PrimaryButton onClick={() => { window.open(referralUrl, '_blank', 'noopener,noreferrer'); setPhase('plan'); }}>
                 Open Audos &amp; Start Building <ArrowUpRight className="w-4 h-4" />
               </PrimaryButton>
               <button onClick={copyBuildBrief} className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm ${tw.button.secondary}`}>
@@ -1694,169 +1281,11 @@ export default function IdeaDiscovery() {
     );
   }
 
-  if (phase === 'map' && profile) {
-    const chosen = selectedConceptIndex !== null ? concepts[selectedConceptIndex] : null;
-    return (
-      <Shell innerRef={scrollRef}>
-        <div className="flex items-center justify-between gap-3 mb-2 print:mb-6">
-          <span className={`text-xs font-medium ${tw.typography.color.accent}`}>Step 10 · Founder Opportunity Map</span>
-          <button onClick={() => window.print()} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs ${tw.button.secondary} print:hidden`}>
-            <Printer className="w-3.5 h-3.5" /> Print / Save as PDF
-          </button>
-        </div>
-        <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${tw.typography.color.primary}`}>FoundarOS Founder Opportunity Map</h1>
-        <p className={`mt-2 text-sm ${tw.typography.color.secondary}`}>Your personalized strategic document — built entirely from your own answers.</p>
-
-        <MapBlock icon={Brain} title="Your Founder Profile">
-          <div className="grid sm:grid-cols-2 gap-3 text-sm">
-            <ConceptRow label="Experience" value={profile.experienceStrengths} />
-            <ConceptRow label="Skills" value={profile.coreSkills.join(', ')} />
-            <ConceptRow label="Knowledge" value={profile.knowledgeAdvantage} />
-            <ConceptRow label="Interests" value={asText(answers.interests_areas) || asText(answers.interests_topics)} />
-            <ConceptRow label="Access" value={profile.accessAdvantage} />
-            <ConceptRow label="Goals" value={profile.founderGoal} />
-            <ConceptRow label="Resources" value={`Time: ${profile.resourceProfile.time} · Capital: ${profile.resourceProfile.capital}`} />
-          </div>
-        </MapBlock>
-
-        <MapBlock icon={Layers} title="Your Opportunity Territories">
-          <div className="flex flex-wrap gap-2">
-            {territories.map((t, i) => (
-              <span key={i} className={`px-3 py-1.5 rounded-lg text-xs ${t.selected ? 'bg-[var(--space-surface-accent-soft)] text-[var(--space-text-brand)] font-semibold' : 'bg-[var(--space-surface-muted)] text-[var(--space-text-secondary)]'}`}>
-                {t.name}{t.selected ? ' ✓' : ''}
-              </span>
-            ))}
-          </div>
-        </MapBlock>
-
-        <MapBlock icon={Lightbulb} title="Concepts Explored">
-          <div className="flex flex-wrap gap-2">
-            {concepts.map((c, i) => (
-              <span key={i} className={`px-3 py-1.5 rounded-lg text-xs ${chosen && c.name === chosen.name ? 'bg-[var(--space-surface-accent-soft)] text-[var(--space-text-brand)] font-semibold' : 'bg-[var(--space-surface-muted)] text-[var(--space-text-secondary)]'}`}>{c.name}</span>
-            ))}
-          </div>
-        </MapBlock>
-
-        {chosen && (
-          <>
-            <MapBlock icon={Rocket} title="Selected Concept">
-              <h3 className={`text-lg font-bold ${tw.typography.color.primary}`}>{chosen.name}</h3>
-              <div className="mt-2 grid sm:grid-cols-2 gap-3 text-sm">
-                <ConceptRow label="Problem" value={chosen.problem} />
-                <ConceptRow label="Target customer" value={chosen.targetCustomer} />
-                <ConceptRow label="Solution" value={chosen.solution} />
-                <ConceptRow label="Business model" value={chosen.businessModel} />
-              </div>
-            </MapBlock>
-            <MapBlock icon={Target} title="Why It Fits You">{chosen.founderFit} {chosen.founderAdvantage}</MapBlock>
-            <MapBlock icon={AlertTriangle} title="What Needs to Be Proven">
-              <ul className="space-y-1">
-                {chosen.assumptions.map((a, ai) => (
-                  <li key={ai} className={`text-sm flex gap-1.5 ${tw.typography.color.secondary}`}><span className={tw.typography.color.accent}>•</span>{a}</li>
-                ))}
-              </ul>
-            </MapBlock>
-          </>
-        )}
-
-        {plan && (
-          <MapBlock icon={ClipboardList} title="14-Day Validation Plan">
-            <div className="space-y-2 text-sm">
-              <ConceptRow label="Days 1–3" value={plan.days_1_3} />
-              <ConceptRow label="Days 4–7" value={plan.days_4_7} />
-              <ConceptRow label="Days 8–10" value={plan.days_8_10} />
-              <ConceptRow label="Days 11–12" value={plan.days_11_12} />
-              <ConceptRow label="Days 13–14" value={plan.days_13_14} />
-            </div>
-          </MapBlock>
-        )}
-
-        {/* Step 11 — handoff */}
-        <div
-          className="mt-8 p-6 rounded-2xl text-center print:hidden"
-          style={{ background: 'color-mix(in srgb, var(--space-brand-primary-500) 14%, transparent)', border: '1px solid color-mix(in srgb, var(--space-brand-primary-500) 40%, transparent)' }}
-        >
-          <h3 className={`text-lg font-bold ${tw.typography.color.primary}`}>Ready to test whether this idea has real potential?</h3>
-          <p className={`mt-2 text-sm ${tw.typography.color.secondary} max-w-lg mx-auto`}>Take your chosen concept into Idea Validation with Gap Radar and see what evidence you already have and what to prove next.</p>
-          <div className="mt-4 flex flex-col items-center gap-3">
-            <PrimaryButton onClick={handoffToGapRadar}>
-              Continue to Idea Validation <ArrowUpRight className="w-4 h-4" />
-            </PrimaryButton>
-            <button onClick={() => setShowBooking((s) => !s)} className={`text-xs ${tw.typography.color.accent} hover:underline`}>
-              Want a human to help you work through your opportunities?
-            </button>
-            {showBooking && (
-              <div className={`text-xs ${tw.typography.color.muted} max-w-sm`}>
-                <span className={`font-semibold ${tw.typography.color.secondary}`}>Book a FoundarOS Idea Discovery Session</span> — live facilitated sessions are coming soon. Ask the assistant to add you to the waitlist.
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className={`${tw.card.glass} p-5 sm:p-6 mt-5 print:hidden`}>
-          <p className={`text-xs font-semibold uppercase tracking-wide ${tw.typography.color.accent}`}>What’s Next?</p>
-          <h3 className={`mt-1 text-lg font-bold ${tw.typography.color.primary}`}>Your Founder Journey</h3>
-          <div className="mt-5 space-y-4">
-            {[
-              { step: 1, title: 'Discover', description: 'Find an idea worth exploring.', complete: true, action: null },
-              { step: 2, title: 'Validate', description: 'Understand the problem, customer and opportunity.', complete: false, action: () => openApp('gap-radar'), label: '→ Continue in FoundarOS' },
-              { step: 3, title: 'Build', description: 'Turn your idea into an MVP.', complete: false, action: () => setPhase('build-brief'), label: '→ Build with Audos' },
-              { step: 4, title: 'Fund', description: 'Prepare your venture for funding.', complete: false, action: () => openApp('gap-radar', 'funding-readiness'), label: '→ FoundarOS Fundability' },
-            ].map((item) => (
-              <div key={item.step} className="flex items-start gap-3">
-                <span
-                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-semibold"
-                  style={item.complete ? { color: 'var(--space-semantic-success)', background: 'color-mix(in srgb, var(--space-semantic-success) 14%, transparent)', border: '1px solid color-mix(in srgb, var(--space-semantic-success) 40%, transparent)' } : { color: 'var(--space-text-accent)', background: 'var(--space-surface-muted)', border: '1px solid var(--space-border-default)' }}
-                >
-                  {item.complete ? <Check className="w-4 h-4" /> : item.step}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className={`text-sm font-semibold ${tw.typography.color.primary}`}>{item.title}</h4>
-                    {item.complete && (
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-medium text-[var(--space-semantic-success)]" style={{ background: 'color-mix(in srgb, var(--space-semantic-success) 12%, transparent)' }}>✓ Completed</span>
-                    )}
-                  </div>
-                  <p className={`mt-0.5 text-sm ${tw.typography.color.secondary}`}>{item.description}</p>
-                  {item.action && (
-                    <button onClick={item.action} className={`mt-1.5 text-sm font-medium ${tw.typography.color.accent} hover:underline`}>{item.label}</button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div
-          className="mt-5 p-6 rounded-2xl print:hidden"
-          style={{ background: 'color-mix(in srgb, var(--space-brand-primary-500) 18%, var(--space-surface-panel))', border: '1px solid color-mix(in srgb, var(--space-brand-primary-500) 45%, transparent)' }}
-        >
-          <p className={`text-xs font-semibold uppercase tracking-wide ${tw.typography.color.accent}`}>Ready to build?</p>
-          <h3 className={`mt-1 text-xl font-bold ${tw.typography.color.primary}`}>Your idea is ready to build</h3>
-          <p className={`mt-2 text-sm leading-6 ${tw.typography.color.secondary} max-w-2xl`}>
-            You’ve identified an opportunity. Now turn your idea into something real. Audos lets founders use AI to build and develop their product — from concept to MVP.
-          </p>
-          <div className="mt-5 flex flex-col items-start gap-3">
-            <PrimaryButton onClick={() => setPhase('build-brief')}>
-              Build This Idea on Audos <ArrowRight className="w-4 h-4" />
-            </PrimaryButton>
-            <button onClick={() => openApp('gap-radar')} className={`text-sm ${tw.typography.color.accent} hover:underline`}>Continue exploring in FoundarOS</button>
-          </div>
-        </div>
-
-        <div className="mt-6 flex items-center justify-center print:hidden">
-          <button onClick={restart} className={`text-xs ${tw.typography.color.muted} hover:underline`}>Start a new discovery</button>
-        </div>
-        <p className={`mt-6 text-center text-xs ${tw.typography.color.muted}`}>DISCOVER → VALIDATE → BUILD → ASSESS → FUND → OPERATE</p>
-      </Shell>
-    );
-  }
-
   // Fallback (shouldn't happen): reset to welcome.
   return (
     <Shell innerRef={scrollRef}>
       <div className="py-24 text-center">
-        <p className={`text-sm ${tw.typography.color.secondary}`}>{notice || 'Let\u2019s begin your discovery.'}</p>
+        <p className={`text-sm ${tw.typography.color.secondary}`}>{notice || 'Let’s begin your discovery.'}</p>
         <div className="mt-4 flex justify-center"><PrimaryButton onClick={restart}>Start Idea Discovery</PrimaryButton></div>
       </div>
     </Shell>
@@ -1876,18 +1305,6 @@ function Header({ eyebrow, title, subtitle }: { eyebrow: string; title: string; 
   );
 }
 
-function Disclaimer() {
-  return (
-    <div
-      className="flex items-start gap-2.5 p-3 rounded-lg"
-      style={{ background: 'color-mix(in srgb, var(--space-semantic-warning) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--space-semantic-warning) 40%, transparent)' }}
-    >
-      <Info className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--space-semantic-warning)' }} />
-      <p className={`text-xs leading-5 ${tw.typography.color.secondary}`}>These are concepts worth exploring, not validated businesses.</p>
-    </div>
-  );
-}
-
 function ConceptRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -1897,33 +1314,12 @@ function ConceptRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ResourceItem({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
-  return (
-    <div className="p-3 rounded-lg bg-[var(--space-surface-muted)]">
-      <div className="flex items-center gap-1.5 mb-1"><Icon className={`w-3.5 h-3.5 ${tw.icon.primary}`} /><span className={`text-xs font-semibold ${tw.typography.color.primary}`}>{label}</span></div>
-      <p className={`text-xs ${tw.typography.color.secondary}`}>{value}</p>
-    </div>
-  );
-}
-
-function MapBlock({ icon: Icon, title, children }: { icon: any; title: string; children: ReactNode }) {
-  return (
-    <div className={`${tw.card.glass} p-5 mt-4`}>
-      <div className="flex items-center gap-2.5 mb-3">
-        <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[var(--space-surface-accent-soft)]"><Icon className={`w-4 h-4 ${tw.icon.primary}`} /></span>
-        <h2 className={`text-base font-bold ${tw.typography.color.primary}`}>{title}</h2>
-      </div>
-      <div className={`text-sm leading-6 ${tw.typography.color.secondary}`}>{children}</div>
-    </div>
-  );
-}
-
 // -- question field renderer -------------------------------------------------
-function QuestionField({ q, index, value, onChange }: { q: Question; index: number; value: AnswerValue | undefined; onChange: (v: AnswerValue) => void }) {
+function QuestionField({ q, value, onChange }: { q: Question; value: AnswerValue | undefined; onChange: (v: AnswerValue) => void }) {
   return (
     <div>
       <label className={`block text-sm font-semibold ${tw.typography.color.primary}`}>
-        <span className={tw.typography.color.accent}>Q{index + 1}. </span>{q.label}{q.optional && <span className={`ml-1.5 text-xs font-normal ${tw.typography.color.muted}`}>(optional)</span>}
+        {q.label}{q.optional && <span className={`ml-1.5 text-xs font-normal ${tw.typography.color.muted}`}>(optional)</span>}
       </label>
       {q.helper && <p className={`mt-1 text-xs ${tw.typography.color.muted}`}>{q.helper}</p>}
       <div className="mt-2.5">
@@ -1931,7 +1327,7 @@ function QuestionField({ q, index, value, onChange }: { q: Question; index: numb
           <textarea
             value={asText(value)}
             onChange={(e) => onChange(e.target.value)}
-            rows={4}
+            rows={3}
             placeholder={q.placeholder || 'Share as much or as little as feels true.'}
             className={`${tw.input.base} ${tw.input.default} resize-y text-sm leading-6`}
           />
