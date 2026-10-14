@@ -15,6 +15,9 @@ import {
   Copy,
   RefreshCw,
   Target,
+  Plus,
+  Star,
+  ClipboardList,
 } from 'lucide-react';
 import { tw } from '../../lib/colors';
 import { useSpaceRuntime } from '../../SpaceRuntimeContext';
@@ -27,8 +30,11 @@ import { useSpaceRuntime } from '../../SpaceRuntimeContext';
  * fundability and never tells an idea-less founder they are "unfundable".
  *
  * Flow (4 screens + 1 loading wait, down from 12 phases / 4 AI waits):
- *   welcome → questions (3 short steps) → results (3 ideas) → plan → build
+ *   home → questions (3 short steps) → results (3 ideas) → plan → build
  *
+ *   0. home       First-time users see a short welcome. Returning users see
+ *                 "My ideas": every run, idea and plan they have saved, so
+ *                 nothing is lost when they open another feature or log out.
  *   1. questions  8 questions (4 required) across 3 steps, mostly tap-to-answer.
  *   2. results    ONE AI call returns a short founder snapshot + 3 distinct
  *                 ideas. "Show me different ideas" regenerates; "Edit my
@@ -40,11 +46,17 @@ import { useSpaceRuntime } from '../../SpaceRuntimeContext';
  * Data model (WorkspaceDB, session-scoped, reads via useWorkspaceDB / writes
  * via window.__workspaceDb). Column sets are unchanged from the previous
  * version so existing rows stay compatible:
- *   idea_discovery_profiles          — questionnaire responses
+ *   idea_discovery_profiles          — questionnaire responses (one per run)
  *   idea_discovery_concepts          — generated business concepts
  *   idea_discovery_validation_plans  — 14-day validation plan for the concept
  * (idea_discovery_territories is no longer written: territories were removed
  *  as a separate step.)
+ *
+ * Persistence: everything above is WRITTEN as the user goes AND READ BACK on
+ * open. Rows are scoped to the user's workspace session, so the same person
+ * logging in again (which resumes their session) sees the same ideas. Never
+ * switch these reads to `shared: true`: that would show one founder's ideas
+ * to every other founder.
  * ========================================================================== */
 
 const IDEA_COUNT = 3;
@@ -54,6 +66,8 @@ const STARTABILITY_LABELS = ['Easy to test', 'Moderate to test', 'Requires signi
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+// 'welcome' is the home screen: the welcome pitch for new users, "My ideas" for
+// anyone who has saved work.
 type Phase = 'welcome' | 'questions' | 'loading' | 'results' | 'plan' | 'build-brief' | 'build-transition';
 
 type AnswerValue = string | string[] | number;
@@ -96,6 +110,17 @@ interface Concept {
   assumptions: string[];
   validationExperiment: string;
   startability: string;
+  // Set when the concept comes from (or has been written to) the database.
+  selected?: boolean;
+  createdAt?: string;
+}
+
+// One saved discovery: the answers plus every idea generated from them.
+interface SavedRun {
+  id: number;
+  createdAt: string;
+  answers: AnswerMap;
+  concepts: Concept[];
 }
 
 interface DiscoveryResult {
@@ -286,6 +311,88 @@ function normalizeConcept(c: any): Concept {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Reading saved work back from the database. Array columns can come back as
+// real arrays or as JSON strings depending on the column type, so every read
+// goes through parseJson.
+// ---------------------------------------------------------------------------
+function parseJson<T>(value: unknown, fallback: T): T {
+  if (value === null || value === undefined || value === '') return fallback;
+  if (typeof value === 'string') {
+    try { return JSON.parse(value) as T; } catch { return fallback; }
+  }
+  return value as T;
+}
+
+function asStringList(value: unknown): string[] {
+  const parsed = parseJson<unknown>(value, []);
+  return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
+}
+
+function rowToConcept(row: any): Concept {
+  return {
+    ...normalizeConcept({
+      name: row?.name,
+      problem: row?.problem,
+      targetCustomer: row?.target_customer,
+      solution: row?.solution,
+      businessModel: row?.business_model,
+      founderFit: row?.founder_fit,
+      founderAdvantage: row?.founder_advantage,
+      assumptions: asStringList(row?.assumptions),
+      validationExperiment: row?.validation_experiment,
+      startability: row?.startability,
+    }),
+    id: typeof row?.id === 'number' ? row.id : undefined,
+    selected: row?.selected === true || row?.selected === 'true' || row?.selected === 1,
+    createdAt: row?.created_at ? String(row.created_at) : undefined,
+  };
+}
+
+function rowToAnswers(row: any): AnswerMap {
+  const out: AnswerMap = {};
+  const text = (key: string, col: string = key) => {
+    const v = row?.[col];
+    if (typeof v === 'string' && v.trim()) out[key] = v;
+  };
+  const list = (key: string) => {
+    const v = asStringList(row?.[key]);
+    if (v.length) out[key] = v;
+  };
+  text('experience_current');
+  text('problems_frustrations');
+  text('goals_time_per_week');
+  text('goals_capital');
+  text('goals_business_type');
+  list('skills');
+  list('interests_areas');
+  list('access_groups');
+  return out;
+}
+
+function rowToPlan(row: any): ValidationPlan {
+  const fb = fallbackPlanShape();
+  return {
+    days_1_3: String(row?.days_1_3 || '').trim() || fb.days_1_3,
+    days_4_7: String(row?.days_4_7 || '').trim() || fb.days_4_7,
+    days_8_10: String(row?.days_8_10 || '').trim() || fb.days_8_10,
+    days_11_12: String(row?.days_11_12 || '').trim() || fb.days_11_12,
+    days_13_14: String(row?.days_13_14 || '').trim() || fb.days_13_14,
+    interviewQuestions: asStringList(row?.interview_questions),
+  };
+}
+
+function fallbackPlanShape(): ValidationPlan {
+  return { days_1_3: '', days_4_7: '', days_8_10: '', days_11_12: '', days_13_14: '', interviewQuestions: [] };
+}
+
+function formatDate(value: string | undefined): string {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 // ONE call replaces the old profile → territories → concepts chain.
 async function generateIdeas(answers: AnswerMap, avoidNames: string[]): Promise<DiscoveryResult> {
   const system = [
@@ -462,7 +569,7 @@ function PrimaryButton({ onClick, disabled, children }: { onClick: () => void; d
   );
 }
 
-function StepLoader({ label }: { label: string }) {
+function StepLoader({ label, hint = 'Grounding everything in your own answers. This takes a few moments.' }: { label: string; hint?: string }) {
   return (
     <div className="min-h-full flex flex-col items-center justify-center gap-4 py-24 text-center px-6">
       <div className="relative">
@@ -470,7 +577,7 @@ function StepLoader({ label }: { label: string }) {
         <Loader2 className={`relative w-10 h-10 animate-spin ${tw.icon.primary}`} />
       </div>
       <p className={`text-base font-semibold ${tw.typography.color.primary}`}>{label}</p>
-      <p className={`text-sm ${tw.typography.color.muted} max-w-sm`}>Grounding everything in your own answers. This takes a few moments.</p>
+      <p className={`text-sm ${tw.typography.color.muted} max-w-sm`}>{hint}</p>
     </div>
   );
 }
@@ -490,11 +597,21 @@ function Shell({ children, innerRef }: { children: ReactNode; innerRef?: Ref<HTM
 // ---------------------------------------------------------------------------
 export default function IdeaDiscovery() {
   const { sessionId, visitorId } = useSpaceRuntime();
-  // Reads (session-scoped) — used to offer a resume into a saved run.
-  const { data: profileRows } = (window as any).useWorkspaceDB('idea_discovery_profiles', {
-    orderBy: { column: 'created_at', direction: 'desc' },
-    limit: 1,
-  }) as { data: any[] };
+  // Reads (session-scoped, deliberately NOT shared): the user's saved runs,
+  // ideas and plans. These power the "My ideas" home screen.
+  const dbOrder = { column: 'created_at', direction: 'desc' };
+  const { data: profileRows, loading: profilesLoading, error: profilesError, refresh: refreshProfiles } = (window as any).useWorkspaceDB('idea_discovery_profiles', {
+    orderBy: dbOrder,
+    limit: 25,
+  }) as { data: any[]; loading: boolean; error?: unknown; refresh?: () => unknown };
+  const { data: conceptRows, loading: conceptsLoading, error: conceptsError, refresh: refreshConcepts } = (window as any).useWorkspaceDB('idea_discovery_concepts', {
+    orderBy: dbOrder,
+    limit: 200,
+  }) as { data: any[]; loading: boolean; error?: unknown; refresh?: () => unknown };
+  const { data: planRows, refresh: refreshPlans } = (window as any).useWorkspaceDB('idea_discovery_validation_plans', {
+    orderBy: dbOrder,
+    limit: 200,
+  }) as { data: any[]; refresh?: () => unknown };
   const { data: referralConfigRows, loading: referralConfigLoading } = (window as any).useWorkspaceDB('audos_referral_config', {
     shared: true,
     limit: 10,
@@ -516,10 +633,48 @@ export default function IdeaDiscovery() {
   const [referralError, setReferralError] = useState<string | null>(null);
   const [referralLoading, setReferralLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  // True when the current ideas could not be written to the database. Those
+  // ideas exist only on screen, so we say so rather than letting them vanish.
+  const [saveFailed, setSaveFailed] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const planRequestRef = useRef(0);
 
-  const hasSavedRun = Array.isArray(profileRows) && profileRows.length > 0 && profileRows[0]?.status === 'completed';
+  const refreshSaved = () => {
+    [refreshProfiles, refreshConcepts, refreshPlans].forEach((fn) => {
+      try { void fn?.(); } catch { /* noop */ }
+    });
+  };
+
+  // Saved work, rebuilt from the database rows: newest run first.
+  const savedRuns = useMemo<SavedRun[]>(() => {
+    const profiles = Array.isArray(profileRows) ? profileRows : [];
+    const concepts = Array.isArray(conceptRows) ? conceptRows : [];
+    return profiles
+      .filter((p) => typeof p?.id === 'number')
+      .map((p) => ({
+        id: p.id as number,
+        createdAt: p.created_at ? String(p.created_at) : '',
+        answers: rowToAnswers(p),
+        concepts: concepts
+          .filter((c) => c?.profile_id === p.id)
+          .sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+          .map(rowToConcept),
+      }))
+      .filter((run) => run.concepts.length > 0);
+  }, [profileRows, conceptRows]);
+
+  // Newest saved plan per idea (rows arrive newest first).
+  const savedPlans = useMemo(() => {
+    const byConcept = new Map<number, ValidationPlan>();
+    (Array.isArray(planRows) ? planRows : []).forEach((row) => {
+      const cid = row?.concept_id;
+      if (typeof cid === 'number' && !byConcept.has(cid)) byConcept.set(cid, rowToPlan(row));
+    });
+    return byConcept;
+  }, [planRows]);
+
+  const savedLoading = Boolean(profilesLoading || conceptsLoading);
+  const savedLoadFailed = Boolean(profilesError || conceptsError);
 
   const buildBriefDraft = useMemo(() => {
     if (selectedConceptIndex === null) return null;
@@ -699,6 +854,8 @@ export default function IdeaDiscovery() {
   const applyResult = async (result: DiscoveryResult, pid: number | null) => {
     const withIds = await persistConcepts(pid, result.concepts);
     planRequestRef.current += 1; // cancel any in-flight plan request
+    setSaveFailed(!pid || withIds.some((c) => typeof c.id !== 'number'));
+    refreshSaved();
     setSnapshot(result.snapshot);
     setConcepts(withIds);
     setSelectedConceptIndex(null);
@@ -727,32 +884,73 @@ export default function IdeaDiscovery() {
     await applyResult(result, profileId);
   };
 
-  // Choosing an idea opens the plan screen immediately; the 14-day plan loads
-  // inline so there is no full-screen wait.
-  const chooseConcept = (idx: number) => {
-    if (selectedConceptIndex === idx && plan) {
+  // Choosing an idea opens the plan screen immediately. A plan that was saved
+  // earlier is reused as-is (no AI call); otherwise the 14-day plan loads inline
+  // so there is no full-screen wait, and is saved for next time.
+  // `list`, `ctxAnswers` and `ctxProfileId` default to the current run; they are
+  // passed explicitly when opening a saved run, whose state has not applied yet.
+  const chooseConcept = (
+    idx: number,
+    list: Concept[] = concepts,
+    ctxAnswers: AnswerMap = answers,
+    ctxProfileId: number | null = profileId,
+  ) => {
+    const chosen = list[idx];
+    if (!chosen) return;
+    if (list === concepts && selectedConceptIndex === idx && plan) {
       setPhase('plan');
       return;
     }
-    const chosen = concepts[idx];
-    if (!chosen) return;
     const requestId = planRequestRef.current + 1;
     planRequestRef.current = requestId;
     setSelectedConceptIndex(idx);
-    setPlan(null);
-    setPlanLoading(true);
+    setConcepts((prev) => prev.map((c, i) => (i === idx ? { ...c, selected: true } : c)));
     setPhase('plan');
-    void (async () => {
+
+    const markSelected = async () => {
+      if (typeof chosen.id !== 'number' || chosen.selected) return;
       try {
         const db = (window as any).__workspaceDb;
-        if (chosen.id) await db.from('idea_discovery_concepts').update(chosen.id, { selected: true });
+        await db.from('idea_discovery_concepts').update(chosen.id, { selected: true });
+        refreshSaved();
       } catch { /* noop */ }
-      const built = await generateValidationPlan(answers, chosen);
+    };
+
+    const saved = typeof chosen.id === 'number' ? savedPlans.get(chosen.id) : undefined;
+    if (saved) {
+      setPlan(saved);
+      setPlanLoading(false);
+      void markSelected();
+      return;
+    }
+
+    setPlan(null);
+    setPlanLoading(true);
+    void (async () => {
+      await markSelected();
+      const built = await generateValidationPlan(ctxAnswers, chosen);
       if (planRequestRef.current !== requestId) return;
       setPlan(built);
       setPlanLoading(false);
-      await persistValidationPlan(profileId, chosen.id ?? null, built);
+      await persistValidationPlan(ctxProfileId, chosen.id ?? null, built);
+      refreshSaved();
     })();
+  };
+
+  // Reopen a saved discovery (optionally straight into one of its ideas).
+  const openRun = (run: SavedRun, ideaIndex?: number) => {
+    planRequestRef.current += 1;
+    setProfileId(run.id);
+    setAnswers(run.answers);
+    setSnapshot(null);
+    setConcepts(run.concepts);
+    setSaveFailed(false);
+    setNotice(null);
+    setSelectedConceptIndex(null);
+    setPlan(null);
+    setPlanLoading(false);
+    if (typeof ideaIndex === 'number') chooseConcept(ideaIndex, run.concepts, run.answers, run.id);
+    else setPhase('results');
   };
 
   const copyBuildBrief = async () => {
@@ -849,7 +1047,8 @@ export default function IdeaDiscovery() {
     }
   };
 
-  const restart = () => {
+  // Clear the on-screen run. Saved work stays in the database and in "My ideas".
+  const resetRun = () => {
     planRequestRef.current += 1;
     setAnswers({});
     setStepIndex(0);
@@ -860,11 +1059,23 @@ export default function IdeaDiscovery() {
     setPlan(null);
     setPlanLoading(false);
     setNotice(null);
+    setSaveFailed(false);
     setBuildBriefText('');
     setReferralUrl('');
     setReferralError(null);
     setCopied(false);
+  };
+
+  // Back to the home screen ("My ideas" if the user has saved work).
+  const restart = () => {
+    resetRun();
+    refreshSaved();
     setPhase('welcome');
+  };
+
+  const startNew = () => {
+    resetRun();
+    setPhase('questions');
   };
 
   const handoffToGapRadar = () => {
@@ -888,6 +1099,117 @@ export default function IdeaDiscovery() {
       <div className="h-full overflow-y-auto">
         <StepLoader label={loadingLabel} />
       </div>
+    );
+  }
+
+  if (phase === 'welcome' && savedLoading && savedRuns.length === 0) {
+    return (
+      <div className="h-full overflow-y-auto">
+        <StepLoader label="Loading your ideas…" hint="Fetching what you’ve saved so far." />
+      </div>
+    );
+  }
+
+  // Returning users: "My ideas" — everything they have saved, ready to reopen.
+  if (phase === 'welcome' && savedRuns.length > 0) {
+    const totalIdeas = savedRuns.reduce((n, r) => n + r.concepts.length, 0);
+    // Most recently chosen idea, to offer "pick up where you left off".
+    let resume: { run: SavedRun; index: number } | null = null;
+    savedRuns.forEach((run) => {
+      run.concepts.forEach((c, index) => {
+        if (c.selected && (!resume || (c.id ?? 0) > (resume.run.concepts[resume.index].id ?? 0))) resume = { run, index };
+      });
+    });
+    const resumeIdea = resume ? (resume as { run: SavedRun; index: number }) : null;
+    const clamp2 = { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as const;
+
+    return (
+      <Shell innerRef={scrollRef}>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+          <div>
+            <span className={`text-xs font-medium ${tw.typography.color.accent}`}>FoundarOS · Idea Discovery</span>
+            <h1 className={`mt-1 text-2xl sm:text-3xl font-bold tracking-tight ${tw.typography.color.primary}`}>My ideas</h1>
+            <p className={`mt-2 text-sm ${tw.typography.color.secondary}`}>
+              {totalIdeas} saved {totalIdeas === 1 ? 'idea' : 'ideas'} from {savedRuns.length} {savedRuns.length === 1 ? 'discovery' : 'discoveries'}. Pick one up where you left off.
+            </p>
+          </div>
+          <PrimaryButton onClick={startNew}>
+            <Plus className="w-4 h-4" /> Find new ideas
+          </PrimaryButton>
+        </div>
+
+        {savedLoadFailed && (
+          <div className="mb-4 flex items-start gap-2.5 p-3 rounded-lg" style={{ background: 'color-mix(in srgb, var(--space-semantic-warning) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--space-semantic-warning) 40%, transparent)' }}>
+            <Info className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--space-semantic-warning)' }} />
+            <p className={`text-xs leading-5 ${tw.typography.color.secondary}`}>We couldn’t refresh your saved ideas just now, so this list may be out of date. Reopen Idea Discovery to try again.</p>
+          </div>
+        )}
+
+        {resumeIdea && (
+          <div
+            className="mb-5 p-5 rounded-2xl"
+            style={{ background: 'color-mix(in srgb, var(--space-brand-primary-500) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--space-brand-primary-500) 40%, transparent)' }}
+          >
+            <p className={`text-xs font-semibold uppercase tracking-wide ${tw.typography.color.accent}`}>Pick up where you left off</p>
+            <h2 className={`mt-1 text-lg font-bold ${tw.typography.color.primary}`}>{resumeIdea.run.concepts[resumeIdea.index].name}</h2>
+            <p className={`mt-1 text-sm ${tw.typography.color.secondary}`} style={clamp2}>{resumeIdea.run.concepts[resumeIdea.index].pitch}</p>
+            <div className="mt-3">
+              <PrimaryButton onClick={() => openRun(resumeIdea.run, resumeIdea.index)}>
+                Continue with this idea <ArrowRight className="w-4 h-4" />
+              </PrimaryButton>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {savedRuns.map((run) => {
+            const context = asText(run.answers.experience_current);
+            return (
+              <div key={run.id} className={`${tw.card.glass} p-5`}>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <h3 className={`text-sm font-semibold ${tw.typography.color.primary}`}>Discovery{formatDate(run.createdAt) ? ` · ${formatDate(run.createdAt)}` : ''}</h3>
+                  <span className={`text-xs ${tw.typography.color.muted}`}>{run.concepts.length} {run.concepts.length === 1 ? 'idea' : 'ideas'}</span>
+                </div>
+                {context && <p className={`mt-1 text-xs ${tw.typography.color.muted}`} style={{ ...clamp2, WebkitLineClamp: 1 }}>{context}</p>}
+                <ul className="mt-3 divide-y divide-[var(--space-border-default)]">
+                  {run.concepts.map((c, i) => (
+                    <li key={c.id ?? i} className="py-3 first:pt-0 last:pb-0">
+                      <button
+                        onClick={() => openRun(run, i)}
+                        className="w-full text-left flex items-start justify-between gap-3 group"
+                        aria-label={`Open ${c.name}`}
+                      >
+                        <span className="min-w-0">
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className={`text-sm font-semibold ${tw.typography.color.primary}`}>{c.name}</span>
+                            {c.selected && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[var(--space-surface-accent-soft)] text-[var(--space-text-brand)]">
+                                <Star className="w-3 h-3" /> Chosen
+                              </span>
+                            )}
+                            {typeof c.id === 'number' && savedPlans.has(c.id) && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[var(--space-surface-muted)] text-[var(--space-text-secondary)]">
+                                <ClipboardList className="w-3 h-3" /> Plan ready
+                              </span>
+                            )}
+                          </span>
+                          <span className={`mt-1 block text-xs ${tw.typography.color.secondary}`} style={clamp2}>{c.pitch}</span>
+                        </span>
+                        <ArrowRight className={`w-4 h-4 mt-1 flex-shrink-0 transition-transform group-hover:translate-x-1 ${tw.icon.muted}`} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 text-right">
+                  <button onClick={() => openRun(run)} className={`text-xs font-medium ${tw.typography.color.accent} hover:underline`}>
+                    Compare all {run.concepts.length} ideas
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Shell>
     );
   }
 
@@ -925,9 +1247,9 @@ export default function IdeaDiscovery() {
               </li>
             ))}
           </ol>
-          {hasSavedRun && (
-            <p className={`mt-8 text-xs ${tw.typography.color.muted}`}>
-              You have a previous discovery saved. Starting again creates a fresh one.
+          {savedLoadFailed && (
+            <p className={`mt-8 text-xs ${tw.typography.color.muted} max-w-sm`}>
+              We couldn’t load any ideas you’ve saved before. If you expected to see some, reopen Idea Discovery to try again.
             </p>
           )}
         </div>
@@ -1014,6 +1336,7 @@ export default function IdeaDiscovery() {
             <p className={`text-xs leading-5 ${tw.typography.color.secondary}`}>{notice}</p>
           </div>
         )}
+        {saveFailed && <SaveFailedNotice />}
 
         <div className="space-y-4">
           {concepts.map((c, i) => (
@@ -1076,6 +1399,13 @@ export default function IdeaDiscovery() {
             <RefreshCw className="w-4 h-4" /> Show me different ideas
           </button>
         </div>
+        {savedRuns.length > 0 && (
+          <div className="mt-4 text-center">
+            <button onClick={restart} className={`text-xs font-medium ${tw.typography.color.accent} hover:underline`}>
+              See all my saved ideas
+            </button>
+          </div>
+        )}
         <p className={`mt-6 text-center text-xs ${tw.typography.color.muted}`}>These are concepts worth exploring, not validated businesses.</p>
       </Shell>
     );
@@ -1104,6 +1434,7 @@ export default function IdeaDiscovery() {
         </div>
 
         <Header eyebrow="Your idea" title={c.name} subtitle={c.pitch} />
+        {saveFailed && <SaveFailedNotice />}
 
         <div className={`${tw.card.glass} p-5 sm:p-6`}>
           <div className="grid sm:grid-cols-3 gap-4">
@@ -1178,8 +1509,9 @@ export default function IdeaDiscovery() {
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-center print:hidden">
-          <button onClick={restart} className={`text-xs ${tw.typography.color.muted} hover:underline`}>Start a new discovery</button>
+        <div className="mt-6 flex items-center justify-center gap-5 print:hidden">
+          <button onClick={restart} className={`text-xs font-medium ${tw.typography.color.accent} hover:underline`}>My ideas</button>
+          <button onClick={startNew} className={`text-xs ${tw.typography.color.muted} hover:underline`}>Start a new discovery</button>
         </div>
       </Shell>
     );
@@ -1295,6 +1627,24 @@ export default function IdeaDiscovery() {
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
+// Shown when the ideas on screen could not be written to the database. Without
+// this the user would only find out later, when "My ideas" came up empty.
+function SaveFailedNotice() {
+  return (
+    <div
+      role="alert"
+      className="mb-4 flex items-start gap-2.5 p-3 rounded-lg"
+      style={{ background: 'color-mix(in srgb, var(--space-semantic-warning) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--space-semantic-warning) 40%, transparent)' }}
+    >
+      <Info className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--space-semantic-warning)' }} />
+      <p className={`text-xs leading-5 ${tw.typography.color.secondary}`}>
+        <span className={`font-semibold ${tw.typography.color.primary}`}>These ideas aren’t saved yet. </span>
+        We couldn’t save them to your account, so they won’t appear in “My ideas” later. Open the idea you like and use “Print / Save as PDF” to keep a copy.
+      </p>
+    </div>
+  );
+}
+
 function Header({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
   return (
     <div className="mb-6">
