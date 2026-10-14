@@ -153,6 +153,9 @@ type ReferralAttributes = {
   source?: string;
 };
 
+// Where "Build on Audos" goes when the owner has not set a referral link.
+const DEFAULT_AUDOS_URL = 'https://audos.com';
+
 const BUILD_PARTNERS: Record<string, BuildPartner> = {
   audos: {
     id: 'audos',
@@ -982,18 +985,24 @@ export default function IdeaDiscovery() {
       const rows = Array.isArray(referralConfigRows) ? referralConfigRows : [];
       const config = rows.find((row: any) => row.id === 'default') || rows[0];
       const configuredUrl = String(config?.referral_url || '').trim();
-      if (!configuredUrl) {
-        setReferralError('Referral URL not yet configured — visit Audos Referral settings to add your link.');
-        return;
-      }
 
-      let url: URL;
-      try {
-        url = new URL(configuredUrl);
-        if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Unsupported protocol');
-      } catch {
-        setReferralError('The configured referral URL is invalid — visit Audos Referral settings to correct it.');
-        return;
+      // Use the owner's referral link from the Audos Referral settings. If none
+      // is set (or it is not a valid web address) users are still sent to
+      // Audos.com rather than hitting a dead end that only an admin could fix.
+      // In that case the referral is not credited to the owner, so the settings
+      // screen warns them (see AudosConfig).
+      const parseWebUrl = (value: string): URL | null => {
+        try {
+          const parsed = new URL(value);
+          return ['http:', 'https:'].includes(parsed.protocol) ? parsed : null;
+        } catch {
+          return null;
+        }
+      };
+      let url = configuredUrl ? parseWebUrl(configuredUrl) : null;
+      if (!url) {
+        if (configuredUrl) console.warn('[IdeaDiscovery] configured referral URL is invalid; sending users to Audos.com without it.');
+        url = new URL(DEFAULT_AUDOS_URL);
       }
 
       const refId = String(config?.referral_id || '').trim();

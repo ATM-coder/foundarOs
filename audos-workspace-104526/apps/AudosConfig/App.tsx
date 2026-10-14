@@ -102,7 +102,9 @@ function statusClass(status: ReferralStatus) {
 }
 
 function referralPreview(config: ReferralConfig) {
-  if (!config.referral_url.trim()) return 'Referral URL not yet configured.';
+  if (!config.referral_url.trim()) {
+    return 'No referral link set. “Build on Audos” sends users to https://audos.com without your referral, so signups are not credited to you. Paste your Audos referral link above and save.';
+  }
   try {
     const url = new URL(config.referral_url.trim());
     if (config.referral_id.trim()) url.searchParams.set('ref', config.referral_id.trim());
