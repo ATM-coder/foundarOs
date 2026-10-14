@@ -78,6 +78,16 @@ const STAGES = ['Discover', 'Validate', 'Build', 'Assess', 'Fund', 'Operate'];
 export default function FounderJourney() {
   const [hovered, setHovered] = useState<string | null>(null);
 
+  // Saved Idea Discovery ideas (session-scoped: only this founder's own rows),
+  // so returning founders can jump straight back to what they already found.
+  const { data: ideaRows } = (window as any).useWorkspaceDB('idea_discovery_concepts', {
+    orderBy: { column: 'created_at', direction: 'desc' },
+    limit: 50,
+  }) as { data: any[] };
+  const savedIdeas = Array.isArray(ideaRows) ? ideaRows.filter((r) => r && r.name) : [];
+  const isChosen = (r: any) => r.selected === true || r.selected === 'true' || r.selected === 1;
+  const latestIdea = savedIdeas.find(isChosen) || savedIdeas[0];
+
   const choose = (card: PathCard) => {
     if (card.deepLink) {
       try {
@@ -104,6 +114,26 @@ export default function FounderJourney() {
             testing one, or already building a business.
           </p>
         </div>
+
+        {savedIdeas.length > 0 && latestIdea && (
+          <button
+            onClick={() => openApp('idea-discovery')}
+            className={`mt-8 w-full text-left ${tw.card.glass} p-5 flex items-center justify-between gap-4 transition-all hover:-translate-y-0.5`}
+          >
+            <span className="min-w-0">
+              <span className={`text-xs font-semibold uppercase tracking-wide ${tw.typography.color.accent}`}>Welcome back</span>
+              <span className={`mt-1 block text-base font-bold ${tw.typography.color.primary}`}>
+                You have {savedIdeas.length >= 50 ? '50+' : savedIdeas.length} saved {savedIdeas.length === 1 ? 'idea' : 'ideas'}
+              </span>
+              <span className={`mt-0.5 block text-sm truncate ${tw.typography.color.secondary}`}>
+                {isChosen(latestIdea) ? 'Last chosen' : 'Latest'}: {String(latestIdea.name)}
+              </span>
+            </span>
+            <span className={`inline-flex items-center gap-1.5 text-sm font-semibold flex-shrink-0 ${tw.typography.color.brand}`}>
+              Open my ideas <ArrowRight className="w-4 h-4" />
+            </span>
+          </button>
+        )}
 
         <div className="mt-10 grid md:grid-cols-3 gap-5">
           {PATHS.map((card) => {
