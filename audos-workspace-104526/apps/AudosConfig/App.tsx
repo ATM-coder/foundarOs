@@ -11,6 +11,7 @@ import {
   Users,
 } from 'lucide-react';
 import { tw } from '../../lib/colors';
+import { REFERRAL_SETTINGS } from '../../lib/referral';
 
 type Tab = 'configuration' | 'analytics';
 
@@ -102,8 +103,11 @@ function statusClass(status: ReferralStatus) {
 }
 
 function referralPreview(config: ReferralConfig) {
+  if (!REFERRAL_SETTINGS.enabled) {
+    return 'Referral links are switched off for now. “Build on Audos” sends users straight to ' + REFERRAL_SETTINGS.defaultUrl + ', and anything saved here is not used. Clicks are still logged below so you can share those users with the Audos team.';
+  }
   if (!config.referral_url.trim()) {
-    return 'No referral link set. “Build on Audos” sends users to https://audos.com without your referral, so signups are not credited to you. Paste your Audos referral link above and save.';
+    return 'No referral link set. “Build on Audos” sends users to ' + REFERRAL_SETTINGS.defaultUrl + ' without your referral, so signups are not credited to you. Paste your Audos referral link above and save.';
   }
   try {
     const url = new URL(config.referral_url.trim());
