@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { tw } from '../../lib/colors';
 import { useSpaceRuntime } from '../../SpaceRuntimeContext';
+import { REFERRAL_SETTINGS } from '../../lib/referral';
 
 /* ============================================================================
  * FoundarOS — Idea Discovery (simplified flow)
@@ -965,6 +966,9 @@ export default function IdeaDiscovery() {
     }
   };
 
+  // Referral settings only matter (and are only waited for) when referral links are on.
+  const buildBusy = referralLoading || (REFERRAL_SETTINGS.enabled && referralConfigLoading);
+
   const beginAudosReferral = () => {
     const chosen = buildBriefDraft?.c;
     const brief = buildBriefText || buildBriefDraft?.text || '';
@@ -972,36 +976,43 @@ export default function IdeaDiscovery() {
     setReferralLoading(true);
     setReferralError(null);
     try {
+      // Logging is best-effort: it must never stop a user reaching Audos.
       const db = (window as any).__workspaceDb;
-      if (!db) throw new Error('Workspace database unavailable');
-      if (referralConfigLoading) {
+      const referralsOn = REFERRAL_SETTINGS.enabled;
+      if (referralsOn && referralConfigLoading) {
         setReferralError('Referral settings are still loading. Please try again in a moment.');
         return;
       }
       const partner = BUILD_PARTNERS.audos;
       const rows = Array.isArray(referralConfigRows) ? referralConfigRows : [];
-      const config = rows.find((row: any) => row.id === 'default') || rows[0];
-      const configuredUrl = String(config?.referral_url || '').trim();
-      if (!configuredUrl) {
-        setReferralError('Referral URL not yet configured — visit Audos Referral settings to add your link.');
-        return;
-      }
-
-      let url: URL;
-      try {
-        url = new URL(configuredUrl);
-        if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Unsupported protocol');
-      } catch {
-        setReferralError('The configured referral URL is invalid — visit Audos Referral settings to correct it.');
-        return;
-      }
-
-      const refId = String(config?.referral_id || '').trim();
+      const config = referralsOn ? (rows.find((row: any) => row.id === 'default') || rows[0]) : undefined;
       const source = String(config?.referral_source_in_app || 'foundaros_idea_discovery').trim();
-      if (refId) url.searchParams.set('ref', refId);
-      url.searchParams.set('source', source);
       const attrs = readReferralAttributes();
-      if (attrs.utm_campaign) url.searchParams.set('utm_campaign', attrs.utm_campaign);
+
+      // Default: straight to Audos.com, no extra parameters (see lib/referral.ts).
+      // When referral links are switched on, use the owner's saved link and add
+      // their referral ID. A missing or invalid link still falls back to
+      // Audos.com so users are never stuck on an error only an admin could fix.
+      const parseWebUrl = (value: string): URL | null => {
+        try {
+          const parsed = new URL(value);
+          return ['http:', 'https:'].includes(parsed.protocol) ? parsed : null;
+        } catch {
+          return null;
+        }
+      };
+      const configuredUrl = String(config?.referral_url || '').trim();
+      let url = referralsOn && configuredUrl ? parseWebUrl(configuredUrl) : null;
+      if (!url) {
+        if (referralsOn && configuredUrl) console.warn('[IdeaDiscovery] configured referral URL is invalid; sending users to Audos.com without it.');
+        url = new URL(REFERRAL_SETTINGS.defaultUrl);
+      }
+      if (referralsOn) {
+        const refId = String(config?.referral_id || '').trim();
+        if (refId) url.searchParams.set('ref', refId);
+        url.searchParams.set('source', source);
+        if (attrs.utm_campaign) url.searchParams.set('utm_campaign', attrs.utm_campaign);
+      }
 
       const now = new Date().toISOString();
       const eventId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -1026,11 +1037,15 @@ export default function IdeaDiscovery() {
         created_at: now,
       };
 
-      void db.from(partner.referralTable).insert(event).catch((error: unknown) => {
-        console.warn('[IdeaDiscovery] could not persist Audos referral event.', error);
-      });
       try {
-        db.analytics?.track?.('audos_build_cta_clicked', {
+        void Promise.resolve(db?.from(partner.referralTable).insert(event)).catch((error: unknown) => {
+          console.warn('[IdeaDiscovery] could not persist Audos referral event.', error);
+        });
+      } catch (error) {
+        console.warn('[IdeaDiscovery] could not persist Audos referral event.', error);
+      }
+      try {
+        db?.analytics?.track?.('audos_build_cta_clicked', {
           referral_id: eventId,
           idea_name: chosen.name,
           source,
@@ -1041,7 +1056,7 @@ export default function IdeaDiscovery() {
       setPhase('build-transition');
     } catch (error) {
       console.warn('[IdeaDiscovery] could not start Audos referral.', error);
-      setReferralError('Referral settings could not be loaded. Please try again.');
+      setReferralError('We couldn’t open Audos just now. Please try again.');
     } finally {
       setReferralLoading(false);
     }
@@ -1574,8 +1589,8 @@ export default function IdeaDiscovery() {
             <button onClick={copyBuildBrief} className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm ${tw.button.secondary}`}>
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copied ? 'Copied!' : 'Copy Build Brief'}
             </button>
-            <PrimaryButton onClick={beginAudosReferral} disabled={referralLoading || referralConfigLoading}>
-              {(referralLoading || referralConfigLoading) ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Build on Audos <ArrowRight className="w-4 h-4" />
+            <PrimaryButton onClick={beginAudosReferral} disabled={buildBusy}>
+              {buildBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Build on Audos <ArrowRight className="w-4 h-4" />
             </PrimaryButton>
           </div>
         </div>
