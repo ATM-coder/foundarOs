@@ -6,6 +6,8 @@ import {
   ArrowRight,
   Sparkles,
   MessageCircle,
+  CalendarDays,
+  ExternalLink,
 } from 'lucide-react';
 import { tw } from '../../lib/colors';
 
@@ -73,6 +75,8 @@ const PATHS: PathCard[] = [
   },
 ];
 
+const CAMP_APPLY_URL = 'https://audos.com/camps/africa/apply';
+
 const STAGES = ['Discover', 'Validate', 'Build', 'Assess', 'Fund', 'Operate'];
 
 export default function FounderJourney() {
@@ -134,6 +138,42 @@ export default function FounderJourney() {
             </span>
           </button>
         )}
+
+        {/* Africa AI Founder Build Camp */}
+        <div className={`mt-8 ${tw.card.glass} p-6 sm:p-7`}>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
+            <div className="min-w-0">
+              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide ${tw.typography.color.accent}`}>
+                <CalendarDays className="w-3.5 h-3.5" /> Applications open · Starts 4 Nov 2026
+              </span>
+              <h2 className={`mt-2 text-xl font-bold ${tw.typography.color.primary}`}>Africa AI Founder Build Camp</h2>
+              <p className={`mt-2 text-sm leading-6 ${tw.typography.color.secondary} max-w-2xl`}>
+                A 4-week online camp for aspiring founders across Africa to refine their ideas and start building with AI on
+                Audos — no coding or startup experience needed. Live sessions are on Tuesdays, 1:00–2:00 PM WAT, with a final
+                showcase on 2 December 2026.
+              </p>
+              <p className={`mt-2 text-sm leading-6 ${tw.typography.color.secondary} max-w-2xl`}>
+                <span className="font-semibold">Don’t have an idea yet?</span> Start with Idea Discovery below to get camp-ready.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:items-end flex-shrink-0">
+              <a
+                href={CAMP_APPLY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[var(--space-brand-primary-600)] text-white transition-all hover:-translate-y-0.5"
+              >
+                Apply to the camp <ExternalLink className="w-4 h-4" />
+              </a>
+              <button
+                onClick={() => openApp('idea-discovery')}
+                className={`inline-flex items-center justify-center gap-1.5 text-sm font-semibold ${tw.typography.color.brand}`}
+              >
+                Find my idea first <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div className="mt-10 grid md:grid-cols-3 gap-5">
           {PATHS.map((card) => {
