@@ -12,5 +12,5 @@
  */
 export const REFERRAL_SETTINGS = {
   enabled: false,
-  defaultUrl: 'https://audos.com',
+  defaultUrl: 'https://audos.com/camps/africa/apply',
 };
